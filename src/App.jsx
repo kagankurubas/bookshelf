@@ -54,62 +54,68 @@ function App() {
   return (
     <div className="main-container">
       
-      {/* Üst Kısım: Başlık ve Sağ Üst Mavi Buton */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', width: '100%' }}>
-        <header className="app-header" style={{ borderBottom: 'none', paddingBottom: '0', margin: 0 }}>
-          <h1 style={{ margin: 0, fontSize: '32px' }}>BookShelf 📚</h1>
-        </header>
+      {/* 1. En Üstte Başlık */}
+      <header className="app-header" style={{ marginBottom: '15px', borderBottom: 'none', paddingBottom: '0' }}>
+        <h1 style={{ margin: 0, fontSize: '32px' }}>BookShelf 📚</h1>
+      </header>
 
-        <button 
-          onClick={openNewBookModal}
-          style={{
-            background: '#2383e2',
-            color: 'white',
-            border: 'none',
-            borderRadius: '50%',
-            width: '44px',
-            height: '44px',
-            fontSize: '24px',
-            fontWeight: 'bold',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(35, 131, 226, 0.4)',
-            transition: 'all 0.2s',
-            flexShrink: 0
-          }}
-          title="Yeni Kitap Ekle"
-        >
-          +
-        </button>
-      </div>
+      {/* Dikey Ana Kapsayıcı */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px' }}>
+        
+        {/* 2. Sırada: Genişletilmiş Sekmeler */}
+        <div style={{ display: 'flex', width: '100%' }}>
+          <div className="modern-tabs" style={{ display: 'flex', width: '100%' }}>
+            <button 
+              className={`modern-tab-btn ${activeView === 'cards' ? 'active' : ''}`}
+              onClick={() => setActiveView('cards')}
+              style={{ flex: 1, textAlign: 'center' }}
+            >
+              📖 Kitaplar
+            </button>
+            <button 
+              className={`modern-tab-btn ${activeView === 'table' ? 'active' : ''}`}
+              onClick={() => setActiveView('table')}
+              style={{ flex: 1, textAlign: 'center' }}
+            >
+              📑 Tablo
+            </button>
+            <button 
+              className={`modern-tab-btn ${activeView === 'shelf' ? 'active' : ''}`}
+              onClick={() => setActiveView('shelf')}
+              style={{ flex: 1, textAlign: 'center' }}
+            >
+              📚 Kitaplık Rafı
+            </button>
+          </div>
+        </div>
 
-      {/* Sekmeler Çubuğu (Tam Genişlik) */}
-      <div style={{ display: 'flex', width: '100%', marginBottom: '30px' }}>
-        <div className="modern-tabs" style={{ display: 'flex', width: '100%' }}>
+        {/* 3. Sırada: Sekmelerin Altında, Sağ Köşede Mavi Yuvarlak Buton */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '5px', width: '100%' }}>
           <button 
-            className={`modern-tab-btn ${activeView === 'cards' ? 'active' : ''}`}
-            onClick={() => setActiveView('cards')}
-            style={{ flex: 1, textAlign: 'center' }}
+            onClick={openNewBookModal}
+            style={{
+              background: '#2383e2',
+              color: 'white',
+              border: 'none',
+              borderRadius: '50%',
+              width: '44px',
+              height: '44px',
+              fontSize: '24px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(35, 131, 226, 0.4)',
+              transition: 'all 0.2s',
+              flexShrink: 0
+            }}
+            title="Yeni Kitap Ekle"
           >
-            📖 Kitaplar
-          </button>
-          <button 
-            className={`modern-tab-btn ${activeView === 'table' ? 'active' : ''}`}
-            onClick={() => setActiveView('table')}
-            style={{ flex: 1, textAlign: 'center' }}
-          >
-            📑 Tablo
-          </button>
-          <button 
-            className={`modern-tab-btn ${activeView === 'shelf' ? 'active' : ''}`}
-            onClick={() => setActiveView('shelf')}
-            style={{ flex: 1, textAlign: 'center' }}
-          >
-            📚 Kitaplık Rafı
+            +
           </button>
         </div>
+
       </div>
 
       {/* --- KİTAPLAR GÖRÜNÜMÜ --- */}
