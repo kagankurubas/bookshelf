@@ -1,0 +1,141 @@
+/* Modal Arka Planı (Overlay) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.65); /* Yarı saydam siyah */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* En üstte görünmesini sağlar */
+  backdrop-filter: blur(4px); /* Arkaya hafif bulanıklık ekler (Notion hissi) */
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Modal İçeriği (Card) */
+.modal-content {
+  background-color: #202020; /* Koyu tema arka planı */
+  width: 90%;
+  max-width: 700px;
+  max-height: 90vh; /* Ekrana sığacak şekilde */
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* İçerik taşarsa gizle */
+  animation: slideInUp 0.3s ease-out;
+}
+
+/* Modal Header (Başlık ve Kapat Butonu) */
+.modal-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  justify-content: flex-end; /* Kapat butonunu sağa yasla */
+}
+
+.close-modal-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.close-modal-btn:hover {
+  color: white;
+}
+
+/* Modal Body (Form Alanları) */
+.modal-body {
+  padding: 24px;
+  overflow-y: auto; /* Form çok uzunsa kaydırılabilir yap */
+}
+
+/* Form Elemanları */
+.form-group {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.form-label {
+  width: 120px; /* Etiket genişliği */
+  color: #aaa;
+  font-size: 14px;
+}
+
+.form-input, .form-select, .form-textarea {
+  flex: 1; /* Input alanını genişlet */
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 10px;
+  color: white;
+  font-size: 15px;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: #555;
+  background-color: #333;
+}
+
+.form-textarea {
+  min-height: 80px;
+  resize: vertical; /* Sadece dikey boyutlandırılabilir */
+}
+
+/* Yıldızlı Puanlama (Örnek stil) */
+.rating-input {
+  display: flex;
+  gap: 5px;
+  cursor: pointer;
+}
+.star {
+  font-size: 22px;
+  color: #444;
+}
+.star.filled {
+  color: #ffc107; /* Sarı yıldız */
+}
+
+/* Modal Footer (Kaydet Butonu) */
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #333;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.save-book-btn {
+  background-color: #007bff; /* Mavi kaydet butonu */
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.save-book-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Animasyonlar */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
