@@ -1,15 +1,26 @@
-/* Genel Sayfa Konteyneri */
+html, body, #root {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  background-color: #121212 !important;
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 .main-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 30px 20px;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 30px 50px !important;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: #fff;
   background-color: #121212;
   min-height: 100vh;
 }
-
-/* Üst Header */
 .app-header {
   border-bottom: 1px solid #333;
   padding-bottom: 15px;
@@ -29,7 +40,6 @@
   margin: 0;
 }
 
-/* Modern Mac/Notion Tarzı Sekmeler */
 .modern-tabs {
   display: flex;
   background-color: #1e1e1e;
@@ -37,6 +47,7 @@
   border-radius: 8px;
   gap: 4px;
   border: 1px solid #333;
+  width: 100%;
 }
 
 .modern-tab-btn {
@@ -107,7 +118,6 @@
   margin-bottom: 12px;
 }
 
-/* Özellik Etiketleri (Tagler) */
 .property-tag {
   font-size: 12px;
   padding: 4px 8px;
@@ -121,7 +131,6 @@
   border: 1px solid #3d3d3d;
 }
 
-/* Durum Renkleri */
 .property-tag.status.başlanmadı {
   background-color: rgba(107, 114, 128, 0.2);
   color: #9ca3af;
@@ -170,7 +179,6 @@
   background-color: rgba(239, 68, 68, 0.1);
 }
 
-/* Boş Durum (Empty State) */
 .empty-state {
   text-align: center;
   padding: 50px 20px;
@@ -179,4 +187,76 @@
   border: 1px dashed #333;
   border-radius: 8px;
   margin-top: 20px;
+}
+
+.wooden-shelf-container {
+  display: flex;
+  flex-direction: column;
+  gap: 60px;
+  margin-top: 40px;
+  width: 100%;
+}
+
+.shelf-row {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 30px;
+  min-height: 200px;
+  width: 100%;
+  box-sizing: border-box;
+  flex-wrap: wrap; 
+  gap: 12px;
+}
+
+.shelf-board {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 22px;
+  background: linear-gradient(to bottom, #96613d, #5c3a21);
+  border-radius: 4px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7), inset 0 2px 4px rgba(255, 255, 255, 0.2);
+  border-bottom: 3px solid #3b2513;
+}
+
+
+.shelf-book {
+  background: linear-gradient(135deg, #383838, #222222);
+  border: 1px solid #555;
+  border-radius: 6px 8px 4px 4px;
+  padding: 14px 10px;
+  width: 55px; 
+  height: 155px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: -4px 6px 14px rgba(0,0,0,0.6);
+  position: relative;
+  z-index: 2;
+  margin-bottom: 2px;
+}
+
+.shelf-book:hover {
+  transform: translateY(-12px);
+  box-shadow: -6px 14px 24px rgba(0,0,0,0.8);
+  border-color: #777;
+}
+
+.shelf-book-title {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  font-size: 13px;
+  font-weight: 600;
+  color: #f0f0f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 120px;
+  letter-spacing: 0.5px;
 }

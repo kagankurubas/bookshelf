@@ -15,8 +15,21 @@ function BookModal({ onClose, onSave, selectedBook }) {
   
   // Yeni yazılmakta olan not veya düzenlenen notun metni
   const [currentNoteText, setCurrentNoteText] = useState('');
-  // Eğer şu an bir not düzenleniyorsa onun ID'si, yoksa null
   const [editingNoteId, setEditingNoteId] = useState(null);
+
+  // Kullanıcının bir değişiklik yapıp yapmadığını kontrol edelim
+  const isModified = selectedBook 
+    ? (
+        title !== selectedBook.title ||
+        author !== selectedBook.author ||
+        rating !== selectedBook.rating ||
+        category !== selectedBook.category ||
+        status !== selectedBook.status ||
+        dateStarted !== (selectedBook.dateStarted || '') ||
+        dateFinished !== (selectedBook.dateFinished || '') ||
+        JSON.stringify(notesList) !== JSON.stringify(selectedBook.notesList || [])
+      )
+    : (title.trim() !== '' || author.trim() !== ''); // Yeni kitapta en azından başlık veya yazar yazıldıysa aktif olsun
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
@@ -30,7 +43,6 @@ function BookModal({ onClose, onSave, selectedBook }) {
     }
   };
 
-  // Yeni not ekleme veya güncellemeyi kaydetme
   const handleSaveNoteItem = () => {
     if (!currentNoteText.trim()) return;
 
@@ -40,13 +52,11 @@ function BookModal({ onClose, onSave, selectedBook }) {
     });
 
     if (editingNoteId) {
-      // Düzenleme modundaysak mevcut notu güncelle
       setNotesList(notesList.map(note => 
         note.id === editingNoteId ? { ...note, text: currentNoteText, date: `${formattedDate} (Düzenlendi)` } : note
       ));
       setEditingNoteId(null);
     } else {
-      // Yeni not ekleme modundaysak listeye ekle
       const newNote = {
         id: Date.now(),
         text: currentNoteText,
@@ -55,16 +65,14 @@ function BookModal({ onClose, onSave, selectedBook }) {
       setNotesList([...notesList, newNote]);
     }
 
-    setCurrentNoteText(''); // Kutuyu temizle
+    setCurrentNoteText('');
   };
 
-  // Notu düzenleme moduna al
   const handleEditNote = (note) => {
     setCurrentNoteText(note.text);
     setEditingNoteId(note.id);
   };
 
-  // Notu sil
   const handleDeleteNote = (id) => {
     setNotesList(notesList.filter(note => note.id !== id));
     if (editingNoteId === id) {
@@ -88,7 +96,7 @@ function BookModal({ onClose, onSave, selectedBook }) {
       status,
       dateStarted,
       dateFinished,
-      notesList, // Çoklu not listesini kaydediyoruz
+      notesList,
       createdAt: selectedBook ? selectedBook.createdAt : new Date().toISOString(),
     };
 
@@ -151,27 +159,24 @@ function BookModal({ onClose, onSave, selectedBook }) {
             </select>
           </div>
 
-          {/* Başlama Tarihi: "Başlanmadı" haricindeki tüm durumlarda görünür */}
           {status !== 'Başlanmadı' && (
-                <div className="form-group">
-                <span className="form-label">▶️ Başlama</span>
-                <input type="date" className="form-input" value={dateStarted} onChange={(e) => setDateStarted(e.target.value)} />
-                </div>
-            )}
+            <div className="form-group">
+              <span className="form-label">▶️ Başlama</span>
+              <input type="date" className="form-input" value={dateStarted} onChange={(e) => setDateStarted(e.target.value)} />
+            </div>
+          )}
 
-            {/* Bitiş Tarihi: Sadece "Tamamlandı" durumunda görünür */}
-            {status === 'Tamamlandı' && (
-                <div className="form-group">
-                <span className="form-label">🏁 Bitiş</span>
-                <input type="date" className="form-input" value={dateFinished} onChange={(e) => setDateFinished(e.target.value)} />
-                </div>
-            )}
+          {status === 'Tamamlandı' && (
+            <div className="form-group">
+              <span className="form-label">🏁 Bitiş</span>
+              <input type="date" className="form-input" value={dateFinished} onChange={(e) => setDateFinished(e.target.value)} />
+            </div>
+          )}
 
-          {/* NOTLAR BÖLÜMÜ (Bloklar Halinde) */}
+          {/* NOTLAR BÖLÜMÜ */}
           <div style={{ marginTop: '30px', borderTop: '1px solid #333', paddingTop: '20px' }}>
             <h3 style={{ fontSize: '16px', color: '#aaa', marginBottom: '15px' }}>📝 Kitap Notları ve Düşünceler</h3>
             
-            {/* Yeni Not Yazma Alanı ve Ekle/Güncelle Butonu */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
               <textarea 
                 className="form-textarea"
@@ -198,7 +203,6 @@ function BookModal({ onClose, onSave, selectedBook }) {
               </div>
             </div>
 
-            {/* Eklenen Notların Listesi (Bloklar / Label Tarzı) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {notesList.length === 0 ? (
                 <p style={{ fontSize: '13px', color: '#666', fontStyle: 'italic' }}>Henüz not eklenmemiş.</p>
@@ -206,7 +210,6 @@ function BookModal({ onClose, onSave, selectedBook }) {
                 notesList.map((note) => (
                   <div key={note.id} style={{ background: '#222', border: '1px solid #333', borderRadius: '6px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     
-                    {/* Not Tarihi ve İşlem Butonları Üst Kısım */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #313131', paddingBottom: '6px' }}>
                       <span style={{ fontSize: '11px', color: '#888', fontWeight: '500' }}>
                         📅 {note.date}
@@ -216,20 +219,19 @@ function BookModal({ onClose, onSave, selectedBook }) {
                             onClick={() => handleEditNote(note)}
                             title="Düzenle"
                             style={{ background: 'transparent', border: 'none', color: '#60a5fa', fontSize: '14px', cursor: 'pointer', padding: '2px' }}
-                        >
+                          >
                             ✏️
                         </button>
                         <button 
                             onClick={() => handleDeleteNote(note.id)}
                             title="Sil"
                             style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '14px', cursor: 'pointer', padding: '2px' }}
-                        >
+                          >
                             🗑️
                         </button>
-                        </div>
+                      </div>
                     </div>
 
-                    {/* Not İçeriği */}
                     <p style={{ margin: 0, fontSize: '14px', color: '#ddd', whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>
                       {note.text}
                     </p>
@@ -242,8 +244,20 @@ function BookModal({ onClose, onSave, selectedBook }) {
 
         </div>
 
+        {/* Modal Alt Kısım: Dinamik Kaydet Butonu */}
         <div className="modal-footer">
-          <button className="save-book-btn" onClick={handleSave}>Kitabı Kaydet</button>
+          <button 
+            className="save-book-btn" 
+            onClick={handleSave}
+            disabled={!isModified}
+            style={{ 
+              opacity: isModified ? 1 : 0.5, 
+              cursor: isModified ? 'pointer' : 'not-allowed',
+              backgroundColor: isModified ? '#2383e2' : '#444'
+            }}
+          >
+            {selectedBook ? 'Değişiklikleri Kaydet' : 'Kitabı Kaydet'}
+          </button>
         </div>
       </div>
     </div>

@@ -54,67 +54,62 @@ function App() {
   return (
     <div className="main-container">
       
-      {/* 1. En Üstte BookShelf */}
-      <header className="app-header" style={{ marginBottom: '15px', borderBottom: 'none', paddingBottom: '0' }}>
-        <h1 style={{ margin: 0, fontSize: '32px' }}>BookShelf 📚</h1>
-      </header>
+      {/* Üst Kısım: Başlık ve Sağ Üst Mavi Buton */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', width: '100%' }}>
+        <header className="app-header" style={{ borderBottom: 'none', paddingBottom: '0', margin: 0 }}>
+          <h1 style={{ margin: 0, fontSize: '32px' }}>BookShelf 📚</h1>
+        </header>
 
-      {/* Dikey Ana Kapsayıcı */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '30px', paddingBottom: '10px' }}>
-        
-        {/* 2. Sırada: Genişletilmiş Sekmeler */}
-        <div style={{ display: 'flex', width: '100%' }}>
-          <div className="modern-tabs" style={{ display: 'flex', width: '100%' }}>
-            <button 
-              className={`modern-tab-btn ${activeView === 'cards' ? 'active' : ''}`}
-              onClick={() => setActiveView('cards')}
-              style={{ flex: 1, textAlign: 'center' }}
-            >
-              📖 Kitaplar
-            </button>
-            <button 
-              className={`modern-tab-btn ${activeView === 'table' ? 'active' : ''}`}
-              onClick={() => setActiveView('table')}
-              style={{ flex: 1, textAlign: 'center' }}
-            >
-              📑 Tablo
-            </button>
-            <button 
-              className={`modern-tab-btn ${activeView === 'shelf' ? 'active' : ''}`}
-              onClick={() => setActiveView('shelf')}
-              style={{ flex: 1, textAlign: 'center' }}
-            >
-              📚 Kitaplık Rafı
-            </button>
-          </div>
-        </div>
+        <button 
+          onClick={openNewBookModal}
+          style={{
+            background: '#2383e2',
+            color: 'white',
+            border: 'none',
+            borderRadius: '50%',
+            width: '44px',
+            height: '44px',
+            fontSize: '24px',
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(35, 131, 226, 0.4)',
+            transition: 'all 0.2s',
+            flexShrink: 0
+          }}
+          title="Yeni Kitap Ekle"
+        >
+          +
+        </button>
+      </div>
 
-        {/* 3. Sırada: Sağ Köşede Mavi Yuvarlak Buton */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '5px' }}>
+      {/* Sekmeler Çubuğu (Tam Genişlik) */}
+      <div style={{ display: 'flex', width: '100%', marginBottom: '30px' }}>
+        <div className="modern-tabs" style={{ display: 'flex', width: '100%' }}>
           <button 
-            onClick={openNewBookModal}
-            style={{
-              background: '#2383e2',
-              color: 'white',
-              border: 'none',
-              borderRadius: '50%',
-              width: '44px',
-              height: '44px',
-              fontSize: '24px',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(35, 131, 226, 0.4)',
-              transition: 'all 0.2s'
-            }}
-            title="Yeni Kitap Ekle"
+            className={`modern-tab-btn ${activeView === 'cards' ? 'active' : ''}`}
+            onClick={() => setActiveView('cards')}
+            style={{ flex: 1, textAlign: 'center' }}
           >
-            +
+            📖 Kitaplar
+          </button>
+          <button 
+            className={`modern-tab-btn ${activeView === 'table' ? 'active' : ''}`}
+            onClick={() => setActiveView('table')}
+            style={{ flex: 1, textAlign: 'center' }}
+          >
+            📑 Tablo
+          </button>
+          <button 
+            className={`modern-tab-btn ${activeView === 'shelf' ? 'active' : ''}`}
+            onClick={() => setActiveView('shelf')}
+            style={{ flex: 1, textAlign: 'center' }}
+          >
+            📚 Kitaplık Rafı
           </button>
         </div>
-
       </div>
 
       {/* --- KİTAPLAR GÖRÜNÜMÜ --- */}
@@ -263,12 +258,39 @@ function App() {
         </main>
       )}
 
-      {/* --- KİTAPLIK RAFİ GÖRÜNÜMÜ --- */}
+      {/* --- KİTAPLIK RAFI GÖRÜNÜMÜ --- */}
       {activeView === 'shelf' && (
         <main className="book-list-container">
-          <div className="empty-state">
-            <p>Ahşap raf görünümü burada yer alacak.</p>
-          </div>
+          {books.length === 0 ? (
+            <div className="empty-state">
+              <p>Rafta sergilenecek henüz kitap yok. Sağ üstteki **+** butonundan ekleyebilirsin!</p>
+            </div>
+          ) : (
+            <div className="wooden-shelf-container">
+              {/* Kitapları her rafta 12 adet olacak şekilde gruplara (katlara) bölelim */}
+              {Array.from({ length: Math.ceil(books.length / 12) }).map((_, shelfIndex) => {
+                const shelfBooks = books.slice(shelfIndex * 12, (shelfIndex + 1) * 12);
+                return (
+                  <div key={shelfIndex} className="shelf-row">
+                    {shelfBooks.map((book) => (
+                      <div 
+                        key={book.id} 
+                        className="shelf-book"
+                        onClick={() => openBookDetailModal(book)}
+                        title={`${book.title} - ${book.author}`}
+                      >
+                        <span className="shelf-book-title">{book.title}</span>
+                        <span style={{ fontSize: '11px' }}>
+                          {book.status === 'Tamamlandı' ? '✅' : book.status === 'Okunuyor' ? '📖' : '📌'}
+                        </span>
+                      </div>
+                    ))}
+                    <div className="shelf-board"></div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </main>
       )}
 
