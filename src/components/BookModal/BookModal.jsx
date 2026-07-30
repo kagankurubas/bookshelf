@@ -9,6 +9,13 @@ function BookModal({ onClose, onSave, selectedBook }) {
   const [status, setStatus] = useState(selectedBook ? selectedBook.status : 'Başlanmadı');
   const [dateStarted, setDateStarted] = useState(selectedBook ? selectedBook.dateStarted : '');
   const [dateFinished, setDateFinished] = useState(selectedBook ? selectedBook.dateFinished : '');
+  const [coverImage, setCoverImage] = useState(selectedBook ? selectedBook.coverImage || '' : '');
+  
+  const [isAddingCover, setIsAddingCover] = useState(false);
+  const [coverPosition, setCoverPosition] = useState(selectedBook ? selectedBook.coverPosition || 50 : 50);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startY, setStartY] = useState(0);
+  const [startPos, setStartPos] = useState(50);
   
   // Notlar artık bir dizi (array) olacak: [{ id, text, date }]
   const [notesList, setNotesList] = useState(selectedBook ? selectedBook.notesList || [] : []);
@@ -27,9 +34,11 @@ function BookModal({ onClose, onSave, selectedBook }) {
         status !== selectedBook.status ||
         dateStarted !== (selectedBook.dateStarted || '') ||
         dateFinished !== (selectedBook.dateFinished || '') ||
+        coverImage !== (selectedBook.coverImage || '') ||
+        coverPosition !== (selectedBook.coverPosition || 50) ||
         JSON.stringify(notesList) !== JSON.stringify(selectedBook.notesList || [])
       )
-    : (title.trim() !== '' || author.trim() !== ''); // Yeni kitapta en azından başlık veya yazar yazıldıysa aktif olsun
+    : (title.trim() !== '' || author.trim() !== '' || coverImage.trim() !== '');
 
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
@@ -41,6 +50,26 @@ function BookModal({ onClose, onSave, selectedBook }) {
       const today = new Date().toISOString().split('T')[0];
       setDateFinished(today);
     }
+  };
+
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    setStartY(e.clientY);
+    setStartPos(coverPosition);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    const deltaY = e.clientY - startY;
+    // Hassasiyeti artırarak hareketi daha yumuşak ve yavaş hale getirdik (0.15)
+    let newPos = startPos - (deltaY * 0.15); 
+    if (newPos < 0) newPos = 0;
+    if (newPos > 100) newPos = 100;
+    setCoverPosition(Math.round(newPos));
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
   };
 
   const handleSaveNoteItem = () => {
@@ -96,6 +125,8 @@ function BookModal({ onClose, onSave, selectedBook }) {
       status,
       dateStarted,
       dateFinished,
+      coverImage,
+      coverPosition,
       notesList,
       createdAt: selectedBook ? selectedBook.createdAt : new Date().toISOString(),
     };
@@ -109,19 +140,119 @@ function BookModal({ onClose, onSave, selectedBook }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: 0, overflow: 'hidden' }}>
         
-        <div className="modal-header">
-          <button className="close-modal-btn" onClick={onClose}>×</button>
+        <div 
+          style={{ 
+            width: '100%', 
+            height: coverImage || isAddingCover ? '240px' : '90px', // Yüksekliği büyüttük 
+            background: '#1a1a1a', 
+            position: 'relative', 
+            overflow: 'hidden', 
+            borderBottom: '1px solid #333', 
+            transition: 'height 0.2s ease',
+            cursor: coverImage ? (isDragging ? 'grabbing' : 'grab') : 'default'
+          }}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
+          
+          {/* 1. Kapatma Butonu (Sağ Üstte Bağımsız) */}
+          <button 
+            className="close-modal-btn" 
+            onClick={onClose} 
+            style={{ 
+              position: 'absolute', 
+              top: '12px', 
+              right: '12px', 
+              background: 'rgba(0,0,0,0.6)', 
+              color: '#fff', 
+              borderRadius: '50%', 
+              width: '28px', 
+              height: '28px', 
+              border: 'none', 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              zIndex: 20,
+              fontSize: '14px',
+              lineHeight: 1,
+              padding: 0
+            }}
+          >
+            ×
+          </button>
+
+          {/* 2. Kapak İçeriği (Mouse ile Sürüklemeli) */}
+          {coverImage ? (
+            <div 
+              style={{ width: '100%', height: '100%', position: 'relative', userSelect: 'none' }}
+              onMouseDown={handleMouseDown}
+            >
+              <img 
+                src={coverImage} 
+                alt="Kapak Önizleme" 
+                draggable="false"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `center ${coverPosition}%`, pointerEvents: 'none' }} 
+              />
+              
+              {/* İpucu Yazısı */}
+              <div style={{ position: 'absolute', bottom: '10px', left: '15px', background: 'rgba(0,0,0,0.6)', padding: '3px 8px', borderRadius: '4px', pointerEvents: 'none', zIndex: 10 }}>
+                <span style={{ fontSize: '10px', color: '#aaa' }}>↕️ Resmi hareket ettirmek için basıp sürükle</span>
+              </div>
+
+              {/* Kaldır Butonu (Sol Üste Taşındı) */}
+              <button 
+                type="button" 
+                onClick={(e) => { e.stopPropagation(); setCoverImage(''); setCoverPosition(50); setIsAddingCover(false); }}
+                style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(0,0,0,0.7)', color: '#f87171', border: '1px solid rgba(255,255,255,0.2)', padding: '4px 8px', fontSize: '11px', borderRadius: '4px', cursor: 'pointer', zIndex: 10 }}
+              >
+                Kaldır
+              </button>
+            </div>
+          ) : isAddingCover ? (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 20px' }}>
+              <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '400px' }}>
+                <input 
+                  type="url" 
+                  placeholder="Kapak Görseli URL'si yapıştır (https://...)" 
+                  autoFocus
+                  onChange={(e) => setCoverImage(e.target.value)}
+                  style={{ flex: 1, background: '#252525', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none' }}
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setIsAddingCover(false)}
+                  style={{ background: '#444', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
+                >
+                  İptal
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '18px' }}>
+              <button 
+                type="button"
+                onClick={() => setIsAddingCover(true)}
+                style={{ background: 'rgba(255,255,255,0.08)', color: '#ccc', border: '1px solid rgba(255,255,255,0.1)', padding: '6px 16px', fontSize: '12px', fontWeight: '500', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s' }}
+                onMouseEnter={(e) => { e.target.style.background = 'rgba(255,255,255,0.15)'; e.target.style.color = '#fff'; }}
+                onMouseLeave={(e) => { e.target.style.background = 'rgba(255,255,255,0.08)'; e.target.style.color = '#ccc'; }}
+              >
+                + Kapak Ekle
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="modal-body">
+        <div className="modal-body" style={{ padding: '25px 30px' }}>
           <input 
             type="text" 
             placeholder="Kitap Adı (Örn: Suç ve Ceza)" 
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            style={{ fontSize: '30px', fontWeight: 'bold', marginBottom: '25px', width: '100%', background: 'transparent', border: 'none', color: 'white' }}
+            style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '25px', width: '100%', background: 'transparent', border: 'none', color: 'white', outline: 'none' }}
           />
 
           <div className="form-group">
@@ -221,14 +352,14 @@ function BookModal({ onClose, onSave, selectedBook }) {
                             style={{ background: 'transparent', border: 'none', color: '#60a5fa', fontSize: '14px', cursor: 'pointer', padding: '2px' }}
                           >
                             ✏️
-                        </button>
+                          </button>
                         <button 
                             onClick={() => handleDeleteNote(note.id)}
                             title="Sil"
                             style={{ background: 'transparent', border: 'none', color: '#f87171', fontSize: '14px', cursor: 'pointer', padding: '2px' }}
                           >
                             🗑️
-                        </button>
+                          </button>
                       </div>
                     </div>
 
@@ -245,7 +376,7 @@ function BookModal({ onClose, onSave, selectedBook }) {
         </div>
 
         {/* Modal Alt Kısım: Dinamik Kaydet Butonu */}
-        <div className="modal-footer">
+        <div className="modal-footer" style={{ padding: '15px 30px', background: '#181818', borderTop: '1px solid #333', display: 'flex', justifyContent: 'flex-end' }}>
           <button 
             className="save-book-btn" 
             onClick={handleSave}
@@ -253,7 +384,12 @@ function BookModal({ onClose, onSave, selectedBook }) {
             style={{ 
               opacity: isModified ? 1 : 0.5, 
               cursor: isModified ? 'pointer' : 'not-allowed',
-              backgroundColor: isModified ? '#2383e2' : '#444'
+              backgroundColor: isModified ? '#2383e2' : '#444',
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '6px',
+              fontWeight: 'bold'
             }}
           >
             {selectedBook ? 'Değişiklikleri Kaydet' : 'Kitabı Kaydet'}

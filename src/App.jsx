@@ -119,7 +119,7 @@ function App() {
       </div>
 
       {/* --- KİTAPLAR GÖRÜNÜMÜ --- */}
-      {activeView === 'cards' && (
+     {activeView === 'cards' && (
         <main className="book-list-container">
           {books.length === 0 ? (
             <div className="empty-state">
@@ -129,12 +129,45 @@ function App() {
             <div className="book-cards-grid">
               {books.map((book) => (
                 <div 
-                  key={book.id} 
-                  className="book-card"
-                  onClick={() => openBookDetailModal(book)}
-                  style={{ cursor: 'pointer' }}
+                  key={book.id}
+                  className="book-card" 
+                  onClick={() => openBookDetailModal(book)} 
+                  style={{ cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
                 >
-                  <div className="card-content">
+                  {/* Eğer kapak görseli varsa kartın en üstüne banner gibi yerleştirelim */}
+                  {book.coverImage ? (
+                    <div className="card-cover-banner">
+                    <img 
+                      src={book.coverImage} 
+                      alt={book.title} 
+                      className="card-cover-image" 
+                      style={{ objectPosition: `center ${book.coverPosition || 50}%` }}
+                    />
+                    <button 
+                      className="card-cover-action-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openBookDetailModal(book);
+                      }}
+                    >
+                      Kapağı Düzenle
+                    </button>
+                  </div>
+                  ) : (
+                    <div className="card-cover-banner placeholder">
+                      <button 
+                        className="card-cover-action-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openBookDetailModal(book);
+                        }}
+                      >
+                        + Kapak Ekle
+                      </button>
+                    </div>
+                  )}
+                  
+                  <div className="card-content" style={{ padding: '15px 20px 20px 20px' }}>
                     <h3 className="card-title">{book.title}</h3>
                     <p className="card-author">Yazar: {book.author}</p>
                     
