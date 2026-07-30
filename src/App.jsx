@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import BookModal from './components/BookModal/BookModal';
 import './App.css';
 
@@ -10,6 +10,28 @@ function App() {
   const [activeView, setActiveView] = useState('cards');
   const [filterCategory, setFilterCategory] = useState('Tümü');
   const [filterStatus, setFilterStatus] = useState('Tümü');
+  
+  // Yeni Filtre State'leri
+  const [selectedCategory, setSelectedCategory] = useState('Tümü');
+  const [selectedAuthor, setSelectedAuthor] = useState('Tümü');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Tüm kategoriler listesi (Yeni kategori 'Bilim Kurgu' eklendi)
+  const categories = [
+    'Klasik Edebiyat', 
+    'Kurgu', 
+    'Fantastik Kurgu', 
+    'Bilim Kurgu', 
+    'Distopya', 
+    'Kurgu Dışı', 
+    'Biyografi', 
+    'Bilim', 
+    'Tarih', 
+    'Felsefe'
+  ];
+
+  // Kayıtlı kitaplardaki yazarları dinamik ve benzersiz olarak listeliyoruz
+  const uniqueAuthors = ['Tümü', ...new Set(books.map(b => b.author))];
 
   const handleSaveBook = (bookData) => {
     const existingIndex = books.findIndex(b => b.id === bookData.id);
@@ -45,10 +67,19 @@ function App() {
     return new Date(dateString).toLocaleDateString('tr-TR');
   };
 
+  // Kapsamlı Filtreleme Mantığı (Arama, Kategori, Yazar ve Durum)
   const filteredBooks = books.filter(book => {
-    const matchesCategory = filterCategory === 'Tümü' || book.category === filterCategory;
+    const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          book.author.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Hem tablo sekmesindeki eski filtreleri hem de yeni yazar/kategori filtrelerini destekler
+    const matchesCategory = (selectedCategory === 'Tümü' || book.category === selectedCategory) &&
+                            (filterCategory === 'Tümü' || book.category === filterCategory);
+                            
+    const matchesAuthor = selectedAuthor === 'Tümü' || book.author === selectedAuthor;
     const matchesStatus = filterStatus === 'Tümü' || book.status === filterStatus;
-    return matchesCategory && matchesStatus;
+
+    return matchesSearch && matchesCategory && matchesAuthor && matchesStatus;
   });
 
   return (
@@ -119,7 +150,7 @@ function App() {
       </div>
 
       {/* --- KİTAPLAR GÖRÜNÜMÜ --- */}
-     {activeView === 'cards' && (
+      {activeView === 'cards' && (
         <main className="book-list-container">
           {books.length === 0 ? (
             <div className="empty-state">
@@ -137,22 +168,22 @@ function App() {
                   {/* Eğer kapak görseli varsa kartın en üstüne banner gibi yerleştirelim */}
                   {book.coverImage ? (
                     <div className="card-cover-banner">
-                    <img 
-                      src={book.coverImage} 
-                      alt={book.title} 
-                      className="card-cover-image" 
-                      style={{ objectPosition: `center ${book.coverPosition || 50}%` }}
-                    />
-                    <button 
-                      className="card-cover-action-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openBookDetailModal(book);
-                      }}
-                    >
-                      Kapağı Düzenle
-                    </button>
-                  </div>
+                      <img 
+                        src={book.coverImage} 
+                        alt={book.title} 
+                        className="card-cover-image" 
+                        style={{ objectPosition: `center ${book.coverPosition || 50}%` }}
+                      />
+                      <button 
+                        className="card-cover-action-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openBookDetailModal(book);
+                        }}
+                      >
+                        Kapağı Düzenle
+                      </button>
+                    </div>
                   ) : (
                     <div className="card-cover-banner placeholder">
                       <button 
@@ -212,21 +243,39 @@ function App() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <h2 style={{ fontSize: '18px', margin: 0, color: '#fff' }}>Kitap Listesi & Filtreleme</h2>
             
-            <div style={{ display: 'flex', gap: '10px' }}>
+            {/* Filtreleme Alanları (Yazar, Kategori, Durum ve Arama) */}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <input 
+                type="text" 
+                placeholder="Kitap veya yazar ara..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="form-input"
+                style={{ padding: '6px 12px', fontSize: '13px', background: '#202020', color: '#fff', border: '1px solid #444', borderRadius: '4px', width: '180px' }}
+              />
+
               <select 
                 className="form-select" 
-                value={filterCategory} 
-                onChange={(e) => setFilterCategory(e.target.value)}
+                value={selectedCategory} 
+                onChange={(e) => setSelectedCategory(e.target.value)}
                 style={{ padding: '6px 12px', fontSize: '13px', background: '#202020', color: '#fff', border: '1px solid #444', borderRadius: '4px' }}
               >
                 <option value="Tümü">Tüm Kategoriler</option>
-                <option value="Klasik Edebiyat">Klasik Edebiyat</option>
-                <option value="Kurgu">Kurgu</option>
-                <option value="Kurgu Dışı">Kurgu Dışı</option>
-                <option value="Biyografi">Biyografi</option>
-                <option value="Bilim">Bilim</option>
-                <option value="Tarih">Tarih</option>
-                <option value="Felsefe">Felsefe</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+
+              <select 
+                className="form-select" 
+                value={selectedAuthor} 
+                onChange={(e) => setSelectedAuthor(e.target.value)}
+                style={{ padding: '6px 12px', fontSize: '13px', background: '#202020', color: '#fff', border: '1px solid #444', borderRadius: '4px' }}
+              >
+                <option value="Tümü">Tüm Yazarlar</option>
+                {uniqueAuthors.filter(a => a !== 'Tümü').map(author => (
+                  <option key={author} value={author}>{author}</option>
+                ))}
               </select>
 
               <select 
@@ -282,7 +331,7 @@ function App() {
                       <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                         <button 
                           className="table-delete-btn" 
-                          onClick={() => deleteBook(book.id)}
+                          onClick={(e) => deleteBook(e, book.id)}
                           title="Kitabı Sil"
                         >
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -311,9 +360,6 @@ function App() {
             </div>
           ) : (
             <div className="wooden-shelf-container">
-              
-              {/* İleride buraya raf görünümü için kategori/durum filtresi eklenebilir */}
-              
               {Array.from({ length: Math.ceil(books.length / 12) }).map((_, shelfIndex) => {
                 const shelfBooks = books.slice(shelfIndex * 12, (shelfIndex + 1) * 12);
                 return (
@@ -326,7 +372,6 @@ function App() {
                         title={`${book.title} - ${book.author}`}
                       >
                         <span className="shelf-book-title">{book.title}</span>
-                        {/* İkon tamamen kaldırıldı, sırtlık tertemiz kaldı */}
                       </div>
                     ))}
                     <div className="shelf-board"></div>

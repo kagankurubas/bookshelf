@@ -135,7 +135,18 @@ function BookModal({ onClose, onSave, selectedBook }) {
     onClose();
   };
 
-  const categories = ['Klasik Edebiyat', 'Kurgu', 'Kurgu Dışı', 'Biyografi', 'Bilim', 'Tarih', 'Felsefe'];
+  const categories = [
+  'Klasik Edebiyat', 
+  'Kurgu', 
+  'Fantastik Kurgu', 
+  'Bilim Kurgu', 
+  'Distopya', 
+  'Kurgu Dışı', 
+  'Biyografi', 
+  'Bilim', 
+  'Tarih', 
+  'Felsefe'
+];
   const statuses = ['Başlanmadı', 'Okunuyor', 'Tamamlandı', 'Yarıda Bırakıldı'];
 
   return (
