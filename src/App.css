@@ -290,3 +290,21 @@ html, body, #root {
   background: rgba(0, 0, 0, 0.3);
   border-radius: 1px;
 }
+.table-delete-btn {
+  background: transparent;
+  border: none;
+  color: #f87171; /* Canlı kırmızı */
+  cursor: pointer;
+  font-size: 16px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: background 0.2s, transform 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-delete-btn:hover {
+  background: rgba(248, 113, 113, 0.15);
+  transform: scale(1.1);
+}
