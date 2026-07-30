@@ -223,19 +223,18 @@ html, body, #root {
 
 
 .shelf-book {
-  background: linear-gradient(135deg, #383838, #222222);
-  border: 1px solid #555;
-  border-radius: 6px 8px 4px 4px;
-  padding: 14px 10px;
-  width: 55px; 
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  border-radius: 4px 6px 4px 4px;
+  padding: 14px 6px;
+  width: 55px;
   height: 155px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center; /* Yazıyı ortalamak için */
   align-items: center;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: -4px 6px 14px rgba(0,0,0,0.6);
+  box-shadow: -4px 6px 14px rgba(0,0,0,0.6), inset 3px 0 6px rgba(255,255,255,0.15), inset -2px 0 4px rgba(0,0,0,0.4);
   position: relative;
   z-index: 2;
   margin-bottom: 2px;
@@ -244,7 +243,6 @@ html, body, #root {
 .shelf-book:hover {
   transform: translateY(-12px);
   box-shadow: -6px 14px 24px rgba(0,0,0,0.8);
-  border-color: #777;
 }
 
 .shelf-book-title {
@@ -253,10 +251,41 @@ html, body, #root {
   transform: rotate(180deg);
   font-size: 13px;
   font-weight: 600;
-  color: #f0f0f0;
+  color: #f9f9f9;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-height: 120px;
-  letter-spacing: 0.5px;
+  max-height: 120px; /* Kitabın üst ve alt cilt çizgileri arasında kalması için sınır */
+  letter-spacing: 0.8px; /* Harfler arasında zarif bir nefes payı */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.shelf-book.color-0 { background: linear-gradient(135deg, #78281F, #512E5F); } /* Bordo / Mor */
+.shelf-book.color-1 { background: linear-gradient(135deg, #1B4F72, #154360); } /* Lacivert */
+.shelf-book.color-2 { background: linear-gradient(135deg, #117A65, #0E6251); } /* Zümrüt Yeşili */
+.shelf-book.color-3 { background: linear-gradient(135deg, #7E5109, #6E2C00); } /* Tütün / Kahve */
+.shelf-book.color-4 { background: linear-gradient(135deg, #5D6D7E, #34495E); } /* Gri / Metalik */
+.shelf-book.color-5 { background: linear-gradient(135deg, #943126, #78281F); } /* Kiremit Kırmızısı */
+
+.shelf-book::before {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 6px;
+  right: 6px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 1px;
+}
+
+.shelf-book::after {
+  content: '';
+  position: absolute;
+  bottom: 15px;
+  left: 6px;
+  right: 6px;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 1px;
 }

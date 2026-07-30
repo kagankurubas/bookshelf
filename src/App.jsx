@@ -273,22 +273,22 @@ function App() {
             </div>
           ) : (
             <div className="wooden-shelf-container">
-              {/* Kitapları her rafta 12 adet olacak şekilde gruplara (katlara) bölelim */}
+              
+              {/* İleride buraya raf görünümü için kategori/durum filtresi eklenebilir */}
+              
               {Array.from({ length: Math.ceil(books.length / 12) }).map((_, shelfIndex) => {
                 const shelfBooks = books.slice(shelfIndex * 12, (shelfIndex + 1) * 12);
                 return (
                   <div key={shelfIndex} className="shelf-row">
-                    {shelfBooks.map((book) => (
+                    {shelfBooks.map((book, index) => (
                       <div 
                         key={book.id} 
-                        className="shelf-book"
+                        className={`shelf-book color-${index % 6}`}
                         onClick={() => openBookDetailModal(book)}
                         title={`${book.title} - ${book.author}`}
                       >
                         <span className="shelf-book-title">{book.title}</span>
-                        <span style={{ fontSize: '11px' }}>
-                          {book.status === 'Tamamlandı' ? '✅' : book.status === 'Okunuyor' ? '📖' : '📌'}
-                        </span>
+                        {/* İkon tamamen kaldırıldı, sırtlık tertemiz kaldı */}
                       </div>
                     ))}
                     <div className="shelf-board"></div>
