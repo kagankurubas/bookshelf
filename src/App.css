@@ -205,7 +205,7 @@ html, body, #root {
   min-height: 200px;
   width: 100%;
   box-sizing: border-box;
-  flex-wrap: wrap; 
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -219,6 +219,7 @@ html, body, #root {
   border-radius: 4px;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7), inset 0 2px 4px rgba(255, 255, 255, 0.2);
   border-bottom: 3px solid #3b2513;
+  z-index: 5; /* Tahta en önde olacak */
 }
 
 
@@ -230,14 +231,14 @@ html, body, #root {
   height: 155px;
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Yazıyı ortalamak için */
+  justify-content: center;
   align-items: center;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: -4px 6px 14px rgba(0,0,0,0.6), inset 3px 0 6px rgba(255,255,255,0.15), inset -2px 0 4px rgba(0,0,0,0.4);
   position: relative;
-  z-index: 2;
-  margin-bottom: 2px;
+  z-index: 1; /* Kitaplar arkada kalacak */
+  margin-bottom: 22px; /* Tahtanın yüksekliği kadar yukarı kaldırarak tam üstüne oturmasını sağlıyoruz */
 }
 
 .shelf-book:hover {
