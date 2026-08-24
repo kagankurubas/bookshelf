@@ -29,6 +29,12 @@
   <img src="https://img.shields.io/badge/tests-20_passing-3ECF8E?style=for-the-badge" alt="20 tests passing">
 </p>
 
+<p align="center">
+  <a href="https://yourbookshelf-app.netlify.app">
+    <img src="https://img.shields.io/badge/Live_Demo-yourbookshelf--app.netlify.app-55b98a?style=for-the-badge&logo=netlify&logoColor=white" alt="Live demo on Netlify">
+  </a>
+</p>
+
 ---
 
 ## English
