@@ -1,6 +1,33 @@
-# 📚 BookShelf
+<p align="center">
+  <img src="public/favicon.svg" width="72" alt="BookShelf logo">
+</p>
 
-**🇬🇧 [English](#english) &nbsp;|&nbsp; 🇹🇷 [Türkçe](#türkçe)**
+<h1 align="center">BookShelf</h1>
+
+<p align="center">
+  <strong>Your bookshelf, wherever you go.</strong>
+</p>
+
+<p align="center">
+  <a href="#english">
+    <img src="https://img.shields.io/badge/English-1a1a1a?style=for-the-badge" alt="English">
+  </a>
+  &nbsp;
+  <a href="#türkçe">
+    <img src="https://img.shields.io/badge/Türkçe-1a1a1a?style=for-the-badge" alt="Türkçe">
+  </a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/React_19-1a1a1a?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React 19">
+  <img src="https://img.shields.io/badge/Vite-1a1a1a?style=for-the-badge&logo=vite&logoColor=B73BFE" alt="Vite">
+  <img src="https://img.shields.io/badge/Supabase-1a1a1a?style=for-the-badge&logo=supabase&logoColor=3ECF8E" alt="Supabase">
+  <img src="https://img.shields.io/badge/Gemini_API-1a1a1a?style=for-the-badge&logo=googlegemini&logoColor=8E75FF" alt="Gemini API">
+  <a href="https://github.com/kagankurubas/bookshelf/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status">
+  </a>
+  <img src="https://img.shields.io/badge/tests-20_passing-3ECF8E?style=for-the-badge" alt="20 tests passing">
+</p>
 
 ---
 
@@ -11,6 +38,12 @@ status and rating, add them fast by scanning a barcode or searching by
 title, and arrange them on a real-feeling bookshelf you can drag and
 drop. Includes a Book Assistant that recommends books based on your
 library and lets you chat about what you're reading.
+
+### Demo
+
+<p align="center">
+  <img src="docs/screenshots/demo.gif" alt="BookShelf demo: browsing views, the dynamic shelf, and the AI Book Assistant" width="720">
+</p>
 
 ### Features
 
@@ -30,6 +63,31 @@ library and lets you chat about what you're reading.
 - **Accounts** — email/password sign-in; every user's data (libraries,
   books, chats) is isolated via Supabase Row Level Security.
 
+### Screenshots
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/cards-view.jpg" alt="Cards view" width="300">
+      <br><strong>Cards</strong>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/table-view.jpg" alt="Table view" width="300">
+      <br><strong>Table</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/shelf-view.jpg" alt="Dynamic bookshelf view" width="300">
+      <br><strong>Dynamic shelf</strong>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/ai-chat.jpg" alt="AI Book Assistant chat panel" width="300">
+      <br><strong>Book Assistant</strong>
+    </td>
+  </tr>
+</table>
+
 ### Tech stack
 
 - **Frontend**: React 19 + Vite, `react-i18next` (TR/EN)
@@ -40,6 +98,7 @@ library and lets you chat about what you're reading.
 - **Barcode scanning**: `html5-qrcode`
 - **Book search/ISBN lookup**: Open Library API
 - **Testing**: Vitest + React Testing Library
+- **CI**: GitHub Actions (lint, test, build on every push)
 
 Designed to run entirely on free tiers (Supabase free tier + Gemini
 API free tier).
@@ -119,11 +178,19 @@ Use **Sign Up** on the screen that opens to create your first account.
 
 ### Tests
 
-A handful of Vitest + React Testing Library tests cover the parts that
-don't need a live Supabase connection: the deterministic shelf-spine
-sizing math, the Open Library API wrapper (response mapping and
-caching, with `fetch` mocked), and a couple of presentational
-components (rendering, click handlers, translated labels).
+![20 tests passing](https://img.shields.io/badge/tests-20_passing-3ECF8E?style=flat-square)
+![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
+
+A modest but real Vitest + React Testing Library suite, covering the
+parts that don't need a live Supabase connection: the deterministic
+shelf-spine sizing math, the Open Library API wrapper (response
+mapping and caching, with `fetch` mocked), and a couple of
+presentational components (rendering, click handlers, translated
+labels). Hooks, drag-and-drop reordering and the AI chat flow aren't
+covered yet — basic coverage, not exhaustive.
+
+Every push to `main` also runs lint + test + build in
+[GitHub Actions](https://github.com/kagankurubas/bookshelf/actions).
 
 ```bash
 npm run test
@@ -159,6 +226,12 @@ gerçek bir kitaplık rafı gibi sürükle-bırakla düzenle. Kitaplığına gö
 öneri sunan ve kitaplar hakkında sohbet edebileceğin bir Kitap Asistanı da
 dahil.
 
+### Demo
+
+<p align="center">
+  <img src="docs/screenshots/demo.gif" alt="BookShelf demo: görünümler arası geçiş, dinamik raf ve AI Kitap Asistanı" width="720">
+</p>
+
 ### Özellikler
 
 - **Kitap yönetimi** — başlık, yazar, yayınevi, kategori, okuma durumu,
@@ -178,6 +251,31 @@ dahil.
   (kitaplıklar, kitaplar, sohbetler) yalnızca kendisine ait ve izole
   (Supabase Row Level Security).
 
+### Ekran görüntüleri
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/cards-view.jpg" alt="Kart görünümü" width="300">
+      <br><strong>Kartlar</strong>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/table-view.jpg" alt="Tablo görünümü" width="300">
+      <br><strong>Tablo</strong>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/shelf-view.jpg" alt="Dinamik kitaplık rafı görünümü" width="300">
+      <br><strong>Dinamik raf</strong>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/ai-chat.jpg" alt="AI Kitap Asistanı sohbet paneli" width="300">
+      <br><strong>Kitap Asistanı</strong>
+    </td>
+  </tr>
+</table>
+
 ### Teknoloji
 
 - **Frontend**: React 19 + Vite, `react-i18next` (TR/EN)
@@ -188,6 +286,7 @@ dahil.
 - **Barkod tarama**: `html5-qrcode`
 - **Kitap arama/ISBN**: Open Library API
 - **Test**: Vitest + React Testing Library
+- **CI**: GitHub Actions (her push'ta lint, test, build)
 
 Proje tamamen ücretsiz katmanlarla çalışacak şekilde tasarlandı
 (Supabase free tier + Gemini API free tier).
@@ -269,11 +368,20 @@ Açılan sayfadan **Kayıt Ol** ile ilk hesabını oluştur.
 
 ### Testler
 
-Canlı bir Supabase bağlantısı gerektirmeyen kısımlar için birkaç
-Vitest + React Testing Library testi var: deterministik kitap sırtı
-boyutlandırma matematiği, Open Library API sarmalayıcısı (yanıt
-eşleme ve önbellekleme, `fetch` mock'lanarak), ve birkaç sunum
-bileşeni (render, tıklama davranışı, çevrilen etiketler).
+![20 test geçiyor](https://img.shields.io/badge/testler-20_ge%C3%A7iyor-3ECF8E?style=flat-square)
+![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
+
+Canlı bir Supabase bağlantısı gerektirmeyen kısımlar için mütevazı ama
+gerçek bir Vitest + React Testing Library paketi var: deterministik
+kitap sırtı boyutlandırma matematiği, Open Library API sarmalayıcısı
+(yanıt eşleme ve önbellekleme, `fetch` mock'lanarak), ve birkaç sunum
+bileşeni (render, tıklama davranışı, çevrilen etiketler). Hook'lar,
+sürükle-bırak ile yeniden sıralama ve AI sohbet akışı henüz
+kapsanmıyor — temel bir coverage, kapsamlı değil.
+
+`main`'e her push'ta ayrıca
+[GitHub Actions](https://github.com/kagankurubas/bookshelf/actions)
+lint + test + build'i otomatik çalıştırıyor.
 
 ```bash
 npm run test
