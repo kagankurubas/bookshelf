@@ -11,7 +11,17 @@
     "comingSoon": "SOON",
     "exploreTooltip": "Coming very soon: your reading friends and a community"
   },
-  "aiTeaser": "Coming soon: Book Assistant — get recommendations and chat about books",
+  "aiChat": {
+    "fabTitle": "Book Assistant",
+    "title": "Book Assistant",
+    "newConversation": "New chat",
+    "newChat": "New Chat",
+    "suggestion1": "📚 Recommend a book based on my library",
+    "suggestion2": "💬 Let's talk about the book I'm reading",
+    "inputPlaceholder": "Ask a question about a book...",
+    "typing": "Typing...",
+    "error": "Something went wrong, want to try again?"
+  },
   "toolbar": {
     "newLibrary": "New Library",
     "namePlaceholder": "Library Name...",

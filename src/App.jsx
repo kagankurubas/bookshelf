@@ -11,6 +11,7 @@ import TableView from './components/TableView/TableView';
 import ShelfView from './components/ShelfView/ShelfView';
 import AddChoiceModal from './components/AddChoiceModal/AddChoiceModal';
 import AuthScreen from './components/AuthScreen/AuthScreen';
+import AiChatDrawer from './components/AiChatDrawer/AiChatDrawer';
 import { StarIcon, SparkleIcon } from './components/icons/Icons';
 import { useAuth } from './hooks/useAuth';
 import { useBooks } from './hooks/useBooks';
@@ -30,6 +31,7 @@ function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isBatchScanOpen, setIsBatchScanOpen] = useState(false);
   const [isLookingUpIsbn, setIsLookingUpIsbn] = useState(false);
+  const [isAiChatOpen, setIsAiChatOpen] = useState(false);
 
   const {
     libraries,
@@ -392,12 +394,16 @@ function App() {
       />
 
       <button
-        className="ai-teaser-fab"
-        disabled
-        title={t('aiTeaser')}
+        className="ai-chat-fab"
+        onClick={() => setIsAiChatOpen(true)}
+        title={t('aiChat.fabTitle')}
       >
         <SparkleIcon />
       </button>
+
+      {isAiChatOpen && (
+        <AiChatDrawer userId={user.id} onClose={() => setIsAiChatOpen(false)} />
+      )}
 
       {activeView === 'cards' && (
         <CardsView

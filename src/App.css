@@ -348,7 +348,7 @@ html, body, #root {
   outline: none;
 }
 
-.ai-teaser-fab {
+.ai-chat-fab {
   position: fixed;
   right: 40px;
   bottom: 36px;
@@ -356,15 +356,19 @@ html, body, #root {
   height: 56px;
   border-radius: 50%;
   border: none;
-  cursor: not-allowed;
+  cursor: pointer;
   background: linear-gradient(135deg, var(--accent-2), var(--accent));
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-lg);
-  opacity: 0.92;
+  transition: transform 0.15s;
   z-index: 40;
+}
+
+.ai-chat-fab:hover {
+  transform: scale(1.06);
 }
 
 .fab-add {

@@ -11,7 +11,17 @@
     "comingSoon": "YAKINDA",
     "exploreTooltip": "Çok yakında: kitap arkadaşların ve topluluk"
   },
-  "aiTeaser": "Yakında: Kitap Asistanı — sana kitap önerir, kitaplar hakkında sohbet edersin",
+  "aiChat": {
+    "fabTitle": "Kitap Asistanı",
+    "title": "Kitap Asistanı",
+    "newConversation": "Yeni Sohbet",
+    "newChat": "Yeni Sohbet",
+    "suggestion1": "📚 Kitaplığıma göre bana bir kitap öner",
+    "suggestion2": "💬 Şu an okuduğum kitap hakkında konuşalım",
+    "inputPlaceholder": "Bir kitap hakkında soru sor...",
+    "typing": "Yazıyor...",
+    "error": "Bir şeyler ters gitti, tekrar dener misin?"
+  },
   "toolbar": {
     "newLibrary": "Yeni Kitaplık",
     "namePlaceholder": "Kitaplık Adı...",
