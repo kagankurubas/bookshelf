@@ -1,31 +1,33 @@
 -- BookShelf veritabani semasi
 --
--- NOT: Bu uygulama su an tek kullanicili (kisisel) bir uygulama olarak
--- calisiyor, bu yuzden asagidaki RLS policy'leri herkese (anon dahil)
--- tam okuma/yazma izni verecek sekilde gevsek tanimlandi. Ileride
--- Supabase Auth ile kullanici girisi eklenirse bu policy'ler
--- auth.uid() bazli kisitlamalarla sikilastirilmali (orn. sadece kendi
--- kayitlarini gorebilme/degistirebilme).
+-- Bu, bir yeni (bos) projede sifirdan calistirilacak GUNCEL hedef sema.
+-- Var olan bir projeyi bu hale getirmek icin supabase/migrations/
+-- klasorundeki dosyalari SIRAYLA calistir (001, 002, 003, 004, 005...).
+--
+-- Kullanicilar Supabase Auth (e-posta/sifre) ile giris yapar; her
+-- kitaplik ve kitap bir kullaniciya (auth.users) aittir, RLS bunu
+-- auth.uid() = user_id kontrolu ile zorunlu kilar.
 
 -- =========================================================
 -- 1. libraries: kullanicinin olusturdugu kitapliklar
 -- =========================================================
 create table if not exists libraries (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
   name text not null,
-  -- capacity: artik kullanilmiyor (eskiden raf basina sabit slot sayisiydi).
-  -- Geriye donuk uyumluluk icin kolon duruyor, uygulama artik okumuyor/yazmiyor.
-  capacity integer not null default 10,
   shelf_count integer not null default 2,
   is_default boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+create index if not exists libraries_user_id_idx on libraries(user_id);
 
 -- =========================================================
 -- 2. books: kitap kayitlari
 -- =========================================================
 create table if not exists books (
   id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
   title text not null,
   author text not null,
   publisher text,
@@ -41,7 +43,7 @@ create table if not exists books (
   is_favorite boolean not null default false,
   -- shelf_row: kitabın kitaplık rafındaki hangi raf katında olduğu (0'dan başlar).
   -- slot_index: aynı raf katı içindeki sırası (0'dan başlar, o katta sıkışık/ardışık tutulur).
-  -- Artık sabit "raf kapasitesi" yok; bir rafın görsel uzunluğu, o rafa
+  -- Sabit "raf kapasitesi" yok; bir rafın görsel uzunluğu, o rafa
   -- atanmış kitap sayısı kadardır.
   shelf_row integer not null default 0,
   slot_index integer not null default 0,
@@ -49,6 +51,8 @@ create table if not exists books (
   isbn text,
   created_at timestamptz not null default now()
 );
+
+create index if not exists books_user_id_idx on books(user_id);
 
 -- =========================================================
 -- 3. book_libraries: books <-> libraries many-to-many ara tablosu
@@ -76,22 +80,30 @@ create index if not exists notes_book_id_idx on notes(book_id);
 
 -- =========================================================
 -- 5. Row Level Security
---    Tek kullanicili kisisel uygulama icin simdilik herkese acik
---    okuma/yazma policy'si. Kullanici girisi eklenince sikilastirilacak.
+--    Her kullanici sadece kendi kitaplik/kitap/not kayitlarini
+--    gorebilir ve degistirebilir.
 -- =========================================================
 alter table libraries enable row level security;
 alter table books enable row level security;
 alter table book_libraries enable row level security;
 alter table notes enable row level security;
 
-create policy "Allow all on libraries" on libraries
-  for all using (true) with check (true);
+create policy "Users manage own libraries" on libraries
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy "Allow all on books" on books
-  for all using (true) with check (true);
+create policy "Users manage own books" on books
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy "Allow all on book_libraries" on book_libraries
-  for all using (true) with check (true);
+create policy "Users manage own book_libraries" on book_libraries
+  for all using (
+    exists (select 1 from books b where b.id = book_id and b.user_id = auth.uid())
+  ) with check (
+    exists (select 1 from books b where b.id = book_id and b.user_id = auth.uid())
+  );
 
-create policy "Allow all on notes" on notes
-  for all using (true) with check (true);
+create policy "Users manage own notes" on notes
+  for all using (
+    exists (select 1 from books b where b.id = book_id and b.user_id = auth.uid())
+  ) with check (
+    exists (select 1 from books b where b.id = book_id and b.user_id = auth.uid())
+  );

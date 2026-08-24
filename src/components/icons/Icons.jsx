@@ -1,7 +1,7 @@
-export const BookLogoIcon = () => (
+export const BookLogoIcon = ({ light = false }) => (
   <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-    <path d="M4 6.2C4 5.4 4.6 4.8 5.4 4.8H13V23H5.4C4.6 23 4 22.4 4 21.6V6.2Z" fill="var(--accent)" />
-    <path d="M24 6.2C24 5.4 23.4 4.8 22.6 4.8H15V23H22.6C23.4 23 24 22.4 24 21.6V6.2Z" fill="var(--accent-2)" opacity="0.55" />
+    <path d="M4 6.2C4 5.4 4.6 4.8 5.4 4.8H13V23H5.4C4.6 23 4 22.4 4 21.6V6.2Z" fill={light ? '#fff' : 'var(--accent)'} />
+    <path d="M24 6.2C24 5.4 23.4 4.8 22.6 4.8H15V23H22.6C23.4 23 24 22.4 24 21.6V6.2Z" fill={light ? '#fff' : 'var(--accent-2)'} opacity={light ? 0.6 : 0.55} />
   </svg>
 );
 

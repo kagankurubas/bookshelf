@@ -165,5 +165,17 @@
     "label": "Dil",
     "tr": "Türkçe",
     "en": "İngilizce"
+  },
+  "auth": {
+    "signIn": "Giriş Yap",
+    "signUp": "Kayıt Ol",
+    "signOut": "Çıkış Yap",
+    "emailPlaceholder": "E-posta",
+    "passwordPlaceholder": "Şifre",
+    "submitting": "Gönderiliyor...",
+    "confirmEmailSent": "Hesabını doğrulamak için e-postana gönderilen bağlantıya tıkla.",
+    "genericError": "Bir şeyler ters gitti, tekrar dene.",
+    "promoTitle": "Kitaplığın, her yerde yanında.",
+    "promoSubtitle": "Kitaplarını takip et, raflarını düzenle — yakında arkadaşlarınla kitap paylaşabileceğin bir topluluk da burada olacak."
   }
 }

@@ -10,16 +10,22 @@ function mapLibraryRow(row) {
   };
 }
 
-export function useLibraries() {
+export function useLibraries(userId) {
   const [libraries, setLibraries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchLibraries = useCallback(async () => {
+    if (!userId) {
+      setLibraries([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data, error: fetchError } = await supabase
       .from('libraries')
       .select('*')
+      .eq('user_id', userId)
       .order('created_at', { ascending: true });
 
     if (fetchError) {
@@ -29,10 +35,10 @@ export function useLibraries() {
       setError(null);
     }
     setLoading(false);
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
-    // Supabase'den ilk veri çekişi (mount'ta fetch) - standart veri senkronizasyon deseni.
+    // Kullanici degistiginde (giris/cikis) veriyi yeniden cek - standart senkronizasyon deseni.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchLibraries();
   }, [fetchLibraries]);
@@ -40,7 +46,7 @@ export function useLibraries() {
   const createLibrary = useCallback(async ({ name, shelfCount = 2, isDefault = false }) => {
     const { data, error: insertError } = await supabase
       .from('libraries')
-      .insert({ name, shelf_count: shelfCount, is_default: isDefault })
+      .insert({ name, shelf_count: shelfCount, is_default: isDefault, user_id: userId })
       .select()
       .single();
     if (insertError) throw insertError;
@@ -48,7 +54,7 @@ export function useLibraries() {
     const newLibrary = mapLibraryRow(data);
     setLibraries((prev) => [...prev, newLibrary]);
     return newLibrary;
-  }, []);
+  }, [userId]);
 
   const updateLibrary = useCallback(async (id, updates) => {
     const columns = {};

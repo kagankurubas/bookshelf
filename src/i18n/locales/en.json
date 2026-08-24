@@ -165,5 +165,17 @@
     "label": "Language",
     "tr": "Turkish",
     "en": "English"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out",
+    "emailPlaceholder": "Email",
+    "passwordPlaceholder": "Password",
+    "submitting": "Submitting...",
+    "confirmEmailSent": "Click the link we emailed you to confirm your account.",
+    "genericError": "Something went wrong, please try again.",
+    "promoTitle": "Your bookshelf, wherever you go.",
+    "promoSubtitle": "Track your books and organize your shelves — a community for sharing books with friends is coming soon, too."
   }
 }

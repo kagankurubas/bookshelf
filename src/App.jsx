@@ -10,7 +10,9 @@ import CardsView from './components/CardsView/CardsView';
 import TableView from './components/TableView/TableView';
 import ShelfView from './components/ShelfView/ShelfView';
 import AddChoiceModal from './components/AddChoiceModal/AddChoiceModal';
+import AuthScreen from './components/AuthScreen/AuthScreen';
 import { StarIcon, SparkleIcon } from './components/icons/Icons';
+import { useAuth } from './hooks/useAuth';
 import { useBooks } from './hooks/useBooks';
 import { useLibraries } from './hooks/useLibraries';
 import { getBookByIsbn } from './lib/openLibrary';
@@ -18,7 +20,8 @@ import './App.css';
 
 function App() {
   const { t } = useTranslation();
-  const { books, loading: booksLoading, addBook, editBook, deleteBook, updateBookPosition, refetchBooks } = useBooks();
+  const { user, loading: authLoading, signIn, signUp, signOut } = useAuth();
+  const { books, loading: booksLoading, addBook, editBook, deleteBook, updateBookPosition, refetchBooks } = useBooks(user?.id);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
   const [prefillBook, setPrefillBook] = useState(null);
@@ -34,7 +37,7 @@ function App() {
     createLibrary,
     updateLibrary,
     deleteLibrary,
-  } = useLibraries();
+  } = useLibraries(user?.id);
   const [explicitActiveLibraryId, setActiveLibraryId] = useState(null);
   const defaultLibrary = libraries.find((lib) => lib.isDefault) || libraries[0] || null;
   const activeLibraryId = explicitActiveLibraryId ?? defaultLibrary?.id ?? null;
@@ -353,6 +356,18 @@ function App() {
     return matchesSearch && matchesCategory && matchesAuthor && matchesStatus && matchesShelf;
   });
 
+  if (authLoading) {
+    return (
+      <div className="main-container">
+        <p style={{ color: 'var(--text-secondary)', textAlign: 'center', marginTop: '80px', fontFamily: 'var(--font-body)' }}>{t('app.loading')}</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthScreen onSignIn={signIn} onSignUp={signUp} />;
+  }
+
   return (
     <div className="main-container" onDragEnd={handleDragEnd}>
 
@@ -360,7 +375,7 @@ function App() {
         <p style={{ color: 'var(--text-secondary)', textAlign: 'center', marginTop: '80px', fontFamily: 'var(--font-body)' }}>{t('app.loading')}</p>
       ) : (
       <>
-      <AppHeader activeView={activeView} onChangeView={setActiveView} />
+      <AppHeader activeView={activeView} onChangeView={setActiveView} userEmail={user.email} onSignOut={signOut} />
 
       <LibraryToolbar
         libraries={libraries}

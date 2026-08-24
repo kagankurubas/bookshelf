@@ -133,16 +133,22 @@ async function syncNotes(bookId, newNotes, oldNotes) {
   return [...keptNotes, ...newlyInsertedNotes];
 }
 
-export function useBooks() {
+export function useBooks(userId) {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchBooks = useCallback(async () => {
+    if (!userId) {
+      setBooks([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data, error: fetchError } = await supabase
       .from('books')
       .select(BOOKS_SELECT)
+      .eq('user_id', userId)
       .order('created_at', { ascending: true });
 
     if (fetchError) {
@@ -152,16 +158,16 @@ export function useBooks() {
       setError(null);
     }
     setLoading(false);
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
-    // Supabase'den ilk veri çekişi (mount'ta fetch) - standart veri senkronizasyon deseni.
+    // Kullanici degistiginde (giris/cikis) veriyi yeniden cek - standart senkronizasyon deseni.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchBooks();
   }, [fetchBooks]);
 
   const addBook = useCallback(async (bookFields) => {
-    const columns = toBookColumns(bookFields);
+    const columns = { ...toBookColumns(bookFields), user_id: userId };
     const { data, error: insertError } = await supabase.from('books').insert(columns).select().single();
     if (insertError) throw insertError;
 
@@ -176,7 +182,7 @@ export function useBooks() {
     const newBook = { ...mapBookRow(data), libraryIds, notesList: savedNotes };
     setBooks((prev) => [...prev, newBook]);
     return newBook;
-  }, []);
+  }, [userId]);
 
   const editBook = useCallback(
     async (id, bookFields) => {

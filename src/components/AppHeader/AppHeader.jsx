@@ -3,7 +3,7 @@ import { BookLogoIcon, GridTabIcon, TableTabIcon, ShelfTabIcon, CompassIcon } fr
 
 const LANGUAGES = ['tr', 'en'];
 
-function AppHeader({ activeView, onChangeView }) {
+function AppHeader({ activeView, onChangeView, userEmail, onSignOut }) {
   const { t, i18n } = useTranslation();
 
   return (
@@ -29,17 +29,28 @@ function AppHeader({ activeView, onChangeView }) {
         </button>
       </div>
 
-      <div className="lang-switch" role="group" aria-label={t('language.label')}>
-        {LANGUAGES.map((lng) => (
-          <button
-            key={lng}
-            type="button"
-            className={`lang-switch-btn ${i18n.resolvedLanguage === lng ? 'active' : ''}`}
-            onClick={() => i18n.changeLanguage(lng)}
-          >
-            {lng.toUpperCase()}
-          </button>
-        ))}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="lang-switch" role="group" aria-label={t('language.label')}>
+          {LANGUAGES.map((lng) => (
+            <button
+              key={lng}
+              type="button"
+              className={`lang-switch-btn ${i18n.resolvedLanguage === lng ? 'active' : ''}`}
+              onClick={() => i18n.changeLanguage(lng)}
+            >
+              {lng.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        {userEmail && (
+          <div className="account-chip" title={userEmail}>
+            <span className="account-chip-email">{userEmail}</span>
+            <button type="button" className="account-chip-signout" onClick={onSignOut}>
+              {t('auth.signOut')}
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );
