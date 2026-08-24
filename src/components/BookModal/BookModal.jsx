@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import './BookModal.css';
 
@@ -16,7 +16,7 @@ const StarPlaceholderIcon = () => (<svg {...iconProps} strokeWidth="1.6"><path d
 const PlusMiniIcon = () => (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 5v14M5 12h14" /></svg>);
 
 function BookModal({ onClose, onSave, selectedBook, prefillData = null, existingAuthors = [], libraries = [], activeLibraryId = null }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [title, setTitle] = useState(selectedBook ? selectedBook.title : (prefillData?.title || ''));
   const [author, setAuthor] = useState(selectedBook ? selectedBook.author : (prefillData?.author || ''));
   const [publisher, setPublisher] = useState(selectedBook ? selectedBook.publisher || '' : (prefillData?.publisher || ''));
@@ -34,12 +34,10 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
   const [startY, setStartY] = useState(0);
   const [startPos, setStartPos] = useState(50);
   
-  const [notesList, setNotesList] = useState(selectedBook ? selectedBook.notesList || [] : []);
-  const [currentNoteText, setCurrentNoteText] = useState('');
-  const [editingNoteId, setEditingNoteId] = useState(null);
+  const [notesList] = useState(selectedBook ? selectedBook.notesList || [] : []);
 
-  const [shelfId, setShelfId] = useState(selectedBook ? selectedBook.shelfId || 'default' : 'default');
-  const [isFavorite, setIsFavorite] = useState(selectedBook ? selectedBook.isFavorite || false : false);
+  const [shelfId] = useState(selectedBook ? selectedBook.shelfId || 'default' : 'default');
+  const [isFavorite] = useState(selectedBook ? selectedBook.isFavorite || false : false);
   
   const [selectedLibraries, setSelectedLibraries] = useState(
     selectedBook
@@ -103,44 +101,6 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
 
   const handleMouseUp = () => {
     setIsDragging(false);
-  };
-
-  const handleSaveNoteItem = () => {
-    if (!currentNoteText.trim()) return;
-
-    const formattedDate = new Date().toLocaleString(i18n.language === 'en' ? 'en-US' : 'tr-TR', {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    });
-
-    if (editingNoteId) {
-      setNotesList(notesList.map(note => 
-        note.id === editingNoteId ? { ...note, text: currentNoteText, date: `${formattedDate} (${t('bookModal.noteEdited')})` } : note
-      ));
-      setEditingNoteId(null);
-    } else {
-      const newNote = {
-        id: Date.now(),
-        text: currentNoteText,
-        date: formattedDate
-      };
-      setNotesList([...notesList, newNote]);
-    }
-
-    setCurrentNoteText('');
-  };
-
-  const handleEditNote = (note) => {
-    setCurrentNoteText(note.text);
-    setEditingNoteId(note.id);
-  };
-
-  const handleDeleteNote = (id) => {
-    setNotesList(notesList.filter(note => note.id !== id));
-    if (editingNoteId === id) {
-      setCurrentNoteText('');
-      setEditingNoteId(null);
-    }
   };
 
   const handleSave = () => {

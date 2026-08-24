@@ -48,17 +48,10 @@ function App() {
 
   const [activeView, setActiveView] = useState('cards');
 
-  const [filterCategory, setFilterCategory] = useState('Tümü');
   const [filterStatus, setFilterStatus] = useState('Tümü');
   const [selectedCategory, setSelectedCategory] = useState('Tümü');
   const [selectedAuthor, setSelectedAuthor] = useState('Tümü');
   const [searchQuery, setSearchQuery] = useState('');
-
-  const [shelves, setShelves] = useState([
-    { id: 'default', name: 'Ana Raf', isFavorite: true },
-    { id: 'favorites', name: 'Favoriler', isFavorite: true }
-  ]);
-  const [selectedShelf, setSelectedShelf] = useState('Tümü');
 
   const [draggedBookId, setDraggedBookId] = useState(null);
   const [dragOverTarget, setDragOverTarget] = useState(null); // { shelfRow, bookId } | null
@@ -348,14 +341,11 @@ function App() {
     const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           book.author.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesCategory = (selectedCategory === 'Tümü' || book.category === selectedCategory) &&
-                            (filterCategory === 'Tümü' || book.category === filterCategory);
-
+    const matchesCategory = selectedCategory === 'Tümü' || book.category === selectedCategory;
     const matchesAuthor = selectedAuthor === 'Tümü' || book.author === selectedAuthor;
     const matchesStatus = filterStatus === 'Tümü' || book.status === filterStatus;
-    const matchesShelf = selectedShelf === 'Tümü' || book.shelfId === selectedShelf;
 
-    return matchesSearch && matchesCategory && matchesAuthor && matchesStatus && matchesShelf;
+    return matchesSearch && matchesCategory && matchesAuthor && matchesStatus;
   });
 
   if (authLoading) {

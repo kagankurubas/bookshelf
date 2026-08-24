@@ -35,7 +35,7 @@
   "cards": {
     "empty": "Bu kitaplıkta henüz kitap yok.",
     "editCover": "Kapağı Düzenle",
-    "addCover": "+ Kapak Ekle",
+    "addCover": "Kapak Ekle",
     "publisher": "Yayınevi",
     "author": "Yazar",
     "delete": "Kitabı Sil"
@@ -114,7 +114,6 @@
     "status": "Durum",
     "dateStarted": "Başlama",
     "dateFinished": "Bitiş",
-    "noteEdited": "Düzenlendi",
     "saveNew": "Kitabı Kaydet",
     "saveExisting": "Değişiklikleri Kaydet",
     "validationError": "Lütfen Kitap Adı ve Yazar alanlarını doldurun."

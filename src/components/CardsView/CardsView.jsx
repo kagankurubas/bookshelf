@@ -14,11 +14,12 @@ function CardsView({ books, onOpenBook, onDeleteBook, renderStars }) {
               {book.coverImage ? (
                 <div className="card-cover-banner">
                   <img src={book.coverImage} alt={book.title} className="card-cover-image" style={{ objectPosition: `center ${book.coverPosition || 50}%` }} />
-                  <button className="card-cover-action-btn" onClick={(e) => { e.stopPropagation(); onOpenBook(book); }}>{t('cards.editCover')}</button>
+                  <div className="card-cover-hover-hint">{t('cards.editCover')}</div>
                 </div>
               ) : (
                 <div className="card-cover-banner placeholder">
-                  <button className="card-cover-action-btn" onClick={(e) => { e.stopPropagation(); onOpenBook(book); }}>{t('cards.addCover')}</button>
+                  <span className="card-cover-placeholder-icon">+</span>
+                  <div className="card-cover-hover-hint">{t('cards.addCover')}</div>
                 </div>
               )}
 

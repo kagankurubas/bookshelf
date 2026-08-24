@@ -35,7 +35,7 @@
   "cards": {
     "empty": "No books in this library yet.",
     "editCover": "Edit Cover",
-    "addCover": "+ Add Cover",
+    "addCover": "Add Cover",
     "publisher": "Publisher",
     "author": "Author",
     "delete": "Delete Book"
@@ -114,7 +114,6 @@
     "status": "Status",
     "dateStarted": "Started",
     "dateFinished": "Finished",
-    "noteEdited": "Edited",
     "saveNew": "Save Book",
     "saveExisting": "Save Changes",
     "validationError": "Please fill in the book title and author."
