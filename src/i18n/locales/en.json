@@ -1,4 +1,169 @@
 {
-  "welcome": "Welcome to BookShelf Application",
-  "changeLang": "Switch to Turkish"
+  "app": {
+    "name": "BookShelf",
+    "loading": "Loading..."
+  },
+  "nav": {
+    "cards": "Books",
+    "table": "Table",
+    "shelf": "Bookshelf",
+    "explore": "Explore",
+    "comingSoon": "SOON",
+    "exploreTooltip": "Coming very soon: your reading friends and a community"
+  },
+  "aiTeaser": "Coming soon: Book Assistant — get recommendations and chat about books",
+  "toolbar": {
+    "newLibrary": "New Library",
+    "namePlaceholder": "Library Name...",
+    "add": "Add",
+    "cancel": "Cancel",
+    "deleteLibrary": "Delete Library",
+    "deleteLibraryTitle": "Delete This Library",
+    "addBookTitle": "Add New Book",
+    "shelfCountSuffix": "{{count}} shelves"
+  },
+  "cards": {
+    "empty": "No books in this library yet.",
+    "editCover": "Edit Cover",
+    "addCover": "+ Add Cover",
+    "publisher": "Publisher",
+    "author": "Author",
+    "delete": "Delete Book"
+  },
+  "table": {
+    "heading": "Book List & Filters",
+    "searchPlaceholder": "Search by title or author...",
+    "allCategories": "All Categories",
+    "allAuthors": "All Authors",
+    "allStatuses": "All Statuses",
+    "empty": "No books match the selected filters.",
+    "colTitle": "Title",
+    "colAuthor": "Author",
+    "colPublisher": "Publisher",
+    "colCategory": "Category",
+    "colStatus": "Status",
+    "colRating": "Rating",
+    "colActions": "Actions",
+    "deleteTitle": "Delete Book"
+  },
+  "shelf": {
+    "addRow": "Add Shelf",
+    "addRowTitle": "Add a new shelf row below",
+    "removeRow": "Remove Shelf",
+    "removeRowTitle": "Remove the bottom shelf row (its books move to the row above)",
+    "dragHint": "Drag to reorder",
+    "emptyRowHint": "Drag books here"
+  },
+  "statuses": {
+    "Başlanmadı": "Not Started",
+    "Okunuyor": "Reading",
+    "Tamamlandı": "Completed",
+    "Yarıda Bırakıldı": "Abandoned"
+  },
+  "categories": {
+    "Klasik Edebiyat": "Classic Literature",
+    "Kurgu": "Fiction",
+    "Fantastik Kurgu": "Fantasy",
+    "Bilim Kurgu": "Science Fiction",
+    "Distopya": "Dystopia",
+    "Kurgu Dışı": "Non-Fiction",
+    "Biyografi": "Biography",
+    "Bilim": "Science",
+    "Tarih": "History",
+    "Felsefe": "Philosophy"
+  },
+  "addChoice": {
+    "title": "How would you like to add a book?",
+    "barcode": "Scan Barcode",
+    "search": "Search & Add",
+    "batch": "Batch Scan",
+    "manual": "Add Manually",
+    "cancel": "Cancel"
+  },
+  "isbnLookup": {
+    "loading": "Looking up book info...",
+    "notFound": "No book info found for ISBN \"{{isbn}}\". You can add it manually.",
+    "error": "Something went wrong while looking up book info."
+  },
+  "bookModal": {
+    "titlePlaceholder": "Book Title (e.g. Crime and Punishment)",
+    "coverPreviewAlt": "Cover Preview",
+    "dragCoverHint": "Press and drag to reposition the image",
+    "removeCover": "Remove",
+    "coverUrlPlaceholder": "Paste a cover image URL (https://...)",
+    "addCover": "Add Cover",
+    "author": "Author",
+    "authorPlaceholder": "Pick or type an author name",
+    "publisher": "Publisher (Optional)",
+    "publisherPlaceholder": "Publisher Name",
+    "isbn": "ISBN (Optional)",
+    "libraries": "Libraries",
+    "rating": "Rating",
+    "ratingClear": "(Clear)",
+    "category": "Category",
+    "status": "Status",
+    "dateStarted": "Started",
+    "dateFinished": "Finished",
+    "noteEdited": "Edited",
+    "saveNew": "Save Book",
+    "saveExisting": "Save Changes",
+    "validationError": "Please fill in the book title and author."
+  },
+  "barcodeScanner": {
+    "headerTitle": "Scan Barcode",
+    "unsupported": "This browser doesn't support camera access.",
+    "starting": "Starting camera...",
+    "hint": "Line up the barcode horizontally inside the box.",
+    "finish": "Finish",
+    "back": "Go Back",
+    "permissionDenied": "Camera access was denied. You'll need to allow camera access for this site in your browser settings to scan barcodes.",
+    "noCamera": "No usable camera was found on this device.",
+    "startFailed": "Couldn't start the camera. Please try again.",
+    "close": "Close"
+  },
+  "bookSearch": {
+    "headerTitle": "Search & Add",
+    "inputPlaceholder": "Search by title or author...",
+    "idle": "Type a book title or author to search.",
+    "loading": "Searching...",
+    "error": "Something went wrong while searching. Please try again.",
+    "empty": "No results found.",
+    "unknownAuthor": "Unknown author",
+    "close": "Close"
+  },
+  "batchScanner": {
+    "headerTitle": "Batch Scan",
+    "scannedBooks": "Scanned Books ({{count}})",
+    "querying": "{{count}} looking up...",
+    "scanEmpty": "No books scanned yet. Show barcodes to the camera one at a time.",
+    "notFoundLabel": "ISBN: {{isbn}} — not found",
+    "reviewTitle": "Scan Results ({{count}})",
+    "foundSection": "Found ({{count}})",
+    "notFoundSection": "Not Found ({{count}})",
+    "nothingToSave": "No books to save.",
+    "unknownAuthor": "Unknown author",
+    "openLibraryNotFound": "Not found on Open Library",
+    "manualAdd": "Add Manually",
+    "removeFromList": "Remove from list",
+    "scanMore": "+ Scan More",
+    "saveAll": "Save All ({{count}})",
+    "saving": "Saving...",
+    "saveError": "Something went wrong saving the books. Some may already be saved.",
+    "done": "Done",
+    "doneMessage": "{{count}} books added to your library.",
+    "close": "Close",
+    "untitled": "Untitled",
+    "unknownAuthorFallback": "Unknown Author"
+  },
+  "alerts": {
+    "saveBookError": "Something went wrong while saving the book.",
+    "deleteBookError": "Something went wrong while deleting the book.",
+    "createLibraryError": "Something went wrong while creating the library.",
+    "deleteLibraryError": "Something went wrong while deleting the library."
+  },
+  "language": {
+    "label": "Language",
+    "tr": "Turkish",
+    "en": "English"
+  }
 }

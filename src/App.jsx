@@ -1,60 +1,44 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import BookModal from './components/BookModal/BookModal';
+import BarcodeScanner from './components/BarcodeScanner/BarcodeScanner';
+import BookSearch from './components/BookSearch/BookSearch';
+import BatchScanner from './components/BatchScanner/BatchScanner';
+import AppHeader from './components/AppHeader/AppHeader';
+import LibraryToolbar from './components/LibraryToolbar/LibraryToolbar';
+import CardsView from './components/CardsView/CardsView';
+import TableView from './components/TableView/TableView';
+import ShelfView from './components/ShelfView/ShelfView';
+import AddChoiceModal from './components/AddChoiceModal/AddChoiceModal';
+import { StarIcon, SparkleIcon } from './components/icons/Icons';
+import { useBooks } from './hooks/useBooks';
+import { useLibraries } from './hooks/useLibraries';
+import { getBookByIsbn } from './lib/openLibrary';
 import './App.css';
 
-const initialBooks = [
-  {
-    id: 1,
-    title: 'Suç ve Ceza',
-    author: 'Dostoyevski',
-    publisher: 'İş Bankası Yayınları',
-    rating: 5,
-    category: 'Klasik Edebiyat',
-    status: 'Tamamlandı',
-    dateStarted: '2026-06-01',
-    dateFinished: '2026-06-15',
-    coverImage: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c',
-    coverPosition: 50,
-    shelfId: 'default',
-    isFavorite: true,
-    libraryIds: ['lib-1', 'lib-2'],
-    slotIndex: 0,
-    notesList: [{ id: 101, text: 'Eşsiz bir başyapıt.', date: '10 Haz 2026 14:00' }]
-  },
-  {
-    id: 2,
-    title: 'Yüzüklerin Efendisi',
-    author: 'J.R.R. Tolkien',
-    publisher: 'Metis Yayıncılık',
-    rating: 5,
-    category: 'Fantastik Kurgu',
-    status: 'Okunuyor',
-    dateStarted: '2026-07-01',
-    dateFinished: '',
-    coverImage: 'https://images.unsplash.com/photo-1516979187457-637abb4f9353',
-    coverPosition: 50,
-    shelfId: 'default',
-    isFavorite: true,
-    libraryIds: ['lib-1', 'lib-3'],
-    slotIndex: 1,
-    notesList: []
-  }
-];
-
 function App() {
-  const [books, setBooks] = useState(initialBooks);
+  const { t } = useTranslation();
+  const { books, loading: booksLoading, addBook, editBook, deleteBook, updateBookPosition, refetchBooks } = useBooks();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
+  const [prefillBook, setPrefillBook] = useState(null);
+  const [isAddChoiceOpen, setIsAddChoiceOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isBatchScanOpen, setIsBatchScanOpen] = useState(false);
+  const [isLookingUpIsbn, setIsLookingUpIsbn] = useState(false);
 
-  // Kitaplıklara raf kat sayısı (shelfCount) ve raf başına kapasite ekledik
-  const [libraries, setLibraries] = useState([
-    { id: 'lib-1', name: 'Ana Kitaplığım', isDefault: true, capacity: 10, shelfCount: 2 },
-    { id: 'lib-2', name: 'Favori Klasiklerim', isDefault: false, capacity: 10, shelfCount: 2 },
-    { id: 'lib-3', name: 'Yaz Okumaları', isDefault: false, capacity: 10, shelfCount: 2 }
-  ]);
-  const [activeLibraryId, setActiveLibraryId] = useState('lib-1');
+  const {
+    libraries,
+    loading: librariesLoading,
+    createLibrary,
+    updateLibrary,
+    deleteLibrary,
+  } = useLibraries();
+  const [explicitActiveLibraryId, setActiveLibraryId] = useState(null);
+  const defaultLibrary = libraries.find((lib) => lib.isDefault) || libraries[0] || null;
+  const activeLibraryId = explicitActiveLibraryId ?? defaultLibrary?.id ?? null;
   const [newLibraryName, setNewLibraryName] = useState('');
-  const [newLibraryCapacity, setNewLibraryCapacity] = useState(10);
   const [isAddingLibrary, setIsAddingLibrary] = useState(false);
 
   const [activeView, setActiveView] = useState('cards');
@@ -72,10 +56,10 @@ function App() {
   const [selectedShelf, setSelectedShelf] = useState('Tümü');
 
   const [draggedBookId, setDraggedBookId] = useState(null);
-  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [dragOverTarget, setDragOverTarget] = useState(null); // { shelfRow, bookId } | null
 
   const categories = [
-    'Klasik Edebiyat', 'Kurgu', 'Fantastik Kurgu', 'Bilim Kurgu', 
+    'Klasik Edebiyat', 'Kurgu', 'Fantastik Kurgu', 'Bilim Kurgu',
     'Distopya', 'Kurgu Dışı', 'Biyografi', 'Bilim', 'Tarih', 'Felsefe'
   ];
 
@@ -96,112 +80,202 @@ function App() {
 
   const uniqueAuthors = [...new Set(books.map(b => b.author))];
 
-  const renderStars = (rating) => '⭐'.repeat(rating);
+  const renderStars = (rating) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+      {Array.from({ length: rating }).map((_, i) => <StarIcon key={i} />)}
+    </span>
+  );
 
-  const currentLibraryBooks = books.filter(book => {
-    if (!book.libraryIds) return activeLibraryId === 'lib-1';
-    return book.libraryIds.includes(activeLibraryId);
-  });
+  const currentLibraryBooks = books.filter(book => book.libraryIds.includes(activeLibraryId));
 
-  // Aktif kitaplığın kapasitesini ve raf kat sayısını alalım
-  const activeLibrary = libraries.find(l => l.id === activeLibraryId) || libraries[0];
-  const shelfCapacity = activeLibrary.capacity || 10;
+  // Aktif kitaplığın raf kat sayısını alalım (artık sabit kapasite yok)
+  const activeLibrary = libraries.find(l => l.id === activeLibraryId) || libraries[0] || { shelfCount: 2 };
   const shelfCount = activeLibrary.shelfCount || 2;
 
-  const handleSaveBook = (bookData) => {
-    const existingIndex = books.findIndex(b => b.id === bookData.id);
-    if (existingIndex >= 0) {
-      const updatedBooks = [...books];
-      updatedBooks[existingIndex] = bookData;
-      setBooks(updatedBooks);
-    } else {
-      const existingSlots = books
-        .filter(b => (b.libraryIds || ['lib-1']).includes(activeLibraryId))
-        .map(b => b.slotIndex ?? 0);
-      
-      let freeSlot = 0;
-      while (existingSlots.includes(freeSlot)) {
-        freeSlot++;
-      }
+  // Bir kitaplığın belirli bir raf katında kaç kitap oldugunu sayar - yeni
+  // kitaplar bu katin sonuna eklenir (shelf_row: 0, sirali slot_index).
+  const countBooksInRow = (libraryId, shelfRow) =>
+    books.filter(b => b.libraryIds.includes(libraryId) && (b.shelfRow ?? 0) === shelfRow).length;
 
-      const newBookWithSlot = {
-        ...bookData,
-        libraryIds: bookData.libraryIds || [activeLibraryId],
-        slotIndex: freeSlot
-      };
-      setBooks([...books, newBookWithSlot]);
+  const handleSaveBook = async (bookData) => {
+    try {
+      if (bookData.id) {
+        await editBook(bookData.id, bookData);
+      } else {
+        const libraryIds = bookData.libraryIds && bookData.libraryIds.length ? bookData.libraryIds : [activeLibraryId];
+
+        await addBook({
+          ...bookData,
+          libraryIds,
+          shelfRow: 0,
+          slotIndex: countBooksInRow(activeLibraryId, 0),
+        });
+      }
+      setSelectedBook(null);
+    } catch (err) {
+      console.error(err);
+      alert(t('alerts.saveBookError'));
     }
-    setSelectedBook(null);
   };
 
-  const deleteBook = (e, id) => {
+  const handleDeleteBook = async (e, id) => {
     e.stopPropagation();
-    setBooks(books.filter((book) => book.id !== id));
+    try {
+      await deleteBook(id);
+    } catch (err) {
+      console.error(err);
+      alert(t('alerts.deleteBookError'));
+    }
   };
 
   const openNewBookModal = () => {
-    setSelectedBook(null);
-    setIsModalOpen(true);
+    setIsAddChoiceOpen(true);
   };
 
   const openBookDetailModal = (book) => {
     if (draggedBookId === null) {
       setSelectedBook(book);
+      setPrefillBook(null);
       setIsModalOpen(true);
     }
   };
 
-  const handleCreateLibrary = (e) => {
+  const startManualAdd = () => {
+    setIsAddChoiceOpen(false);
+    setSelectedBook(null);
+    setPrefillBook(null);
+    setIsModalOpen(true);
+  };
+
+  const startBarcodeAdd = () => {
+    setIsAddChoiceOpen(false);
+    setIsScannerOpen(true);
+  };
+
+  const closeScanner = () => {
+    setIsScannerOpen(false);
+  };
+
+  const handleBarcodeScanned = async (isbn) => {
+    setIsScannerOpen(false);
+    setIsLookingUpIsbn(true);
+    try {
+      const bookInfo = await getBookByIsbn(isbn);
+      if (bookInfo) {
+        setSelectedBook(null);
+        setPrefillBook(bookInfo);
+        setIsModalOpen(true);
+      } else {
+        alert(t('isbnLookup.notFound', { isbn }));
+        setIsAddChoiceOpen(true);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(t('isbnLookup.error'));
+      setIsAddChoiceOpen(true);
+    } finally {
+      setIsLookingUpIsbn(false);
+    }
+  };
+
+  const startSearchAdd = () => {
+    setIsAddChoiceOpen(false);
+    setIsSearchOpen(true);
+  };
+
+  const closeSearch = () => {
+    setIsSearchOpen(false);
+  };
+
+  const handleSearchResultSelect = (book) => {
+    setIsSearchOpen(false);
+    setSelectedBook(null);
+    setPrefillBook({
+      title: book.title,
+      author: book.author,
+      coverImage: book.coverImage,
+      isbn: book.isbn,
+    });
+    setIsModalOpen(true);
+  };
+
+  const startBatchScanAdd = () => {
+    setIsAddChoiceOpen(false);
+    setIsBatchScanOpen(true);
+  };
+
+  const closeBatchScan = () => {
+    setIsBatchScanOpen(false);
+  };
+
+  const handleManualAddFromIsbn = (isbn) => {
+    setSelectedBook(null);
+    setPrefillBook({ isbn });
+    setIsModalOpen(true);
+  };
+
+  const handleCreateLibrary = async (e) => {
     e.preventDefault();
     if (!newLibraryName.trim()) return;
-    const newLib = {
-      id: `lib-${Date.now()}`,
-      name: newLibraryName.trim(),
-      isDefault: false,
-      capacity: Number(newLibraryCapacity) || 10,
-      shelfCount: 2
-    };
-    setLibraries([...libraries, newLib]);
-    setActiveLibraryId(newLib.id);
-    setNewLibraryName('');
-    setNewLibraryCapacity(10);
-    setIsAddingLibrary(false);
+    try {
+      const newLib = await createLibrary({
+        name: newLibraryName.trim(),
+        shelfCount: 2,
+        isDefault: false
+      });
+      setActiveLibraryId(newLib.id);
+      setNewLibraryName('');
+      setIsAddingLibrary(false);
+    } catch (err) {
+      console.error(err);
+      alert(t('alerts.createLibraryError'));
+    }
   };
 
-  const handleDeleteLibrary = (libId) => {
-    setLibraries(libraries.filter(l => l.id !== libId));
-    setActiveLibraryId('lib-1');
-  };
-
-  // Aktif kitaplığın kapasitesini güncelleme fonksiyonu
-  const handleUpdateCapacity = (newCap) => {
-    const cap = Math.max(5, Math.min(30, Number(newCap) || 10));
-    setLibraries(libraries.map(lib => {
-      if (lib.id === activeLibraryId) {
-        return { ...lib, capacity: cap };
-      }
-      return lib;
-    }));
+  const handleDeleteLibrary = async (libId) => {
+    try {
+      await deleteLibrary(libId);
+      setActiveLibraryId(null);
+      await refetchBooks();
+    } catch (err) {
+      console.error(err);
+      alert(t('alerts.deleteLibraryError'));
+    }
   };
 
   // Yeni Raf Katı Ekle
-  const handleAddShelfRow = () => {
-    setLibraries(libraries.map(lib => {
-      if (lib.id === activeLibraryId) {
-        return { ...lib, shelfCount: (lib.shelfCount || 2) + 1 };
-      }
-      return lib;
-    }));
+  const handleAddShelfRow = async () => {
+    try {
+      await updateLibrary(activeLibraryId, { shelfCount: (activeLibrary.shelfCount || 2) + 1 });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  // Raf Katı Sil
-  const handleRemoveShelfRow = () => {
-    setLibraries(libraries.map(lib => {
-      if (lib.id === activeLibraryId && (lib.shelfCount || 2) > 1) {
-        return { ...lib, shelfCount: lib.shelfCount - 1 };
+  // Raf Katı Sil - en alttaki raftaki kitaplar bir üstteki rafın sonuna taşınır
+  const handleRemoveShelfRow = async () => {
+    const currentShelfCount = activeLibrary.shelfCount || 2;
+    if (currentShelfCount <= 1) return;
+
+    const lastRow = currentShelfCount - 1;
+    const targetRow = lastRow - 1;
+
+    try {
+      const rowBooks = currentLibraryBooks
+        .filter(b => (b.shelfRow ?? 0) === lastRow)
+        .sort((a, b) => (a.slotIndex ?? 0) - (b.slotIndex ?? 0));
+
+      if (rowBooks.length > 0) {
+        const targetRowCount = countBooksInRow(activeLibraryId, targetRow);
+        await Promise.all(
+          rowBooks.map((b, i) => updateBookPosition(b.id, targetRow, targetRowCount + i))
+        );
       }
-      return lib;
-    }));
+
+      await updateLibrary(activeLibraryId, { shelfCount: currentShelfCount - 1 });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleDragStart = (e, bookId) => {
@@ -212,45 +286,66 @@ function App() {
 
   const handleDragEnd = () => {
     setDraggedBookId(null);
-    setDragOverIndex(null);
+    setDragOverTarget(null);
   };
 
-  const handleDropToSlot = (targetSlotIndex) => {
+  // targetBookId === null -> ilgili rafın sonuna ekle
+  const handleDropAt = async (targetShelfRow, targetBookId) => {
     const activeBookId = draggedBookId;
-    if (activeBookId === null) {
+    const activeBook = books.find(b => b.id === activeBookId);
+    if (!activeBook) {
       handleDragEnd();
       return;
     }
 
-    setBooks(prevBooks => {
-      const targetBook = prevBooks.find(b => 
-        (b.libraryIds || ['lib-1']).includes(activeLibraryId) && (b.slotIndex ?? 0) === targetSlotIndex
-      );
+    const originRow = activeBook.shelfRow ?? 0;
 
-      const activeBook = prevBooks.find(b => b.id === activeBookId);
-      const oldSlotIndex = activeBook ? (activeBook.slotIndex ?? 0) : 0;
+    const rows = {};
+    currentLibraryBooks.forEach((b) => {
+      const row = b.shelfRow ?? 0;
+      if (!rows[row]) rows[row] = [];
+      rows[row].push(b);
+    });
+    Object.values(rows).forEach((arr) => arr.sort((a, b) => (a.slotIndex ?? 0) - (b.slotIndex ?? 0)));
 
-      return prevBooks.map(book => {
-        if (book.id === activeBookId) {
-          return { ...book, slotIndex: targetSlotIndex };
+    rows[originRow] = (rows[originRow] || []).filter((b) => b.id !== activeBookId);
+    if (!rows[targetShelfRow]) rows[targetShelfRow] = [];
+
+    const insertIndex = targetBookId === null
+      ? rows[targetShelfRow].length
+      : (() => {
+          const idx = rows[targetShelfRow].findIndex((b) => b.id === targetBookId);
+          return idx === -1 ? rows[targetShelfRow].length : idx;
+        })();
+
+    rows[targetShelfRow].splice(insertIndex, 0, activeBook);
+
+    const touchedRows = new Set([originRow, targetShelfRow]);
+    const updates = [];
+    touchedRows.forEach((rowKey) => {
+      (rows[rowKey] || []).forEach((b, idx) => {
+        if ((b.shelfRow ?? 0) !== rowKey || (b.slotIndex ?? 0) !== idx) {
+          updates.push(updateBookPosition(b.id, rowKey, idx));
         }
-        if (targetBook && book.id === targetBook.id) {
-          return { ...book, slotIndex: oldSlotIndex };
-        }
-        return book;
       });
     });
+
+    try {
+      await Promise.all(updates);
+    } catch (err) {
+      console.error(err);
+    }
 
     handleDragEnd();
   };
 
   const filteredBooks = currentLibraryBooks.filter(book => {
-    const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           book.author.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     const matchesCategory = (selectedCategory === 'Tümü' || book.category === selectedCategory) &&
                             (filterCategory === 'Tümü' || book.category === filterCategory);
-                            
+
     const matchesAuthor = selectedAuthor === 'Tümü' || book.author === selectedAuthor;
     const matchesStatus = filterStatus === 'Tümü' || book.status === filterStatus;
     const matchesShelf = selectedShelf === 'Tümü' || book.shelfId === selectedShelf;
@@ -260,306 +355,140 @@ function App() {
 
   return (
     <div className="main-container" onDragEnd={handleDragEnd}>
-      
-      <header className="app-header" style={{ marginBottom: '15px', borderBottom: 'none', paddingBottom: '0' }}>
-        <h1 style={{ margin: 0, fontSize: '32px' }}>BookShelf 📚</h1>
-      </header>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px' }}>
-        
-        <div style={{ display: 'flex', width: '100%' }}>
-          <div className="modern-tabs" style={{ display: 'flex', width: '100%' }}>
-            <button className={`modern-tab-btn ${activeView === 'cards' ? 'active' : ''}`} onClick={() => setActiveView('cards')} style={{ flex: 1, textAlign: 'center' }}>📖 Kitaplar</button>
-            <button className={`modern-tab-btn ${activeView === 'table' ? 'active' : ''}`} onClick={() => setActiveView('table')} style={{ flex: 1, textAlign: 'center' }}>📑 Tablo</button>
-            <button className={`modern-tab-btn ${activeView === 'shelf' ? 'active' : ''}`} onClick={() => setActiveView('shelf')} style={{ flex: 1, textAlign: 'center' }}>📚 Kitaplık Rafı</button>
-          </div>
-        </div>
+      {booksLoading || librariesLoading ? (
+        <p style={{ color: 'var(--text-secondary)', textAlign: 'center', marginTop: '80px', fontFamily: 'var(--font-body)' }}>{t('app.loading')}</p>
+      ) : (
+      <>
+      <AppHeader activeView={activeView} onChangeView={setActiveView} />
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '5px', width: '100%' }}>
-          <button 
-            onClick={openNewBookModal}
-            style={{
-              background: '#2383e2', color: 'white', border: 'none', borderRadius: '50%',
-              width: '44px', height: '44px', fontSize: '24px', fontWeight: 'bold',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-              boxShadow: '0 4px 12px rgba(35, 131, 226, 0.4)', transition: 'all 0.2s', flexShrink: 0
-            }}
-            title="Yeni Kitap Ekle"
-          >
-            +
-          </button>
-        </div>
+      <LibraryToolbar
+        libraries={libraries}
+        activeLibraryId={activeLibraryId}
+        onChangeActiveLibrary={setActiveLibraryId}
+        isAddingLibrary={isAddingLibrary}
+        onStartAddingLibrary={() => setIsAddingLibrary(true)}
+        onCancelAddingLibrary={() => setIsAddingLibrary(false)}
+        newLibraryName={newLibraryName}
+        onNewLibraryNameChange={setNewLibraryName}
+        onCreateLibrary={handleCreateLibrary}
+        onDeleteLibrary={handleDeleteLibrary}
+        onOpenAddBook={openNewBookModal}
+      />
 
-      </div>
+      <button
+        className="ai-teaser-fab"
+        disabled
+        title={t('aiTeaser')}
+      >
+        <SparkleIcon />
+      </button>
 
       {activeView === 'cards' && (
-        <main className="book-list-container">
-          {currentLibraryBooks.length === 0 ? (
-            <div className="empty-state"><p>Bu kitaplıkta henüz kitap yok.</p></div>
-          ) : (
-            <div className="book-cards-grid">
-              {currentLibraryBooks.map((book) => (
-                <div key={book.id} className="book-card" onClick={() => openBookDetailModal(book)} style={{ cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
-                  {book.coverImage ? (
-                    <div className="card-cover-banner">
-                      <img src={book.coverImage} alt={book.title} className="card-cover-image" style={{ objectPosition: `center ${book.coverPosition || 50}%` }} />
-                      <button className="card-cover-action-btn" onClick={(e) => { e.stopPropagation(); openBookDetailModal(book); }}>Kapağı Düzenle</button>
-                    </div>
-                  ) : (
-                    <div className="card-cover-banner placeholder">
-                      <button className="card-cover-action-btn" onClick={(e) => { e.stopPropagation(); openBookDetailModal(book); }}>+ Kapak Ekle</button>
-                    </div>
-                  )}
-                  
-                  <div className="card-content" style={{ padding: '15px 20px 20px 20px' }}>
-                    <h3 className="card-title">{book.title}</h3>
-                    <p className="card-author">Yazar: {book.author}</p>
-                    {book.publisher && <p style={{ fontSize: '12px', color: '#888', margin: '2px 0 8px 0' }}>Yayınevi: {book.publisher}</p>}
-                    
-                    <div className="card-properties">
-                      {book.rating > 0 && <span className="property-tag rating">{renderStars(book.rating)}</span>}
-                      <span className="property-tag category">{book.category}</span>
-                      <span className={`property-tag status ${book.status.toLowerCase().replace(/\s+/g, '-')}`}>{book.status}</span>
-                    </div>
-                  </div>
-                  
-                  <button onClick={(e) => deleteBook(e, book.id)} className="delete-card-btn">Kitabı Sil</button>
-                </div>
-              ))}
-            </div>
-          )}
-        </main>
+        <CardsView
+          books={currentLibraryBooks}
+          onOpenBook={openBookDetailModal}
+          onDeleteBook={handleDeleteBook}
+          renderStars={renderStars}
+        />
       )}
 
       {activeView === 'table' && (
-        <main className="book-list-container">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-            <h2 style={{ fontSize: '18px', margin: 0, color: '#fff' }}>Kitap Listesi & Filtreleme</h2>
-            
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <input 
-                type="text" placeholder="Kitap veya yazar ara..." value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)} className="form-input"
-                style={{ padding: '6px 12px', fontSize: '13px', background: '#202020', color: '#fff', border: '1px solid #444', borderRadius: '4px', width: '180px' }}
-              />
-
-              <select className="form-select" value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} style={{ padding: '6px 12px', fontSize: '13px', background: '#202020', color: '#fff', border: '1px solid #444', borderRadius: '4px' }}>
-                <option value="Tümü">Tüm Kategoriler</option>
-                {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-              </select>
-
-              <select className="form-select" value={selectedAuthor} onChange={(e) => setSelectedAuthor(e.target.value)} style={{ padding: '6px 12px', fontSize: '13px', background: '#202020', color: '#fff', border: '1px solid #444', borderRadius: '4px' }}>
-                <option value="Tümü">Tüm Yazarlar</option>
-                {uniqueAuthors.map(author => <option key={author} value={author}>{author}</option>)}
-              </select>
-
-              <select className="form-select" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ padding: '6px 12px', fontSize: '13px', background: '#202020', color: '#fff', border: '1px solid #444', borderRadius: '4px' }}>
-                <option value="Tümü">Tüm Durumlar</option>
-                <option value="Başlanmadı">Başlanmadı</option>
-                <option value="Okunuyor">Okunuyor</option>
-                <option value="Tamamlandı">Tamamlandı</option>
-                <option value="Yarıda Bırakıldı">Yarıda Bırakıldı</option>
-              </select>
-            </div>
-          </div>
-
-          {filteredBooks.length === 0 ? (
-            <div className="empty-state"><p>Seçilen kriterlere uygun kitap bulunamadı.</p></div>
-          ) : (
-            <div style={{ overflowX: 'auto', background: '#202020', border: '1px solid #333', borderRadius: '8px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #333', color: '#888', background: '#252525' }}>
-                    <th style={{ padding: '12px 16px' }}>Kitap Adı</th>
-                    <th style={{ padding: '12px 16px' }}>Yazar</th>
-                    <th style={{ padding: '12px 16px' }}>Yayınevi</th>
-                    <th style={{ padding: '12px 16px' }}>Kategori</th>
-                    <th style={{ padding: '12px 16px' }}>Durum</th>
-                    <th style={{ padding: '12px 16px' }}>Puan</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>İşlemler</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredBooks.map((book) => (
-                    <tr key={book.id} onClick={() => openBookDetailModal(book)} style={{ borderBottom: '1px solid #2a2a2a', cursor: 'pointer', transition: 'background 0.2s' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 'bold', color: '#fff' }}>{book.title}</td>
-                      <td style={{ padding: '12px 16px', color: '#aaa' }}>{book.author}</td>
-                      <td style={{ padding: '12px 16px', color: '#aaa' }}>{book.publisher || '-'}</td>
-                      <td style={{ padding: '12px 16px' }}><span className="property-tag category">{book.category}</span></td>
-                      <td style={{ padding: '12px 16px' }}><span className={`property-tag status ${book.status.toLowerCase().replace(/\s+/g, '-')}`}>{book.status}</span></td>
-                      <td style={{ padding: '12px 16px' }}>{book.rating > 0 ? renderStars(book.rating) : '-'}</td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                        <button className="table-delete-btn" onClick={(e) => deleteBook(e, book.id)} title="Kitabı Sil">🗑️</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </main>
+        <TableView
+          books={filteredBooks}
+          categories={categories}
+          uniqueAuthors={uniqueAuthors}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+          selectedCategory={selectedCategory}
+          onSelectedCategoryChange={setSelectedCategory}
+          selectedAuthor={selectedAuthor}
+          onSelectedAuthorChange={setSelectedAuthor}
+          filterStatus={filterStatus}
+          onFilterStatusChange={setFilterStatus}
+          onOpenBook={openBookDetailModal}
+          onDeleteBook={handleDeleteBook}
+          renderStars={renderStars}
+        />
       )}
 
-      {/* --- KİTAPLIK RAFI GÖRÜNÜMÜ (Çoklu Raf Katları & Raf Ekle Butonu) --- */}
       {activeView === 'shelf' && (
-        <main className="wooden-shelf-main-wrapper" onDragEnd={handleDragEnd}>
-          
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', gap: '10px', flexWrap: 'wrap' }}>
-            
-            {/* Raf Ayarları ve Raf Ekle/Sil Butonları */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#1e1e1e', padding: '6px 12px', borderRadius: '6px', border: '1px solid #333', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '13px', color: '#aaa' }}>Raf Slotu:</span>
-                <input 
-                  type="number" min="5" max="30" value={shelfCapacity}
-                  onChange={(e) => handleUpdateCapacity(e.target.value)}
-                  style={{ width: '45px', background: '#2a2a2a', color: '#fff', border: '1px solid #444', borderRadius: '4px', padding: '4px 4px', textAlign: 'center', fontSize: '13px' }}
-                />
-              </div>
+        <ShelfView
+          books={currentLibraryBooks}
+          shelfCount={shelfCount}
+          draggedBookId={draggedBookId}
+          dragOverTarget={dragOverTarget}
+          onAddShelfRow={handleAddShelfRow}
+          onRemoveShelfRow={handleRemoveShelfRow}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragOverAt={(shelfRow, bookId) => setDragOverTarget({ shelfRow, bookId })}
+          onDropAt={handleDropAt}
+          onOpenBook={openBookDetailModal}
+          getCategoryColorClass={getCategoryColorClass}
+        />
+      )}
 
-              <div style={{ height: '18px', width: '1px', background: '#444' }}></div>
+      {isAddChoiceOpen && (
+        <AddChoiceModal
+          onClose={() => setIsAddChoiceOpen(false)}
+          onBarcodeAdd={startBarcodeAdd}
+          onSearchAdd={startSearchAdd}
+          onBatchAdd={startBatchScanAdd}
+          onManualAdd={startManualAdd}
+        />
+      )}
 
-              <button 
-                onClick={handleAddShelfRow}
-                style={{ background: '#10b981', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                title="Altına yeni bir raf katı ekle"
-              >
-                + Raf Ekle
-              </button>
-
-              {shelfCount > 1 && (
-                <button 
-                  onClick={handleRemoveShelfRow}
-                  style={{ background: 'transparent', border: '1px solid #f87171', color: '#f87171', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-                  title="En alttaki rafı kaldır"
-                >
-                  - Raf Sil
-                </button>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              {isAddingLibrary ? (
-                <form onSubmit={handleCreateLibrary} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <input 
-                    type="text" placeholder="Kitaplık Adı..." value={newLibraryName}
-                    onChange={(e) => setNewLibraryName(e.target.value)} autoFocus
-                    style={{ padding: '6px 12px', fontSize: '13px', background: '#202020', color: '#fff', border: '1px solid #444', borderRadius: '4px', outline: 'none' }}
-                  />
-                  <input 
-                    type="number" placeholder="Kapasite" min="5" max="30" value={newLibraryCapacity}
-                    onChange={(e) => setNewLibraryCapacity(e.target.value)}
-                    style={{ width: '70px', padding: '6px 8px', fontSize: '13px', background: '#202020', color: '#fff', border: '1px solid #444', borderRadius: '4px' }}
-                  />
-                  <button type="submit" style={{ background: '#10b981', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>Ekle</button>
-                  <button type="button" onClick={() => setIsAddingLibrary(false)} style={{ background: '#444', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>İptal</button>
-                </form>
-              ) : (
-                <button onClick={() => setIsAddingLibrary(true)} style={{ background: '#2383e2', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>+ Yeni Kitaplık Oluştur</button>
-              )}
-
-              <select className="form-select" value={activeLibraryId} onChange={(e) => setActiveLibraryId(e.target.value)} style={{ padding: '6px 12px', fontSize: '13px', background: '#202020', color: '#fff', border: '1px solid #444', borderRadius: '4px' }}>
-                {libraries.map(lib => <option key={lib.id} value={lib.id}>{lib.name} ({lib.shelfCount || 2} Kat)</option>)}
-              </select>
-
-              {libraries.find(l => l.id === activeLibraryId && !l.isDefault) && (
-                <button onClick={() => handleDeleteLibrary(activeLibraryId)} title="Bu Kitaplığı Sil" style={{ background: 'transparent', border: '1px solid #f87171', color: '#f87171', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Kitaplığı Sil</button>
-              )}
-            </div>
-
+      {isScannerOpen && (
+        <div className="modal-overlay" onClick={closeScanner}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '520px', padding: '0 16px', boxSizing: 'border-box' }}>
+            <BarcodeScanner onScan={handleBarcodeScanned} onClose={closeScanner} />
           </div>
+        </div>
+      )}
 
-          <div className="wooden-shelf-container">
-            {/* Dinamik olarak raf katı sayısı (shelfCount) kadar raf ve ahşap zemin render ediliyor */}
-            {Array.from({ length: shelfCount }).map((_, shelfIndex) => {
-              
-              const slots = Array.from({ length: shelfCapacity }).map((_, slotIndex) => {
-                const globalIndex = shelfIndex * shelfCapacity + slotIndex;
-                return currentLibraryBooks.find(b => (b.libraryIds || ['lib-1']).includes(activeLibraryId) && (b.slotIndex ?? 0) === globalIndex) || null;
-              });
-
-              return (
-                <div key={shelfIndex} className="shelf-row">
-                  
-                  {slots.map((book, slotIndex) => {
-                    const globalSlotIndex = shelfIndex * shelfCapacity + slotIndex;
-                    const isHovered = dragOverIndex === globalSlotIndex;
-                    const isDraggingThis = draggedBookId !== null;
-
-                    if (book) {
-                      const colorClass = getCategoryColorClass(book.category);
-
-                      return (
-                        <div 
-                          key={book.id} 
-                          className={`shelf-book ${colorClass} ${draggedBookId === book.id ? 'dragging' : ''} ${isHovered ? 'drag-over' : ''}`}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, book.id)}
-                          onDragEnd={handleDragEnd}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            setDragOverIndex(globalSlotIndex);
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            handleDropToSlot(globalSlotIndex);
-                          }}
-                          onClick={() => openBookDetailModal(book)}
-                          title={`${book.title} (${book.category}) - Sürükleyerek yer değiştirebilirsin`}
-                          style={{ cursor: 'grab' }}
-                        >
-                          <span className="shelf-book-title">{book.title}</span>
-                        </div>
-                      );
-                    } else {
-                      if (!isDraggingThis) {
-                        return (
-                          <div 
-                            key={`space-${globalSlotIndex}`} 
-                            style={{ width: '55px', height: '155px', marginBottom: '22px', flexShrink: 0 }} 
-                          />
-                        );
-                      }
-
-                      return (
-                        <div
-                          key={`empty-${globalSlotIndex}`}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            setDragOverIndex(globalSlotIndex);
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            handleDropToSlot(globalSlotIndex);
-                          }}
-                          className={`shelf-book shelf-slot-empty ${isHovered ? 'drag-over' : ''}`}
-                          title={`Slot ${globalSlotIndex + 1} - Buraya yerleştir`}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <span style={{ fontSize: '12px', color: isHovered ? '#fff' : '#60a5fa', fontWeight: 'bold' }}>
-                            {globalSlotIndex + 1}
-                          </span>
-                        </div>
-                      );
-                    }
-                  })}
-
-                  <div className="shelf-board"></div>
-                </div>
-              );
-            })}
+      {isSearchOpen && (
+        <div className="modal-overlay" onClick={closeSearch}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '520px', padding: '0 16px', boxSizing: 'border-box' }}>
+            <BookSearch onSelect={handleSearchResultSelect} onClose={closeSearch} />
           </div>
-        </main>
+        </div>
+      )}
+
+      {isBatchScanOpen && (
+        <div className="modal-overlay" onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: '100%', maxWidth: '560px', padding: '0 16px', boxSizing: 'border-box' }}>
+            <BatchScanner
+              books={books}
+              activeLibraryId={activeLibraryId}
+              addBook={addBook}
+              onClose={closeBatchScan}
+              onManualAddIsbn={handleManualAddFromIsbn}
+            />
+          </div>
+        </div>
+      )}
+
+      {isLookingUpIsbn && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '320px', padding: '30px', textAlign: 'center' }}>
+            <p style={{ color: 'var(--text)', fontFamily: 'var(--font-body)', margin: 0 }}>{t('isbnLookup.loading')}</p>
+          </div>
+        </div>
       )}
 
       {isModalOpen && (
-        <BookModal 
-          onClose={() => setIsModalOpen(false)} 
+        <BookModal
+          onClose={() => { setIsModalOpen(false); setPrefillBook(null); }}
           onSave={handleSaveBook}
           selectedBook={selectedBook}
+          prefillData={prefillBook}
           existingAuthors={uniqueAuthors}
           libraries={libraries}
+          activeLibraryId={activeLibraryId}
         />
+      )}
+      </>
       )}
 
     </div>

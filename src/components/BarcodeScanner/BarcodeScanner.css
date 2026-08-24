@@ -1,0 +1,114 @@
+.barcode-scanner {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background-color: var(--surface, #fff);
+  border-radius: var(--radius-lg, 16px);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg, 0 16px 40px rgba(0, 0, 0, 0.2));
+  font-family: var(--font-body, 'Segoe UI', sans-serif);
+}
+
+.barcode-scanner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  color: var(--text, #111);
+  font-family: var(--font-heading, sans-serif);
+  font-weight: 600;
+  font-size: 15px;
+  border-bottom: 1px solid var(--border, #e5e5e5);
+}
+
+.barcode-scanner-close {
+  background: none;
+  border: none;
+  color: var(--text-muted, #888);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.barcode-scanner-close:hover {
+  color: var(--text, #111);
+}
+
+.barcode-scanner-viewport {
+  width: 100%;
+  min-height: 220px;
+  background-color: #000;
+}
+
+.barcode-scanner-viewport video,
+.barcode-scanner-viewport canvas {
+  width: 100% !important;
+  height: auto !important;
+  display: block;
+}
+
+.barcode-scanner-hint {
+  margin: 0;
+  padding: 12px 18px 18px;
+  color: var(--text-secondary, #666);
+  font-size: 13px;
+  text-align: center;
+}
+
+.barcode-scanner-hint-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 18px 18px;
+}
+
+.barcode-scanner-hint-row .barcode-scanner-hint {
+  padding: 12px 0 0;
+  text-align: left;
+  flex: 1;
+}
+
+.barcode-scanner-finish-btn {
+  background: var(--accent, #0a8f5c);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: var(--font-body, sans-serif);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.barcode-scanner-error {
+  padding: 18px;
+  text-align: center;
+}
+
+.barcode-scanner-error p {
+  color: var(--danger, #dc2626);
+  font-size: 13px;
+  margin: 0 0 14px;
+}
+
+.barcode-scanner-back-btn {
+  background: var(--text, #111);
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-family: var(--font-body, sans-serif);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 520px) {
+  .barcode-scanner {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+}

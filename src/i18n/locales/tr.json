@@ -1,4 +1,169 @@
 {
-  "welcome": "Kitaplık Uygulamasına Hoş Geldiniz",
-  "changeLang": "İngilizceye Çevir"
+  "app": {
+    "name": "BookShelf",
+    "loading": "Yükleniyor..."
+  },
+  "nav": {
+    "cards": "Kitaplar",
+    "table": "Tablo",
+    "shelf": "Kitaplık Rafı",
+    "explore": "Keşfet",
+    "comingSoon": "YAKINDA",
+    "exploreTooltip": "Çok yakında: kitap arkadaşların ve topluluk"
+  },
+  "aiTeaser": "Yakında: Kitap Asistanı — sana kitap önerir, kitaplar hakkında sohbet edersin",
+  "toolbar": {
+    "newLibrary": "Yeni Kitaplık",
+    "namePlaceholder": "Kitaplık Adı...",
+    "add": "Ekle",
+    "cancel": "İptal",
+    "deleteLibrary": "Kitaplığı Sil",
+    "deleteLibraryTitle": "Bu Kitaplığı Sil",
+    "addBookTitle": "Yeni Kitap Ekle",
+    "shelfCountSuffix": "{{count}} Kat"
+  },
+  "cards": {
+    "empty": "Bu kitaplıkta henüz kitap yok.",
+    "editCover": "Kapağı Düzenle",
+    "addCover": "+ Kapak Ekle",
+    "publisher": "Yayınevi",
+    "author": "Yazar",
+    "delete": "Kitabı Sil"
+  },
+  "table": {
+    "heading": "Kitap Listesi & Filtreleme",
+    "searchPlaceholder": "Kitap veya yazar ara...",
+    "allCategories": "Tüm Kategoriler",
+    "allAuthors": "Tüm Yazarlar",
+    "allStatuses": "Tüm Durumlar",
+    "empty": "Seçilen kriterlere uygun kitap bulunamadı.",
+    "colTitle": "Kitap Adı",
+    "colAuthor": "Yazar",
+    "colPublisher": "Yayınevi",
+    "colCategory": "Kategori",
+    "colStatus": "Durum",
+    "colRating": "Puan",
+    "colActions": "İşlemler",
+    "deleteTitle": "Kitabı Sil"
+  },
+  "shelf": {
+    "addRow": "Raf Ekle",
+    "addRowTitle": "Altına yeni bir raf katı ekle",
+    "removeRow": "Raf Sil",
+    "removeRowTitle": "En alttaki rafı kaldır (kitapları üstteki rafa taşınır)",
+    "dragHint": "Sürükleyerek yer değiştirebilirsin",
+    "emptyRowHint": "Kitapları buraya sürükle"
+  },
+  "statuses": {
+    "Başlanmadı": "Başlanmadı",
+    "Okunuyor": "Okunuyor",
+    "Tamamlandı": "Tamamlandı",
+    "Yarıda Bırakıldı": "Yarıda Bırakıldı"
+  },
+  "categories": {
+    "Klasik Edebiyat": "Klasik Edebiyat",
+    "Kurgu": "Kurgu",
+    "Fantastik Kurgu": "Fantastik Kurgu",
+    "Bilim Kurgu": "Bilim Kurgu",
+    "Distopya": "Distopya",
+    "Kurgu Dışı": "Kurgu Dışı",
+    "Biyografi": "Biyografi",
+    "Bilim": "Bilim",
+    "Tarih": "Tarih",
+    "Felsefe": "Felsefe"
+  },
+  "addChoice": {
+    "title": "Kitap Nasıl Eklensin?",
+    "barcode": "Barkod ile Ekle",
+    "search": "Ara ve Ekle",
+    "batch": "Toplu Tarama",
+    "manual": "Manuel Ekle",
+    "cancel": "İptal"
+  },
+  "isbnLookup": {
+    "loading": "Kitap bilgisi aranıyor...",
+    "notFound": "\"{{isbn}}\" numaralı ISBN için kitap bilgisi bulunamadı. Manuel olarak ekleyebilirsin.",
+    "error": "Kitap bilgisi alınırken bir hata oluştu."
+  },
+  "bookModal": {
+    "titlePlaceholder": "Kitap Adı (Örn: Suç ve Ceza)",
+    "coverPreviewAlt": "Kapak Önizleme",
+    "dragCoverHint": "Resmi hareket ettirmek için basıp sürükle",
+    "removeCover": "Kaldır",
+    "coverUrlPlaceholder": "Kapak Görseli URL'si yapıştır (https://...)",
+    "addCover": "Kapak Ekle",
+    "author": "Yazar",
+    "authorPlaceholder": "Yazar Adı Seç veya Yaz",
+    "publisher": "Yayınevi (Opsiyonel)",
+    "publisherPlaceholder": "Yayınevi Adı",
+    "isbn": "ISBN (Opsiyonel)",
+    "libraries": "Kitaplıklar",
+    "rating": "Puan",
+    "ratingClear": "(Temizle)",
+    "category": "Kategori",
+    "status": "Durum",
+    "dateStarted": "Başlama",
+    "dateFinished": "Bitiş",
+    "noteEdited": "Düzenlendi",
+    "saveNew": "Kitabı Kaydet",
+    "saveExisting": "Değişiklikleri Kaydet",
+    "validationError": "Lütfen Kitap Adı ve Yazar alanlarını doldurun."
+  },
+  "barcodeScanner": {
+    "headerTitle": "Barkod ile Ekle",
+    "unsupported": "Bu tarayıcı kamera erişimini desteklemiyor.",
+    "starting": "Kamera başlatılıyor...",
+    "hint": "Barkodu, çizgiler yatay olacak şekilde kutunun içine yerleştir.",
+    "finish": "Bitir",
+    "back": "Geri Dön",
+    "permissionDenied": "Kamera izni reddedildi. Barkod okutmak için tarayıcı ayarlarından bu siteye kamera izni vermen gerekiyor.",
+    "noCamera": "Cihazda kullanılabilir bir kamera bulunamadı.",
+    "startFailed": "Kamera başlatılamadı. Lütfen tekrar dene.",
+    "close": "Kapat"
+  },
+  "bookSearch": {
+    "headerTitle": "Ara ve Ekle",
+    "inputPlaceholder": "Kitap adı veya yazar ara...",
+    "idle": "Aramak için bir kitap adı veya yazar yaz.",
+    "loading": "Aranıyor...",
+    "error": "Arama yapılırken bir hata oluştu. Lütfen tekrar dene.",
+    "empty": "Sonuç bulunamadı.",
+    "unknownAuthor": "Yazar bilinmiyor",
+    "close": "Kapat"
+  },
+  "batchScanner": {
+    "headerTitle": "Toplu Tarama",
+    "scannedBooks": "Taranan Kitaplar ({{count}})",
+    "querying": "{{count}} sorgulanıyor...",
+    "scanEmpty": "Henüz kitap taranmadı. Barkodları sırayla kameraya göster.",
+    "notFoundLabel": "ISBN: {{isbn}} — bulunamadı",
+    "reviewTitle": "Tarama Sonucu ({{count}})",
+    "foundSection": "Bulunanlar ({{count}})",
+    "notFoundSection": "Bulunamayanlar ({{count}})",
+    "nothingToSave": "Kaydedilecek kitap yok.",
+    "unknownAuthor": "Yazar bilinmiyor",
+    "openLibraryNotFound": "Open Library'de bulunamadı",
+    "manualAdd": "Manuel Ekle",
+    "removeFromList": "Listeden çıkar",
+    "scanMore": "+ Daha Fazla Tara",
+    "saveAll": "Hepsini Kaydet ({{count}})",
+    "saving": "Kaydediliyor...",
+    "saveError": "Kitaplar kaydedilirken bir hata oluştu. Bir kısmı zaten kaydedilmiş olabilir.",
+    "done": "Tamamlandı",
+    "doneMessage": "{{count}} kitap kitaplığına eklendi.",
+    "close": "Kapat",
+    "untitled": "Başlıksız",
+    "unknownAuthorFallback": "Bilinmeyen Yazar"
+  },
+  "alerts": {
+    "saveBookError": "Kitap kaydedilirken bir hata oluştu.",
+    "deleteBookError": "Kitap silinirken bir hata oluştu.",
+    "createLibraryError": "Kitaplık oluşturulurken bir hata oluştu.",
+    "deleteLibraryError": "Kitaplık silinirken bir hata oluştu."
+  },
+  "language": {
+    "label": "Dil",
+    "tr": "Türkçe",
+    "en": "İngilizce"
+  }
 }
