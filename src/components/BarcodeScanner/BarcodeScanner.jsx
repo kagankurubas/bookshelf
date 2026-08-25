@@ -79,18 +79,17 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
     });
 
     const config = {
-      fps: 10,
-      // EAN-13/UPC gibi 1D barkodlar geniş ve kısa olduğundan tarama kutusu da
-      // kare değil, geniş/kısa bir dikdörtgen (genişliğin ~%80'i, yüksekliğin ~%25'i).
-      qrbox: (viewfinderWidth, viewfinderHeight) => {
-        const width = Math.floor(viewfinderWidth * 0.8);
-        const height = Math.floor(viewfinderHeight * 0.25);
-        return { width, height };
-      },
+      fps: 12,
+      // qrbox kasıtlı olarak verilmiyor: kütüphane taranacak bölgeyi CSS
+      // boyutu ile kamera çözünürlüğü arasında kırpmasız bir oran varsayarak
+      // hesaplıyor, object-fit:cover ile bu varsayım bozulup görünenle
+      // taranan bölge birbirini tutmuyordu. qrbox'sız bırakmak tüm kareyi
+      // tarıyor - kırpma matematiğinden bağımsız, daha isabetli.
       videoConstraints: {
         facingMode: 'environment',
         width: { ideal: 1920 },
         height: { ideal: 1080 },
+        advanced: [{ focusMode: 'continuous' }],
       },
     };
 
@@ -158,7 +157,12 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
         <button type="button" onClick={onClose} className="barcode-scanner-close" title={t('barcodeScanner.close')}>×</button>
       </div>
 
-      <div id={SCANNER_ELEMENT_ID} className="barcode-scanner-viewport" />
+      <div className="barcode-scanner-viewport-wrap">
+        <div id={SCANNER_ELEMENT_ID} className="barcode-scanner-viewport" />
+        {(status === 'starting' || status === 'scanning') && (
+          <div className="barcode-scanner-frame-guide" aria-hidden="true" />
+        )}
+      </div>
 
       {status === 'starting' && (
         <p className="barcode-scanner-hint">{t('barcodeScanner.starting')}</p>

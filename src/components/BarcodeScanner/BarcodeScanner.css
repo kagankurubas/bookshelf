@@ -35,12 +35,18 @@
   color: var(--text, #111);
 }
 
-.barcode-scanner-viewport {
+.barcode-scanner-viewport-wrap {
   width: 100%;
   aspect-ratio: 4 / 5;
   position: relative;
   overflow: hidden;
   background-color: #000;
+}
+
+.barcode-scanner-viewport {
+  width: 100%;
+  height: 100%;
+  position: relative;
 }
 
 .barcode-scanner-viewport video,
@@ -51,8 +57,24 @@
   display: block;
 }
 
-.barcode-scanner-viewport #qr-shaded-region {
-  border-radius: 4px;
+/* Kararan çerçeve, taranan bölgeden bağımsız - sadece görsel hedef.
+   Gerçek tarama tüm kareyi kapsıyor (bkz. BarcodeScanner.jsx). */
+.barcode-scanner-frame-guide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.barcode-scanner-frame-guide::before {
+  content: '';
+  width: 78%;
+  height: 28%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 8px;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.35);
 }
 
 .barcode-scanner-hint {
@@ -114,7 +136,7 @@
 }
 
 @media (min-width: 640px) {
-  .barcode-scanner-viewport {
+  .barcode-scanner-viewport-wrap {
     aspect-ratio: 4 / 3;
   }
 }
@@ -125,7 +147,7 @@
     border-radius: 8px;
   }
 
-  .barcode-scanner-viewport {
+  .barcode-scanner-viewport-wrap {
     aspect-ratio: 3 / 4;
   }
 }
@@ -138,9 +160,14 @@
     max-width: 680px;
   }
 
-  .barcode-scanner-viewport {
+  .barcode-scanner-viewport-wrap {
     aspect-ratio: auto;
     height: min(58vh, 320px);
+  }
+
+  .barcode-scanner-frame-guide::before {
+    width: 62%;
+    height: 42%;
   }
 
   .barcode-scanner-header {
