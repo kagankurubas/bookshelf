@@ -663,19 +663,16 @@ html, body, #root {
   width: 100%;
 }
 
-.shelf-row-scroll {
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-
 .shelf-row {
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
+  align-content: flex-start;
   padding: 0 4px 20px;
-  width: fit-content;
+  width: 100%;
   min-width: 140px;
-  gap: 9px;
+  gap: 9px 9px;
 }
 
 .shelf-row-empty {
@@ -699,18 +696,6 @@ html, body, #root {
   background: var(--accent-soft);
   border-color: var(--accent);
   color: var(--accent);
-}
-
-.shelf-line {
-  position: absolute;
-  bottom: 18px;
-  left: 0;
-  width: 100%;
-  height: 8px;
-  background: linear-gradient(to bottom, oklch(72% 0.08 70), oklch(56% 0.08 55));
-  border-radius: 3px;
-  box-shadow: var(--shadow-md);
-  z-index: 0;
 }
 
 .shelf-append-zone {
@@ -759,6 +744,25 @@ html, body, #root {
 
 .shelf-book.dragging {
   opacity: 0.4;
+}
+
+/* Raflar artık tek sıra halinde yana kaydırılmıyor, sayfa genişliğine göre
+   satır satır kaydırılıyor (flex-wrap). Bu yüzden tahta raf çizgisi artık
+   satırın tamamını kaplayan tek bir mutlak-konumlu div değil, her kitabın
+   kendi altına eklenen bir parça - komşu kitaplarla (gap'i kapatacak kadar
+   taşarak) görsel olarak birleşip her satırın altında kesintisiz bir raf
+   çizgisi izlenimi veriyor, kaç satıra sardığından bağımsız. */
+.shelf-book::after {
+  content: '';
+  position: absolute;
+  left: -5px;
+  right: -5px;
+  bottom: -16px;
+  height: 8px;
+  background: linear-gradient(to bottom, oklch(72% 0.08 70), oklch(56% 0.08 55));
+  border-radius: 3px;
+  box-shadow: var(--shadow-md);
+  z-index: 0;
 }
 
 .shelf-book-band {
