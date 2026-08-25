@@ -26,7 +26,7 @@
   <a href="https://github.com/kagankurubas/bookshelf/actions/workflows/ci.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status">
   </a>
-  <img src="https://img.shields.io/badge/tests-20_passing-3ECF8E?style=for-the-badge" alt="20 tests passing">
+  <img src="https://img.shields.io/badge/tests-37_passing-3ECF8E?style=for-the-badge" alt="37 tests passing">
 </p>
 
 <p align="center">
@@ -54,12 +54,18 @@ library and lets you chat about what you're reading.
 ### Features
 
 - **Book management** — title, author, publisher, category, reading
-  status, rating, cover image, notes.
+  status, rating, page count, cover image, notes.
 - **Three views** — cards, a filterable/searchable table, and a
   bookshelf.
 - **Dynamic shelves** — no fixed slot/capacity; each shelf row grows to
   exactly however many books you put on it, and you can drag books
   between shelves and reorder them.
+- **Multiple libraries** — organize books into separate libraries; the
+  first one you create becomes a protected main library that always
+  holds every book, so nothing gets orphaned if you delete another one.
+- **Reading statistics dashboard** — total books/pages read and average
+  rating, yearly and monthly reading trends, and a category breakdown,
+  all filterable by year.
 - **Fast add flows** — scan a barcode (single or batch), search by
   title (Open Library), or add manually.
 - **Book Assistant** — an AI chat panel that gives personalized
@@ -184,16 +190,17 @@ Use **Sign Up** on the screen that opens to create your first account.
 
 ### Tests
 
-![20 tests passing](https://img.shields.io/badge/tests-20_passing-3ECF8E?style=flat-square)
+![37 tests passing](https://img.shields.io/badge/tests-37_passing-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
 A modest but real Vitest + React Testing Library suite, covering the
 parts that don't need a live Supabase connection: the deterministic
-shelf-spine sizing math, the Open Library API wrapper (response
-mapping and caching, with `fetch` mocked), and a couple of
-presentational components (rendering, click handlers, translated
-labels). Hooks, drag-and-drop reordering and the AI chat flow aren't
-covered yet — basic coverage, not exhaustive.
+shelf-spine sizing math, the dashboard's colorblind-safe category
+color mapping, the Open Library API wrapper (response mapping and
+caching, with `fetch` mocked), and a couple of presentational
+components (rendering, click handlers, translated labels). Hooks,
+drag-and-drop reordering and the AI chat flow aren't covered yet —
+basic coverage, not exhaustive.
 
 Every push to `main` also runs lint + test + build in
 [GitHub Actions](https://github.com/kagankurubas/bookshelf/actions).
@@ -219,6 +226,8 @@ supabase/
 
 ### Roadmap
 
+- A year-end reading recap view (top category, highest-rated book,
+  total pages, etc.)
 - A community/friends system so users can connect with each other
 - Tracking books lent between friends
 
@@ -241,12 +250,19 @@ dahil.
 ### Özellikler
 
 - **Kitap yönetimi** — başlık, yazar, yayınevi, kategori, okuma durumu,
-  puan, kapak görseli, notlar.
+  puan, sayfa sayısı, kapak görseli, notlar.
 - **Üç görünüm** — kart, tablo (filtrelenebilir/aranabilir) ve kitaplık
   rafı.
 - **Dinamik raf sistemi** — sabit slot/kapasite yok, her raf üzerine
   koyduğun kitap sayısı kadar uzuyor; kitapları sürükleyerek raflar
   arasında taşıyabilir, sırasını değiştirebilirsin.
+- **Birden fazla kitaplık** — kitaplarını ayrı kitaplıklara ayır; ilk
+  oluşturduğun kitaplık, her kitabı her zaman barındıran korumalı bir
+  ana kitaplık olur - başka bir kitaplığı silsen bile hiçbir kitap
+  sahipsiz kalmaz.
+- **Okuma istatistikleri panosu** — toplam okunan kitap/sayfa ve
+  ortalama puan, yıllık ve aylık okuma trendleri, kategoriye göre
+  dağılım - hepsi yıla göre filtrelenebilir.
 - **Hızlı ekleme** — barkod tarayarak (tekli veya toplu), kitap adıyla
   arayarak (Open Library) ya da elle.
 - **Kitap Asistanı** — kitaplığına göre kişiselleştirilmiş öneriler
@@ -374,16 +390,17 @@ Açılan sayfadan **Kayıt Ol** ile ilk hesabını oluştur.
 
 ### Testler
 
-![20 test geçiyor](https://img.shields.io/badge/testler-20_ge%C3%A7iyor-3ECF8E?style=flat-square)
+![37 test geçiyor](https://img.shields.io/badge/testler-37_ge%C3%A7iyor-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
 Canlı bir Supabase bağlantısı gerektirmeyen kısımlar için mütevazı ama
 gerçek bir Vitest + React Testing Library paketi var: deterministik
-kitap sırtı boyutlandırma matematiği, Open Library API sarmalayıcısı
-(yanıt eşleme ve önbellekleme, `fetch` mock'lanarak), ve birkaç sunum
-bileşeni (render, tıklama davranışı, çevrilen etiketler). Hook'lar,
-sürükle-bırak ile yeniden sıralama ve AI sohbet akışı henüz
-kapsanmıyor — temel bir coverage, kapsamlı değil.
+kitap sırtı boyutlandırma matematiği, dashboard'daki renk-körlüğü
+güvenli kategori renk eşlemesi, Open Library API sarmalayıcısı (yanıt
+eşleme ve önbellekleme, `fetch` mock'lanarak), ve birkaç sunum bileşeni
+(render, tıklama davranışı, çevrilen etiketler). Hook'lar, sürükle-bırak
+ile yeniden sıralama ve AI sohbet akışı henüz kapsanmıyor — temel bir
+coverage, kapsamlı değil.
 
 `main`'e her push'ta ayrıca
 [GitHub Actions](https://github.com/kagankurubas/bookshelf/actions)
@@ -410,6 +427,8 @@ supabase/
 
 ### Yol haritası
 
+- Yıl sonu okuma özeti görünümü (en çok okunan kategori, en yüksek
+  puanlı kitap, toplam sayfa vb.)
 - Kullanıcıların birbiriyle tanışabileceği, kitap önerebileceği bir
   topluluk/arkadaşlık sistemi
 - Kitapları arkadaşlar arasında ödünç verme takibi
