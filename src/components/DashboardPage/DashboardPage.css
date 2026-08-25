@@ -63,14 +63,13 @@
   padding: 20px 22px;
 }
 
-.dashboard-card-monthly {
-  flex: 1.6;
+.dashboard-card-trend {
+  flex: 1;
   min-width: 0;
 }
 
-.dashboard-card-category {
-  flex: 1;
-  min-width: 260px;
+.dashboard-card-category-section {
+  margin-top: 18px;
 }
 
 .dashboard-card-header {
@@ -114,111 +113,6 @@
   color: var(--text);
 }
 
-.dashboard-bar-chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-  height: 168px;
-}
-
-.dashboard-bar-col {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  position: relative;
-  height: 100%;
-}
-
-.dashboard-bar-track {
-  flex: 1;
-  width: 100%;
-  max-width: 30px;
-  display: flex;
-  align-items: flex-end;
-  border-bottom: 1px solid var(--border-strong);
-}
-
-.dashboard-bar {
-  width: 100%;
-  background: var(--accent);
-  border-radius: 4px 4px 0 0;
-  transition: opacity 0.1s;
-}
-
-.dashboard-bar.hovered {
-  background: var(--accent-hover);
-  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--accent);
-}
-
-.dashboard-bar-label {
-  font-size: 10px;
-  color: var(--text-muted);
-  font-family: var(--font-body);
-  font-weight: 600;
-}
-
-.dashboard-bar-tooltip {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  margin-bottom: 6px;
-  background: var(--text);
-  color: #fff;
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 5px 9px;
-  border-radius: 6px;
-  white-space: nowrap;
-  box-shadow: var(--shadow-md);
-  z-index: 2;
-  pointer-events: none;
-}
-
-.dashboard-category-list {
-  display: flex;
-  flex-direction: column;
-  gap: 11px;
-}
-
-.dashboard-category-row {
-  display: grid;
-  grid-template-columns: 96px 1fr 24px;
-  align-items: center;
-  gap: 8px;
-}
-
-.dashboard-category-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dashboard-category-track {
-  height: 9px;
-  background: var(--surface-alt);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.dashboard-category-fill {
-  height: 100%;
-  border-radius: 4px;
-}
-
-.dashboard-category-count {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text);
-  text-align: right;
-}
-
 .dashboard-empty-hint {
   color: var(--text-secondary);
   font-size: 12.5px;
@@ -230,19 +124,6 @@
 @media (max-width: 900px) {
   .dashboard-grid {
     flex-direction: column;
-  }
-
-  .dashboard-card-category {
-    min-width: 0;
-  }
-
-  .dashboard-bar-chart {
-    overflow-x: auto;
-    justify-content: flex-start;
-  }
-
-  .dashboard-bar-col {
-    min-width: 30px;
   }
 }
 

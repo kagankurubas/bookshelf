@@ -42,11 +42,13 @@
   "dashboard": {
     "title": "Statistics",
     "allTime": "All Time",
+    "yearlyTitle": "By Year",
     "monthlyTitle": "Monthly Reading",
     "categoryTitle": "By Category",
     "metricBooks": "Books",
     "metricPages": "Pages",
-    "noMonthlyData": "No books completed for this year yet.",
+    "noYearlyData": "No books have a finish date yet - mark a book completed and set its finish date to see it here.",
+    "noMonthlyData": "No books finished this year yet.",
     "noCategoryData": "No books completed yet.",
     "monthsShort": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
     "monthsLong": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]

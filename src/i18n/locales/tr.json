@@ -42,11 +42,13 @@
   "dashboard": {
     "title": "İstatistikler",
     "allTime": "Tüm Zamanlar",
+    "yearlyTitle": "Yıllara Göre",
     "monthlyTitle": "Aylık Okuma",
     "categoryTitle": "Kategoriye Göre",
     "metricBooks": "Kitap",
     "metricPages": "Sayfa",
-    "noMonthlyData": "Bu yıl için henüz tamamlanmış kitap yok.",
+    "noYearlyData": "Henüz bitirme tarihi girilmiş kitap yok - bir kitabı tamamlandı yapıp bitirme tarihini girdiğinde burada görünür.",
+    "noMonthlyData": "Bu yıl için bitirme tarihi girilmiş kitap yok.",
     "noCategoryData": "Henüz tamamlanmış kitap yok.",
     "monthsShort": ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"],
     "monthsLong": ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]

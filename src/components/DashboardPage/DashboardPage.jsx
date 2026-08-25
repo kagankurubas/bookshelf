@@ -3,9 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { useReadingStats } from '../../hooks/useReadingStats';
 import { useReadingYears } from '../../hooks/useReadingYears';
 import { useMonthlyReadingStats } from '../../hooks/useMonthlyReadingStats';
+import { useYearlyReadingStats } from '../../hooks/useYearlyReadingStats';
 import { useCategoryReadingStats } from '../../hooks/useCategoryReadingStats';
 import { foldCategoriesForChart } from '../../lib/categoryChartColors';
 import ReadingStats from '../ReadingStats/ReadingStats';
+import TrendChart from '../charts/TrendChart';
+import CategoryPieChart from '../charts/CategoryPieChart';
 import { ChevronDownIcon } from '../icons/Icons';
 import './DashboardPage.css';
 
@@ -15,14 +18,29 @@ const CalendarIcon = () => (
   </svg>
 );
 
+function MetricToggle({ value, onChange, t }) {
+  return (
+    <div className="dashboard-metric-toggle">
+      <button type="button" className={value === 'books' ? 'active' : ''} onClick={() => onChange('books')}>
+        {t('dashboard.metricBooks')}
+      </button>
+      <button type="button" className={value === 'pages' ? 'active' : ''} onClick={() => onChange('pages')}>
+        {t('dashboard.metricPages')}
+      </button>
+    </div>
+  );
+}
+
 function DashboardPage({ libraryId, libraryName }) {
   const { t } = useTranslation();
   const [selectedYear, setSelectedYear] = useState(null); // null = tüm zamanlar
-  const [metric, setMetric] = useState('books'); // 'books' | 'pages'
+  const [trendMetric, setTrendMetric] = useState('books'); // 'books' | 'pages' - aylık + yıllık grafikler için
+  const [categoryMetric, setCategoryMetric] = useState('books'); // kategori grafiği için ayrı
 
   const { years } = useReadingYears(libraryId);
   const readingStats = useReadingStats(libraryId, selectedYear);
   const categoryStats = useCategoryReadingStats(libraryId, selectedYear);
+  const { yearlyStats } = useYearlyReadingStats(libraryId);
 
   // Aylık grafik her zaman somut bir yıl gösterir - "Tüm Zamanlar"
   // seçiliyken veri bulunan en yeni yıla (yoksa içinde bulunulan yıla) düşer.
@@ -36,12 +54,28 @@ function DashboardPage({ libraryId, libraryName }) {
 
   const monthShortLabels = t('dashboard.monthsShort', { returnObjects: true });
   const monthLongLabels = t('dashboard.monthsLong', { returnObjects: true });
+  const metricSuffix = (metric) => (metric === 'books' ? t('dashboard.metricBooks') : t('dashboard.metricPages'));
 
-  const monthlyValues = months.map((m) => (metric === 'books' ? m.completedCount : m.totalPages));
-  const maxMonthlyValue = Math.max(1, ...monthlyValues);
-  const maxCategoryCount = Math.max(1, ...foldedCategories.map((c) => c.completedCount));
+  const monthlyChartData = months.map((m, i) => ({
+    label: monthShortLabels[i],
+    tooltipLabel: monthLongLabels[i],
+    value: trendMetric === 'books' ? m.completedCount : m.totalPages,
+  }));
+  const hasMonthlyData = monthlyChartData.some((d) => d.value > 0);
 
-  const [hoveredMonth, setHoveredMonth] = useState(null);
+  const yearlyChartData = yearlyStats.map((y) => ({
+    label: String(y.year),
+    value: trendMetric === 'books' ? y.completedCount : y.totalPages,
+  }));
+  const hasYearlyData = yearlyChartData.length > 0;
+
+  const categoryPieData = foldedCategories.map((c) => ({
+    category: c.category,
+    label: t(`categories.${c.category}`, c.category),
+    value: categoryMetric === 'books' ? c.completedCount : c.totalPages,
+    color: c.color,
+  }));
+  const categoryTotal = categoryPieData.reduce((acc, c) => acc + c.value, 0);
 
   return (
     <main className="dashboard-page">
@@ -70,86 +104,45 @@ function DashboardPage({ libraryId, libraryName }) {
       <ReadingStats stats={readingStats} />
 
       <div className="dashboard-grid">
-        <div className="dashboard-card dashboard-card-monthly">
+        <div className="dashboard-card dashboard-card-trend">
+          <div className="dashboard-card-header">
+            <span className="dashboard-card-title">{t('dashboard.yearlyTitle')}</span>
+            <MetricToggle value={trendMetric} onChange={setTrendMetric} t={t} />
+          </div>
+          {hasYearlyData ? (
+            <TrendChart data={yearlyChartData} type="bar" valueSuffix={metricSuffix(trendMetric)} />
+          ) : (
+            <p className="dashboard-empty-hint">{t('dashboard.noYearlyData')}</p>
+          )}
+        </div>
+
+        <div className="dashboard-card dashboard-card-trend">
           <div className="dashboard-card-header">
             <span className="dashboard-card-title">{t('dashboard.monthlyTitle')}</span>
-            <div className="dashboard-metric-toggle">
-              <button
-                type="button"
-                className={metric === 'books' ? 'active' : ''}
-                onClick={() => setMetric('books')}
-              >
-                {t('dashboard.metricBooks')}
-              </button>
-              <button
-                type="button"
-                className={metric === 'pages' ? 'active' : ''}
-                onClick={() => setMetric('pages')}
-              >
-                {t('dashboard.metricPages')}
-              </button>
-            </div>
+            <MetricToggle value={trendMetric} onChange={setTrendMetric} t={t} />
           </div>
-
-          {monthlyValues.every((v) => v === 0) ? (
+          {hasMonthlyData ? (
+            <TrendChart data={monthlyChartData} type="bar" valueSuffix={metricSuffix(trendMetric)} />
+          ) : (
             <p className="dashboard-empty-hint">{t('dashboard.noMonthlyData')}</p>
-          ) : (
-            <div className="dashboard-bar-chart">
-              {months.map((m, i) => {
-                const value = monthlyValues[i];
-                const heightPct = value === 0 ? 0 : Math.max(4, (value / maxMonthlyValue) * 100);
-                return (
-                  <div
-                    key={m.month}
-                    className="dashboard-bar-col"
-                    onMouseEnter={() => setHoveredMonth(m.month)}
-                    onMouseLeave={() => setHoveredMonth(null)}
-                  >
-                    {hoveredMonth === m.month && (
-                      <div className="dashboard-bar-tooltip">
-                        {monthLongLabels[i]} · {value.toLocaleString()} {metric === 'books' ? t('dashboard.metricBooks') : t('dashboard.metricPages')}
-                      </div>
-                    )}
-                    <div className="dashboard-bar-track">
-                      <div
-                        className={`dashboard-bar ${hoveredMonth === m.month ? 'hovered' : ''}`}
-                        style={{ height: `${heightPct}%` }}
-                      ></div>
-                    </div>
-                    <span className="dashboard-bar-label">{monthShortLabels[i]}</span>
-                  </div>
-                );
-              })}
-            </div>
           )}
         </div>
+      </div>
 
-        <div className="dashboard-card dashboard-card-category">
-          <div className="dashboard-card-header">
-            <span className="dashboard-card-title">{t('dashboard.categoryTitle')}</span>
-          </div>
-
-          {foldedCategories.length === 0 ? (
-            <p className="dashboard-empty-hint">{t('dashboard.noCategoryData')}</p>
-          ) : (
-            <div className="dashboard-category-list">
-              {foldedCategories.map((c) => (
-                <div key={c.category} className="dashboard-category-row">
-                  <span className="dashboard-category-label" title={t(`categories.${c.category}`, c.category)}>
-                    {t(`categories.${c.category}`, c.category)}
-                  </span>
-                  <div className="dashboard-category-track">
-                    <div
-                      className="dashboard-category-fill"
-                      style={{ width: `${(c.completedCount / maxCategoryCount) * 100}%`, background: c.color }}
-                    ></div>
-                  </div>
-                  <span className="dashboard-category-count">{c.completedCount}</span>
-                </div>
-              ))}
-            </div>
-          )}
+      <div className="dashboard-card dashboard-card-category-section">
+        <div className="dashboard-card-header">
+          <span className="dashboard-card-title">{t('dashboard.categoryTitle')}</span>
+          <MetricToggle value={categoryMetric} onChange={setCategoryMetric} t={t} />
         </div>
+        {categoryPieData.length === 0 ? (
+          <p className="dashboard-empty-hint">{t('dashboard.noCategoryData')}</p>
+        ) : (
+          <CategoryPieChart
+            data={categoryPieData}
+            total={categoryTotal}
+            totalLabel={metricSuffix(categoryMetric)}
+          />
+        )}
       </div>
     </main>
   );
