@@ -129,3 +129,27 @@
     aspect-ratio: 3 / 4;
   }
 }
+
+/* Telefon yan çevrildiğinde (landscape): dikey alan çok kısıtlı olur, bu
+   yüzden kutunun boyutunu genişlik yerine kalan yükseklik belirlesin ve
+   kutu, kısıtlı yüksekliğe sığması için görece geniş bir dikdörtgen olsun. */
+@media (orientation: landscape) and (max-height: 560px) {
+  .barcode-scanner {
+    max-width: 680px;
+  }
+
+  .barcode-scanner-viewport {
+    aspect-ratio: auto;
+    height: min(58vh, 320px);
+  }
+
+  .barcode-scanner-header {
+    padding: 8px 16px;
+  }
+
+  .barcode-scanner-hint,
+  .barcode-scanner-hint-row {
+    padding-top: 8px;
+    padding-bottom: 10px;
+  }
+}

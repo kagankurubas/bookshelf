@@ -835,7 +835,7 @@ html, body, #root {
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 960px) {
   .app-header {
     flex-wrap: wrap;
     row-gap: 12px;

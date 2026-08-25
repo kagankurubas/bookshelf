@@ -452,7 +452,7 @@ function App() {
 
       {isScannerOpen && (
         <div className="modal-overlay" onClick={closeScanner}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '520px', padding: '0 16px', boxSizing: 'border-box' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '720px', padding: '0 16px', boxSizing: 'border-box' }}>
             <BarcodeScanner onScan={handleBarcodeScanned} onClose={closeScanner} />
           </div>
         </div>
@@ -468,7 +468,7 @@ function App() {
 
       {isBatchScanOpen && (
         <div className="modal-overlay" onClick={(e) => e.stopPropagation()}>
-          <div style={{ width: '100%', maxWidth: '560px', padding: '0 16px', boxSizing: 'border-box' }}>
+          <div style={{ width: '100%', maxWidth: '720px', padding: '0 16px', boxSizing: 'border-box' }}>
             <BatchScanner
               books={books}
               activeLibraryId={activeLibraryId}

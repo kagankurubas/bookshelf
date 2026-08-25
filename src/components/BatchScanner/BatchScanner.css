@@ -225,3 +225,14 @@
     max-width: 100%;
   }
 }
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .batch-scanner {
+    max-width: 720px;
+    max-height: 94vh;
+  }
+
+  .batch-scanner-list-card {
+    max-height: 140px;
+  }
+}
