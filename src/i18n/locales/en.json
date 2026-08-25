@@ -32,6 +32,12 @@
     "addBookTitle": "Add New Book",
     "shelfCountSuffix": "{{count}} shelves"
   },
+  "readingStats": {
+    "completedBooks": "books completed",
+    "pagesRead": "pages read",
+    "averageRating": "average rating",
+    "noRating": "—"
+  },
   "cards": {
     "empty": "No books in this library yet.",
     "editCover": "Edit Cover",

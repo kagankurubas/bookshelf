@@ -12,10 +12,12 @@ import ShelfView from './components/ShelfView/ShelfView';
 import AddChoiceModal from './components/AddChoiceModal/AddChoiceModal';
 import AuthScreen from './components/AuthScreen/AuthScreen';
 import AiChatDrawer from './components/AiChatDrawer/AiChatDrawer';
+import ReadingStats from './components/ReadingStats/ReadingStats';
 import { StarIcon, SparkleIcon } from './components/icons/Icons';
 import { useAuth } from './hooks/useAuth';
 import { useBooks } from './hooks/useBooks';
 import { useLibraries } from './hooks/useLibraries';
+import { useReadingStats } from './hooks/useReadingStats';
 import { getBookByIsbn } from './lib/openLibrary';
 import './App.css';
 
@@ -43,6 +45,7 @@ function App() {
   const [explicitActiveLibraryId, setActiveLibraryId] = useState(null);
   const defaultLibrary = libraries.find((lib) => lib.isDefault) || libraries[0] || null;
   const activeLibraryId = explicitActiveLibraryId ?? defaultLibrary?.id ?? null;
+  const readingStats = useReadingStats(activeLibraryId);
   const [newLibraryName, setNewLibraryName] = useState('');
   const [isAddingLibrary, setIsAddingLibrary] = useState(false);
 
@@ -106,13 +109,20 @@ function App() {
     return Array.from(ids);
   };
 
-  const addBookToLibrary = (bookFields) =>
-    addBook({ ...bookFields, libraryIds: withDefaultLibrary(bookFields.libraryIds) });
+  const addBookToLibrary = async (bookFields) => {
+    const result = await addBook({ ...bookFields, libraryIds: withDefaultLibrary(bookFields.libraryIds) });
+    // Kitap sayısı/sayfa/puan gibi okuma istatistikleri kitaplardan ayrı bir
+    // RPC ile hesaplanıyor, books state'i değişince otomatik güncellenmiyor -
+    // her ekleme/düzenleme/silmeden sonra elle tazeleniyor.
+    readingStats.refetchStats();
+    return result;
+  };
 
   const handleSaveBook = async (bookData) => {
     try {
       if (bookData.id) {
         await editBook(bookData.id, { ...bookData, libraryIds: withDefaultLibrary(bookData.libraryIds) });
+        readingStats.refetchStats();
       } else {
         const libraryIds = bookData.libraryIds && bookData.libraryIds.length ? bookData.libraryIds : [activeLibraryId];
 
@@ -134,6 +144,7 @@ function App() {
     e.stopPropagation();
     try {
       await deleteBook(id);
+      readingStats.refetchStats();
     } catch (err) {
       console.error(err);
       alert(t('alerts.deleteBookError'));
@@ -399,6 +410,8 @@ function App() {
         onDeleteLibrary={handleDeleteLibrary}
         onOpenAddBook={openNewBookModal}
       />
+
+      <ReadingStats stats={readingStats} />
 
       <button
         className="ai-chat-fab"

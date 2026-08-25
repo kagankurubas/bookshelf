@@ -32,6 +32,12 @@
     "addBookTitle": "Yeni Kitap Ekle",
     "shelfCountSuffix": "{{count}} Kat"
   },
+  "readingStats": {
+    "completedBooks": "kitap tamamlandı",
+    "pagesRead": "sayfa okundu",
+    "averageRating": "ortalama puan",
+    "noRating": "—"
+  },
   "cards": {
     "empty": "Bu kitaplıkta henüz kitap yok.",
     "editCover": "Kapağı Düzenle",

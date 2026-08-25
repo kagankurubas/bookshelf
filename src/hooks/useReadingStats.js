@@ -4,9 +4,13 @@ import { supabase } from '../lib/supabaseClient';
 const EMPTY_STATS = { completedCount: 0, totalPages: 0, averageRating: null };
 
 function mapStatsRow(row) {
+  // Postgres bigint sonuçları supabase-js'de string olarak dönebiliyor
+  // (JS number hassasiyet sınırını aşmamak için) - kişisel bir kitaplık
+  // için bu değerler her zaman güvenli aralıkta olacağından Number()'a
+  // çevirmek sorunsuz.
   return {
-    completedCount: row?.completed_count ?? 0,
-    totalPages: row?.total_pages ?? 0,
+    completedCount: Number(row?.completed_count ?? 0),
+    totalPages: Number(row?.total_pages ?? 0),
     averageRating: row?.average_rating != null ? Number(row.average_rating) : null,
   };
 }
