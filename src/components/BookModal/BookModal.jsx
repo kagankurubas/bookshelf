@@ -17,6 +17,7 @@ const PlusMiniIcon = () => (<svg width="11" height="11" viewBox="0 0 24 24" fill
 
 function BookModal({ onClose, onSave, selectedBook, prefillData = null, existingAuthors = [], libraries = [], activeLibraryId = null }) {
   const { t } = useTranslation();
+  const defaultLibraryId = libraries.find((lib) => lib.isDefault)?.id || null;
   const [title, setTitle] = useState(selectedBook ? selectedBook.title : (prefillData?.title || ''));
   const [author, setAuthor] = useState(selectedBook ? selectedBook.author : (prefillData?.author || ''));
   const [publisher, setPublisher] = useState(selectedBook ? selectedBook.publisher || '' : (prefillData?.publisher || ''));
@@ -39,11 +40,14 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
   const [shelfId] = useState(selectedBook ? selectedBook.shelfId || 'default' : 'default');
   const [isFavorite] = useState(selectedBook ? selectedBook.isFavorite || false : false);
   
-  const [selectedLibraries, setSelectedLibraries] = useState(
-    selectedBook
+  const [selectedLibraries, setSelectedLibraries] = useState(() => {
+    const base = selectedBook
       ? selectedBook.libraryIds || []
-      : (activeLibraryId ? [activeLibraryId] : [])
-  );
+      : (activeLibraryId ? [activeLibraryId] : []);
+    // Ana kitaplık her kitabı barındırır - seçimden hiç çıkarılamaz, bu
+    // yüzden başlangıç seçiminde her zaman dahil ediliyor.
+    return defaultLibraryId && !base.includes(defaultLibraryId) ? [...base, defaultLibraryId] : base;
+  });
 
   const isModified = selectedBook
     ? (
@@ -76,6 +80,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
   };
 
   const handleLibraryToggle = (libId) => {
+    if (libId === defaultLibraryId) return;
     if (selectedLibraries.includes(libId)) {
       if (selectedLibraries.length === 1) return;
       setSelectedLibraries(selectedLibraries.filter(id => id !== libId));
@@ -226,11 +231,13 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {libraries.map(lib => {
                 const isSelected = selectedLibraries.includes(lib.id);
+                const isMandatory = lib.id === defaultLibraryId;
                 return (
                   <button
                     key={lib.id}
                     type="button"
                     onClick={() => handleLibraryToggle(lib.id)}
+                    title={isMandatory ? t('bookModal.defaultLibraryHint') : undefined}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '5px',
                       background: isSelected ? 'var(--accent)' : 'var(--surface-alt)',
@@ -240,8 +247,9 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
                       borderRadius: '100px',
                       fontFamily: 'var(--font-body)',
                       fontSize: '12px',
-                      cursor: 'pointer',
-                      fontWeight: isSelected ? 700 : 500
+                      cursor: isMandatory ? 'default' : 'pointer',
+                      fontWeight: isSelected ? 700 : 500,
+                      opacity: isMandatory ? 0.85 : 1
                     }}
                   >
                     {isSelected ? <CheckIcon /> : <PlusMiniIcon />} {lib.name}

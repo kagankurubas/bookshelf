@@ -108,6 +108,7 @@
     "publisherPlaceholder": "Publisher Name",
     "isbn": "ISBN (Optional)",
     "libraries": "Libraries",
+    "defaultLibraryHint": "Main library - every book lives here, can't be unchecked",
     "rating": "Rating",
     "ratingClear": "(Clear)",
     "category": "Category",

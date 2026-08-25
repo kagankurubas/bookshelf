@@ -95,14 +95,28 @@ function App() {
   const countBooksInRow = (libraryId, shelfRow) =>
     books.filter(b => b.libraryIds.includes(libraryId) && (b.shelfRow ?? 0) === shelfRow).length;
 
+  // Ana kitaplık silinemez ve her kitap her zaman ona bağlı kalır - bu sayede
+  // başka bir kitaplık silinse bile kitaplar veritabanında "sahipsiz" kalıp
+  // hem gorunmez olmuyor hem de tekrar eklenmeye calisilinca cakismiyor.
+  // Tum ekleme yollarindan (BookModal, BatchScanner) gecen tek ortak nokta
+  // burasi oldugu icin garanti burada uygulaniyor.
+  const withDefaultLibrary = (libraryIds) => {
+    const ids = new Set(libraryIds || []);
+    if (defaultLibrary?.id) ids.add(defaultLibrary.id);
+    return Array.from(ids);
+  };
+
+  const addBookToLibrary = (bookFields) =>
+    addBook({ ...bookFields, libraryIds: withDefaultLibrary(bookFields.libraryIds) });
+
   const handleSaveBook = async (bookData) => {
     try {
       if (bookData.id) {
-        await editBook(bookData.id, bookData);
+        await editBook(bookData.id, { ...bookData, libraryIds: withDefaultLibrary(bookData.libraryIds) });
       } else {
         const libraryIds = bookData.libraryIds && bookData.libraryIds.length ? bookData.libraryIds : [activeLibraryId];
 
-        await addBook({
+        await addBookToLibrary({
           ...bookData,
           libraryIds,
           shelfRow: 0,
@@ -219,7 +233,9 @@ function App() {
       const newLib = await createLibrary({
         name: newLibraryName.trim(),
         shelfCount: 2,
-        isDefault: false
+        // Kullanicinin ilk kitapligi otomatik olarak ana (silinemez) kitaplik
+        // olur - boylece her zaman en az bir silinmez kitaplik garanti edilir.
+        isDefault: libraries.length === 0
       });
       setActiveLibraryId(newLib.id);
       setNewLibraryName('');
@@ -472,7 +488,7 @@ function App() {
             <BatchScanner
               books={books}
               activeLibraryId={activeLibraryId}
-              addBook={addBook}
+              addBook={addBookToLibrary}
               onClose={closeBatchScan}
               onManualAddIsbn={handleManualAddFromIsbn}
             />

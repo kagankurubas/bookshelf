@@ -108,6 +108,7 @@
     "publisherPlaceholder": "Yayınevi Adı",
     "isbn": "ISBN (Opsiyonel)",
     "libraries": "Kitaplıklar",
+    "defaultLibraryHint": "Ana kitaplık - her kitap burada bulunur, seçimden çıkarılamaz",
     "rating": "Puan",
     "ratingClear": "(Temizle)",
     "category": "Kategori",

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { PlusIcon } from '../icons/Icons';
-import { getSpineSize } from '../../lib/shelfSpine';
+import { getSpineSize, getSpineFilter } from '../../lib/shelfSpine';
 
 function ShelfView({
   books,
@@ -80,6 +80,7 @@ function ShelfView({
                   const colorClass = getCategoryColorClass(book.category);
                   const isHovered = dragOverTarget?.shelfRow === rowIndex && dragOverTarget?.bookId === book.id;
                   const { width, height } = getSpineSize(book.id);
+                  const spineFilter = getSpineFilter(book.id);
 
                   return (
                     <div
@@ -98,7 +99,7 @@ function ShelfView({
                       }}
                       onClick={() => onOpenBook(book)}
                       title={`${book.title} (${t(`categories.${book.category}`, book.category)}) - ${t('shelf.dragHint')}`}
-                      style={{ width: `${width}px`, height: `${height}px` }}
+                      style={{ width: `${width}px`, height: `${height}px`, filter: spineFilter }}
                     >
                       <span className="shelf-book-band top"></span>
                       <span className="shelf-book-band bottom"></span>

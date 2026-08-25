@@ -15,3 +15,16 @@ export function getSpineSize(id) {
   const height = 138 + ((hash >> 4) % 35); // 138-172px
   return { width, height };
 }
+
+// Renk kategoriye göre belirleniyor, ama aynı kategorideki tüm kitaplar
+// birebir aynı tonda olunca raf tek renk bir duvar gibi görünüyor. Kitabın
+// id'sinden türetilen küçük, deterministik bir ton/doygunluk/parlaklık
+// sapması ekleyip gerçek bir kitaplıktaki gibi aile içinde çeşitlilik
+// katıyoruz - kategori hâlâ tanınabilir, ama her sırt biraz farklı.
+export function getSpineFilter(id) {
+  const hash = hashString(`spine-${id}`);
+  const hueShift = ((hash % 41) - 20); // -20..20 derece
+  const saturate = 0.85 + (((hash >> 6) % 31) / 100); // 0.85..1.15
+  const brightness = 0.92 + (((hash >> 11) % 19) / 100); // 0.92..1.10
+  return `hue-rotate(${hueShift}deg) saturate(${saturate}) brightness(${brightness})`;
+}

@@ -76,10 +76,17 @@ export function useLibraries(userId) {
   }, []);
 
   const deleteLibrary = useCallback(async (id) => {
+    // UI zaten ana kitaplık için silme butonunu göstermiyor, ama bu fonksiyon
+    // başka bir yoldan çağrılırsa bile ana kitaplığın (ve içindeki kitapların)
+    // yanlışlıkla silinmesini burada da engelliyoruz.
+    const target = libraries.find((lib) => lib.id === id);
+    if (target?.isDefault) {
+      throw new Error('Ana kitaplık silinemez.');
+    }
     const { error: deleteError } = await supabase.from('libraries').delete().eq('id', id);
     if (deleteError) throw deleteError;
     setLibraries((prev) => prev.filter((lib) => lib.id !== id));
-  }, []);
+  }, [libraries]);
 
   return {
     libraries,

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hashString, getSpineSize } from './shelfSpine';
+import { hashString, getSpineSize, getSpineFilter } from './shelfSpine';
 
 describe('hashString', () => {
   it('is deterministic for the same input', () => {
@@ -36,5 +36,23 @@ describe('getSpineSize', () => {
 
   it('coerces non-string ids (e.g. numbers) without throwing', () => {
     expect(() => getSpineSize(42)).not.toThrow();
+  });
+});
+
+describe('getSpineFilter', () => {
+  it('is deterministic for the same id', () => {
+    expect(getSpineFilter('book-1')).toBe(getSpineFilter('book-1'));
+  });
+
+  it('produces different filters for different ids (varied, not monotone)', () => {
+    const ids = ['a', 'b', 'c', 'd', 'e'];
+    const filters = new Set(ids.map(getSpineFilter));
+    expect(filters.size).toBeGreaterThan(1);
+  });
+
+  it('returns a hue-rotate/saturate/brightness CSS filter string', () => {
+    expect(getSpineFilter('some-uuid-1234')).toMatch(
+      /^hue-rotate\(-?\d+deg\) saturate\([\d.]+\) brightness\([\d.]+\)$/
+    );
   });
 });
