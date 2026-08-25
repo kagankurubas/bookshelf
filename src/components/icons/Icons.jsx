@@ -24,6 +24,12 @@ export const ShelfTabIcon = () => (
   </svg>
 );
 
+export const DashboardTabIcon = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M4 19V5a2 2 0 0 1 2-2h11l3 3v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" /><path d="M8 12h8M8 16h5" />
+  </svg>
+);
+
 export const CompassIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
     <circle cx="12" cy="12" r="9" /><path d="M15 9l-2 6-6 2 2-6z" />

@@ -18,9 +18,11 @@ function mapStatsRow(row) {
 // Bir kitaplığın okuma istatistiklerini (tamamlanan kitap sayısı, toplam
 // sayfa, ortalama puan) hesaplar. Tüm kitapları çekip client'ta toplamak
 // yerine tek bir Postgres fonksiyonu (get_reading_stats, bkz.
-// supabase/migrations/008_page_count_and_reading_stats.sql) DB tarafında
-// agregasyon yapar - kitaplık büyüdükçe ölçeklenir, tek round-trip.
-export function useReadingStats(libraryId) {
+// supabase/migrations/009_dashboard_stats.sql) DB tarafında agregasyon
+// yapar - kitaplık büyüdükçe ölçeklenir, tek round-trip.
+// year verilmezse (undefined/null) tüm-zamanlar toplamı döner; verilirse
+// sadece o yılda bitirilen (date_finished'a göre) kitaplar sayılır.
+export function useReadingStats(libraryId, year = null) {
   const [stats, setStats] = useState(EMPTY_STATS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -33,7 +35,7 @@ export function useReadingStats(libraryId) {
     }
     setLoading(true);
     const { data, error: rpcError } = await supabase
-      .rpc('get_reading_stats', { p_library_id: libraryId })
+      .rpc('get_reading_stats', { p_library_id: libraryId, p_year: year })
       .single();
 
     if (rpcError) {
@@ -43,10 +45,10 @@ export function useReadingStats(libraryId) {
       setError(null);
     }
     setLoading(false);
-  }, [libraryId]);
+  }, [libraryId, year]);
 
   useEffect(() => {
-    // Kitaplık değiştiğinde veriyi yeniden çek - standart senkronizasyon deseni.
+    // Kitaplık veya yıl değiştiğinde veriyi yeniden çek - standart senkronizasyon deseni.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStats();
   }, [fetchStats]);

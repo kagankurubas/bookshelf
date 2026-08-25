@@ -144,12 +144,14 @@ create policy "Users manage own ai_messages" on ai_messages
   );
 
 -- =========================================================
--- 7. get_reading_stats: bir kitaplıktaki tamamlanmış kitaplar için toplam
---    kitap sayısı, toplam sayfa sayısı ve ortalama puanı tek sorguda
---    hesaplar (client'ta tüm kitapları çekip toplamak yerine DB'de
---    agregasyon). security invoker sayesinde çağıranın RLS'i geçerli olur.
+-- 7. Okuma istatistikleri: kitaplık bazlı toplam/yıllık/aylık/kategori
+--    kırılımları tek sorguda hesaplayan RPC fonksiyonları (client'ta tüm
+--    kitapları çekip toplamak yerine DB'de agregasyon). security invoker
+--    sayesinde çağıranın RLS'i geçerli olur. Tüm yıl/ay gruplamaları
+--    kitabın gerçekten bitirildiği tarihe (date_finished) göre yapılır,
+--    kayda ne zaman eklendiğine (created_at) göre DEĞİL.
 -- =========================================================
-create or replace function get_reading_stats(p_library_id uuid)
+create or replace function get_reading_stats(p_library_id uuid, p_year int default null)
 returns table (
   completed_count bigint,
   total_pages bigint,
@@ -165,5 +167,73 @@ as $$
     avg(b.rating) filter (where b.status = 'Tamamlandı' and b.rating > 0) as average_rating
   from books b
   join book_libraries bl on bl.book_id = b.id
-  where bl.library_id = p_library_id;
+  where bl.library_id = p_library_id
+    and (p_year is null or extract(year from b.date_finished)::int = p_year);
+$$;
+
+create or replace function get_reading_years(p_library_id uuid)
+returns table (year int)
+language sql
+stable
+security invoker
+as $$
+  select distinct extract(year from b.date_finished)::int as year
+  from books b
+  join book_libraries bl on bl.book_id = b.id
+  where bl.library_id = p_library_id
+    and b.status = 'Tamamlandı'
+    and b.date_finished is not null
+  order by year desc;
+$$;
+
+create or replace function get_monthly_reading_stats(p_library_id uuid, p_year int)
+returns table (
+  month int,
+  completed_count bigint,
+  total_pages bigint
+)
+language sql
+stable
+security invoker
+as $$
+  with finished as (
+    select b.page_count, extract(month from b.date_finished)::int as fmonth
+    from books b
+    join book_libraries bl on bl.book_id = b.id
+    where bl.library_id = p_library_id
+      and b.status = 'Tamamlandı'
+      and b.date_finished is not null
+      and extract(year from b.date_finished)::int = p_year
+  )
+  select
+    m.month,
+    count(f.fmonth) as completed_count,
+    coalesce(sum(f.page_count), 0) as total_pages
+  from generate_series(1, 12) as m(month)
+  left join finished f on f.fmonth = m.month
+  group by m.month
+  order by m.month;
+$$;
+
+create or replace function get_category_reading_stats(p_library_id uuid, p_year int default null)
+returns table (
+  category text,
+  completed_count bigint,
+  total_pages bigint
+)
+language sql
+stable
+security invoker
+as $$
+  select
+    coalesce(b.category, 'Diğer') as category,
+    count(*) as completed_count,
+    coalesce(sum(b.page_count), 0) as total_pages
+  from books b
+  join book_libraries bl on bl.book_id = b.id
+  where bl.library_id = p_library_id
+    and b.status = 'Tamamlandı'
+    and (p_year is null or extract(year from b.date_finished)::int = p_year)
+  group by coalesce(b.category, 'Diğer')
+  order by completed_count desc;
 $$;

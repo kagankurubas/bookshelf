@@ -7,6 +7,7 @@
     "cards": "Kitaplar",
     "table": "Tablo",
     "shelf": "Kitaplık Rafı",
+    "dashboard": "İstatistikler",
     "explore": "Keşfet",
     "comingSoon": "YAKINDA",
     "exploreTooltip": "Çok yakında: kitap arkadaşların ve topluluk"
@@ -37,6 +38,18 @@
     "pagesRead": "sayfa okundu",
     "averageRating": "ortalama puan",
     "noRating": "—"
+  },
+  "dashboard": {
+    "title": "İstatistikler",
+    "allTime": "Tüm Zamanlar",
+    "monthlyTitle": "Aylık Okuma",
+    "categoryTitle": "Kategoriye Göre",
+    "metricBooks": "Kitap",
+    "metricPages": "Sayfa",
+    "noMonthlyData": "Bu yıl için henüz tamamlanmış kitap yok.",
+    "noCategoryData": "Henüz tamamlanmış kitap yok.",
+    "monthsShort": ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"],
+    "monthsLong": ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
   },
   "cards": {
     "empty": "Bu kitaplıkta henüz kitap yok.",
@@ -86,7 +99,8 @@
     "Biyografi": "Biyografi",
     "Bilim": "Bilim",
     "Tarih": "Tarih",
-    "Felsefe": "Felsefe"
+    "Felsefe": "Felsefe",
+    "Diğer": "Diğer"
   },
   "addChoice": {
     "title": "Kitap Nasıl Eklensin?",

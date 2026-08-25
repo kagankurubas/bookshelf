@@ -13,6 +13,7 @@ import AddChoiceModal from './components/AddChoiceModal/AddChoiceModal';
 import AuthScreen from './components/AuthScreen/AuthScreen';
 import AiChatDrawer from './components/AiChatDrawer/AiChatDrawer';
 import ReadingStats from './components/ReadingStats/ReadingStats';
+import DashboardPage from './components/DashboardPage/DashboardPage';
 import { StarIcon, SparkleIcon } from './components/icons/Icons';
 import { useAuth } from './hooks/useAuth';
 import { useBooks } from './hooks/useBooks';
@@ -411,7 +412,7 @@ function App() {
         onOpenAddBook={openNewBookModal}
       />
 
-      <ReadingStats stats={readingStats} />
+      {activeView !== 'dashboard' && <ReadingStats stats={readingStats} />}
 
       <button
         className="ai-chat-fab"
@@ -468,6 +469,10 @@ function App() {
           onOpenBook={openBookDetailModal}
           getCategoryColorClass={getCategoryColorClass}
         />
+      )}
+
+      {activeView === 'dashboard' && (
+        <DashboardPage libraryId={activeLibraryId} libraryName={activeLibrary.name} />
       )}
 
       {isAddChoiceOpen && (

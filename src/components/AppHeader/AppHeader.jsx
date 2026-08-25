@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { BookLogoIcon, GridTabIcon, TableTabIcon, ShelfTabIcon, CompassIcon } from '../icons/Icons';
+import { BookLogoIcon, GridTabIcon, TableTabIcon, ShelfTabIcon, DashboardTabIcon, CompassIcon } from '../icons/Icons';
 
 const LANGUAGES = ['tr', 'en'];
 
@@ -22,6 +22,9 @@ function AppHeader({ activeView, onChangeView, userEmail, onSignOut }) {
         </button>
         <button className={`modern-tab-btn ${activeView === 'shelf' ? 'active' : ''}`} onClick={() => onChangeView('shelf')} aria-label={t('nav.shelf')}>
           <ShelfTabIcon /> <span className="tab-label">{t('nav.shelf')}</span>
+        </button>
+        <button className={`modern-tab-btn ${activeView === 'dashboard' ? 'active' : ''}`} onClick={() => onChangeView('dashboard')} aria-label={t('nav.dashboard')}>
+          <DashboardTabIcon /> <span className="tab-label">{t('nav.dashboard')}</span>
         </button>
         <button className="modern-tab-btn" disabled style={{ cursor: 'not-allowed', opacity: 0.55 }} title={t('nav.exploreTooltip')} aria-label={t('nav.explore')}>
           <CompassIcon /> <span className="tab-label">{t('nav.explore')}</span>

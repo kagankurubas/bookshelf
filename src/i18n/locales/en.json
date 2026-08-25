@@ -7,6 +7,7 @@
     "cards": "Books",
     "table": "Table",
     "shelf": "Bookshelf",
+    "dashboard": "Stats",
     "explore": "Explore",
     "comingSoon": "SOON",
     "exploreTooltip": "Coming very soon: your reading friends and a community"
@@ -37,6 +38,18 @@
     "pagesRead": "pages read",
     "averageRating": "average rating",
     "noRating": "—"
+  },
+  "dashboard": {
+    "title": "Statistics",
+    "allTime": "All Time",
+    "monthlyTitle": "Monthly Reading",
+    "categoryTitle": "By Category",
+    "metricBooks": "Books",
+    "metricPages": "Pages",
+    "noMonthlyData": "No books completed for this year yet.",
+    "noCategoryData": "No books completed yet.",
+    "monthsShort": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    "monthsLong": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
   },
   "cards": {
     "empty": "No books in this library yet.",
@@ -86,7 +99,8 @@
     "Biyografi": "Biography",
     "Bilim": "Science",
     "Tarih": "History",
-    "Felsefe": "Philosophy"
+    "Felsefe": "Philosophy",
+    "Diğer": "Other"
   },
   "addChoice": {
     "title": "How would you like to add a book?",
