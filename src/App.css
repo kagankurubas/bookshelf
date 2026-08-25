@@ -663,16 +663,41 @@ html, body, #root {
   width: 100%;
 }
 
+/* Bir raf katı (shelf_row), sayfa genişliğine sığmadığında JS tarafında
+   (bkz. chunkIntoLines) birden fazla .shelf-row satırına bölünüyor - bu
+   sarmalayıcı, aynı kata ait satırları birbirine yakın tutuyor. */
+.shelf-tier {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+}
+
 .shelf-row {
   position: relative;
   display: flex;
-  flex-wrap: wrap;
   align-items: flex-end;
-  align-content: flex-start;
   padding: 0 4px 20px;
-  width: 100%;
+  width: fit-content;
   min-width: 140px;
-  gap: 9px 9px;
+  gap: 9px;
+}
+
+/* Her satır artık kesintisiz bir raf çizgisi alıyor (JS satırı ne kadar
+   kitapla doldurduysa .shelf-row da width: fit-content ile tam o kadar
+   geniş oluyor, bu yüzden tek parça mutlak-konumlu çizgi kusursuz oturuyor -
+   önceki per-book "yama" yaklaşımının kesik kesik görünme sorunu yok). */
+.shelf-row::before {
+  content: '';
+  position: absolute;
+  bottom: 18px;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background: linear-gradient(to bottom, oklch(72% 0.08 70), oklch(56% 0.08 55));
+  border-radius: 3px;
+  box-shadow: var(--shadow-md);
+  z-index: 0;
 }
 
 .shelf-row-empty {
@@ -718,8 +743,10 @@ html, body, #root {
 
 .shelf-book {
   border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 3px 8px 8px 3px;
-  padding: 14px 5px;
+  border-radius: 2px;
+  /* Sağdaki folyo çizgisiyle (right: 9px) başlık metni çakışmasın diye
+     sağ dolgu sol dolgudan fazla. */
+  padding: 14px 12px 14px 5px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -731,6 +758,7 @@ html, body, #root {
   z-index: 1;
   margin-bottom: 18px;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .shelf-book:hover {
@@ -746,53 +774,70 @@ html, body, #root {
   opacity: 0.4;
 }
 
-/* Raflar artık tek sıra halinde yana kaydırılmıyor, sayfa genişliğine göre
-   satır satır kaydırılıyor (flex-wrap). Bu yüzden tahta raf çizgisi artık
-   satırın tamamını kaplayan tek bir mutlak-konumlu div değil, her kitabın
-   kendi altına eklenen bir parça - komşu kitaplarla (gap'i kapatacak kadar
-   taşarak) görsel olarak birleşip her satırın altında kesintisiz bir raf
-   çizgisi izlenimi veriyor, kaç satıra sardığından bağımsız. */
-.shelf-book::after {
-  content: '';
+/* İnce kanvas/kumaş dokusu - gövde artık düz iki durak degrade değil,
+   sırt boyunca hafif bir doku taşıyor (bkz. mockup Yön B). */
+.shelf-book-texture {
   position: absolute;
-  left: -5px;
-  right: -5px;
-  bottom: -16px;
-  height: 8px;
-  background: linear-gradient(to bottom, oklch(72% 0.08 70), oklch(56% 0.08 55));
-  border-radius: 3px;
-  box-shadow: var(--shadow-md);
-  z-index: 0;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.07) 0px,
+    rgba(255, 255, 255, 0.07) 1.5px,
+    transparent 1.5px,
+    transparent 7px
+  );
+  pointer-events: none;
 }
 
-.shelf-book-band {
+/* Sağ kenara yakın ince altın folyo çizgisi - ciltli kitaplardaki yaldızlı
+   sırt şeridini anımsatıyor. */
+.shelf-book-foil {
   position: absolute;
-  left: 5px;
-  right: 5px;
-  height: 5px;
-  border-radius: 1px;
-}
-
-.shelf-book-band.top {
-  top: 13px;
-  background: rgba(255, 255, 255, 0.28);
-  box-shadow: 0 3px 0 -1.5px rgba(255, 255, 255, 0.14);
-}
-
-.shelf-book-band.bottom {
-  bottom: 13px;
-  background: rgba(0, 0, 0, 0.2);
-  box-shadow: 0 -3px 0 -1.5px rgba(0, 0, 0, 0.1);
+  top: 0;
+  bottom: 0;
+  right: 9px;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 214, 140, 0.05),
+    rgba(255, 214, 140, 0.55) 15%,
+    rgba(255, 214, 140, 0.55) 85%,
+    rgba(255, 214, 140, 0.05)
+  );
+  box-shadow: 0 0 4px rgba(255, 214, 140, 0.35);
 }
 
 .shelf-book-highlight {
   position: absolute;
-  top: 4px;
-  bottom: 4px;
-  left: 6px;
+  top: 18%;
+  bottom: 18%;
+  left: 14%;
   width: 2px;
-  background: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.3);
   border-radius: 2px;
+}
+
+/* Kategori folyo rozeti - renk tek başına ayırt edici olmadığında sırtın
+   hangi türden olduğunu 3 harfli bir kısaltmayla da anlatıyor. */
+.shelf-book-emblem {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 7px;
+  letter-spacing: 0.3px;
 }
 
 .shelf-book-title {
@@ -800,28 +845,30 @@ html, body, #root {
   text-orientation: mixed;
   transform: rotate(180deg);
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-height: 82%;
+  max-height: 66%;
   letter-spacing: 0.3px;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
-.shelf-book.category-klasik    { background: linear-gradient(150deg, oklch(60% 0.14 300), oklch(46% 0.13 295)); }
-.shelf-book.category-fantastik { background: linear-gradient(150deg, oklch(62% 0.15 35), oklch(48% 0.14 30)); }
-.shelf-book.category-bilimkurgu{ background: linear-gradient(150deg, oklch(60% 0.13 235), oklch(46% 0.12 240)); }
-.shelf-book.category-distopya  { background: linear-gradient(150deg, oklch(50% 0.03 260), oklch(36% 0.02 260)); }
-.shelf-book.category-kurgu     { background: linear-gradient(150deg, oklch(62% 0.13 165), oklch(48% 0.13 165)); }
-.shelf-book.category-tarih     { background: linear-gradient(150deg, oklch(60% 0.11 70), oklch(46% 0.1 65)); }
-.shelf-book.category-felsefe   { background: linear-gradient(150deg, oklch(58% 0.12 320), oklch(44% 0.11 315)); }
-.shelf-book.category-biyografi { background: linear-gradient(150deg, oklch(62% 0.06 240), oklch(48% 0.06 245)); }
-.shelf-book.category-bilim     { background: linear-gradient(150deg, oklch(60% 0.13 200), oklch(46% 0.12 205)); }
-.shelf-book.category-default   { background: linear-gradient(150deg, oklch(58% 0.02 90), oklch(44% 0.02 90)); }
+.shelf-book.category-klasik    { background: linear-gradient(160deg, oklch(66% 0.17 15) 0%, oklch(54% 0.16 9) 55%, oklch(40% 0.14 5) 100%); }
+.shelf-book.category-fantastik { background: linear-gradient(160deg, oklch(66% 0.17 35) 0%, oklch(54% 0.16 29) 55%, oklch(40% 0.14 25) 100%); }
+.shelf-book.category-bilimkurgu{ background: linear-gradient(160deg, oklch(66% 0.17 235) 0%, oklch(54% 0.16 229) 55%, oklch(40% 0.14 225) 100%); }
+.shelf-book.category-distopya  { background: linear-gradient(160deg, oklch(66% 0.09 260) 0%, oklch(54% 0.08 254) 55%, oklch(40% 0.07 250) 100%); }
+.shelf-book.category-kurgu     { background: linear-gradient(160deg, oklch(66% 0.17 165) 0%, oklch(54% 0.16 159) 55%, oklch(40% 0.14 155) 100%); }
+.shelf-book.category-tarih     { background: linear-gradient(160deg, oklch(66% 0.15 70) 0%, oklch(54% 0.14 64) 55%, oklch(40% 0.12 60) 100%); }
+.shelf-book.category-felsefe   { background: linear-gradient(160deg, oklch(66% 0.15 320) 0%, oklch(54% 0.14 314) 55%, oklch(40% 0.12 310) 100%); }
+.shelf-book.category-biyografi { background: linear-gradient(160deg, oklch(66% 0.09 240) 0%, oklch(54% 0.08 234) 55%, oklch(40% 0.07 230) 100%); }
+.shelf-book.category-bilim     { background: linear-gradient(160deg, oklch(66% 0.15 200) 0%, oklch(54% 0.14 194) 55%, oklch(40% 0.12 190) 100%); }
+.shelf-book.category-default   { background: linear-gradient(160deg, oklch(66% 0.03 90) 0%, oklch(54% 0.03 90) 55%, oklch(40% 0.02 90) 100%); }
 
 /* ===== Mobil Uyum ===== */
 @media (max-width: 860px) {

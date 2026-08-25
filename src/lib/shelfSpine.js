@@ -28,3 +28,52 @@ export function getSpineFilter(id) {
   const brightness = 0.92 + (((hash >> 11) % 19) / 100); // 0.92..1.10
   return `hue-rotate(${hueShift}deg) saturate(${saturate}) brightness(${brightness})`;
 }
+
+const CATEGORY_EMBLEMS = {
+  'Klasik Edebiyat': 'KLS',
+  'Fantastik Kurgu': 'FNT',
+  'Bilim Kurgu': 'BLK',
+  'Distopya': 'DST',
+  'Kurgu': 'KRG',
+  'Tarih': 'TRH',
+  'Felsefe': 'FLS',
+  'Biyografi': 'BYG',
+  'Bilim': 'BLM',
+};
+
+// Sırt üzerindeki küçük folyo rozetine yazılan 3 harfli kategori kısaltması -
+// renk tek başına yeterince ayırt edici olmadığında (renk körlüğü, benzer
+// tonlar) kategoriyi metinle de okunur kılıyor.
+export function getCategoryEmblem(category) {
+  if (CATEGORY_EMBLEMS[category]) return CATEGORY_EMBLEMS[category];
+  return category ? category.slice(0, 3).toUpperCase() : '';
+}
+
+const SPINE_GAP = 9; // .shelf-row'daki gap ile aynı olmalı
+
+// Bir raf katındaki kitapları, verilen genişliğe sığacak şekilde satırlara
+// böler - her satır kendi bütün (kesintisiz) raf çizgisini alacak. Sabit bir
+// "kaç kitap sığar" varsayımı yok, gerçek piksel genişliklerini toplar.
+export function chunkIntoLines(books, availableWidth) {
+  if (!availableWidth || availableWidth <= 0 || books.length === 0) {
+    return books.length ? [books] : [];
+  }
+  const lines = [];
+  let current = [];
+  let currentWidth = 0;
+
+  for (const book of books) {
+    const { width } = getSpineSize(book.id);
+    const additional = current.length === 0 ? width : width + SPINE_GAP;
+    if (current.length > 0 && currentWidth + additional > availableWidth) {
+      lines.push(current);
+      current = [book];
+      currentWidth = width;
+    } else {
+      current.push(book);
+      currentWidth += additional;
+    }
+  }
+  if (current.length > 0) lines.push(current);
+  return lines;
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hashString, getSpineSize, getSpineFilter } from './shelfSpine';
+import { hashString, getSpineSize, getSpineFilter, getCategoryEmblem, chunkIntoLines } from './shelfSpine';
 
 describe('hashString', () => {
   it('is deterministic for the same input', () => {
@@ -54,5 +54,48 @@ describe('getSpineFilter', () => {
     expect(getSpineFilter('some-uuid-1234')).toMatch(
       /^hue-rotate\(-?\d+deg\) saturate\([\d.]+\) brightness\([\d.]+\)$/
     );
+  });
+});
+
+describe('getCategoryEmblem', () => {
+  it('returns the known 3-letter abbreviation for a mapped category', () => {
+    expect(getCategoryEmblem('Bilim Kurgu')).toBe('BLK');
+  });
+
+  it('falls back to the first 3 uppercased letters for an unmapped category', () => {
+    expect(getCategoryEmblem('Kurgu Dışı')).toBe('KUR');
+  });
+
+  it('returns an empty string for no category', () => {
+    expect(getCategoryEmblem('')).toBe('');
+    expect(getCategoryEmblem(undefined)).toBe('');
+  });
+});
+
+describe('chunkIntoLines', () => {
+  const books = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }];
+
+  it('returns a single line when no width constraint is given', () => {
+    expect(chunkIntoLines(books, 0)).toEqual([books]);
+  });
+
+  it('returns an empty array for no books', () => {
+    expect(chunkIntoLines([], 500)).toEqual([]);
+  });
+
+  it('puts every book in its own line when the width only fits one at a time', () => {
+    const lines = chunkIntoLines(books, 50);
+    expect(lines.length).toBe(books.length);
+    lines.forEach((line) => expect(line.length).toBe(1));
+  });
+
+  it('fits everything on one line when the width is generous', () => {
+    expect(chunkIntoLines(books, 10000)).toEqual([books]);
+  });
+
+  it('preserves book order across all lines', () => {
+    const lines = chunkIntoLines(books, 120);
+    const flattened = lines.flat();
+    expect(flattened.map((b) => b.id)).toEqual(books.map((b) => b.id));
   });
 });

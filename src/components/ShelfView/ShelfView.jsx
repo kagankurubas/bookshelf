@@ -1,6 +1,7 @@
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PlusIcon } from '../icons/Icons';
-import { getSpineSize, getSpineFilter } from '../../lib/shelfSpine';
+import { getSpineSize, getSpineFilter, getCategoryEmblem, chunkIntoLines } from '../../lib/shelfSpine';
 
 function ShelfView({
   books,
@@ -17,6 +18,19 @@ function ShelfView({
   getCategoryColorClass,
 }) {
   const { t } = useTranslation();
+  const containerRef = useRef(null);
+  const [availableWidth, setAvailableWidth] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect?.width;
+      if (width) setAvailableWidth(width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const rows = Array.from({ length: shelfCount }).map((_, rowIndex) =>
     books
@@ -48,7 +62,7 @@ function ShelfView({
         )}
       </div>
 
-      <div className="wooden-shelf-container">
+      <div className="wooden-shelf-container" ref={containerRef}>
         {rows.map((rowBooks, rowIndex) => {
           const isAppendHovered = dragOverTarget?.shelfRow === rowIndex && dragOverTarget?.bookId === null;
 
@@ -71,52 +85,66 @@ function ShelfView({
             );
           }
 
+          // Bir raf katı (shelfRow) sayfa genişliğine sığmayacak kadar kitap
+          // içerebilir - bu durumda birden fazla satıra (line) bölünüyor.
+          // Her satır kendi kesintisiz raf çizgisini alır (bkz. .shelf-row),
+          // ama hepsi aynı katın parçası olduğu için birbirine yakın durur.
+          const lines = chunkIntoLines(rowBooks, availableWidth);
+
           return (
-            <div key={rowIndex} className="shelf-row">
-              {rowBooks.map((book) => {
-                const colorClass = getCategoryColorClass(book.category);
-                const isHovered = dragOverTarget?.shelfRow === rowIndex && dragOverTarget?.bookId === book.id;
-                const { width, height } = getSpineSize(book.id);
-                const spineFilter = getSpineFilter(book.id);
+            <div key={rowIndex} className="shelf-tier">
+              {lines.map((lineBooks, lineIndex) => (
+                <div key={lineIndex} className="shelf-row">
+                  {lineBooks.map((book) => {
+                    const colorClass = getCategoryColorClass(book.category);
+                    const isHovered = dragOverTarget?.shelfRow === rowIndex && dragOverTarget?.bookId === book.id;
+                    const { width, height } = getSpineSize(book.id);
+                    const spineFilter = getSpineFilter(book.id);
+                    const emblem = getCategoryEmblem(book.category);
 
-                return (
-                  <div
-                    key={book.id}
-                    className={`shelf-book ${colorClass} ${draggedBookId === book.id ? 'dragging' : ''} ${isHovered ? 'drag-over' : ''}`}
-                    draggable
-                    onDragStart={(e) => onDragStart(e, book.id)}
-                    onDragEnd={onDragEnd}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      onDragOverAt(rowIndex, book.id);
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      onDropAt(rowIndex, book.id);
-                    }}
-                    onClick={() => onOpenBook(book)}
-                    title={`${book.title} (${t(`categories.${book.category}`, book.category)}) - ${t('shelf.dragHint')}`}
-                    style={{ width: `${width}px`, height: `${height}px`, filter: spineFilter }}
-                  >
-                    <span className="shelf-book-band top"></span>
-                    <span className="shelf-book-band bottom"></span>
-                    <span className="shelf-book-highlight"></span>
-                    <span className="shelf-book-title">{book.title}</span>
-                  </div>
-                );
-              })}
+                    return (
+                      <div
+                        key={book.id}
+                        className={`shelf-book ${colorClass} ${draggedBookId === book.id ? 'dragging' : ''} ${isHovered ? 'drag-over' : ''}`}
+                        draggable
+                        onDragStart={(e) => onDragStart(e, book.id)}
+                        onDragEnd={onDragEnd}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          onDragOverAt(rowIndex, book.id);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          onDropAt(rowIndex, book.id);
+                        }}
+                        onClick={() => onOpenBook(book)}
+                        title={`${book.title} (${t(`categories.${book.category}`, book.category)}) - ${t('shelf.dragHint')}`}
+                        style={{ width: `${width}px`, height: `${height}px`, filter: spineFilter }}
+                      >
+                        <span className="shelf-book-texture"></span>
+                        <span className="shelf-book-foil"></span>
+                        <span className="shelf-book-highlight"></span>
+                        {emblem && <span className="shelf-book-emblem">{emblem}</span>}
+                        <span className="shelf-book-title">{book.title}</span>
+                      </div>
+                    );
+                  })}
 
-              <div
-                className={`shelf-append-zone ${draggedBookId !== null ? 'active' : ''} ${isAppendHovered ? 'drag-over' : ''}`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  onDragOverAt(rowIndex, null);
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  onDropAt(rowIndex, null);
-                }}
-              ></div>
+                  {lineIndex === lines.length - 1 && (
+                    <div
+                      className={`shelf-append-zone ${draggedBookId !== null ? 'active' : ''} ${isAppendHovered ? 'drag-over' : ''}`}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        onDragOverAt(rowIndex, null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        onDropAt(rowIndex, null);
+                      }}
+                    ></div>
+                  )}
+                </div>
+              ))}
             </div>
           );
         })}
