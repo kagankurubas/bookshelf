@@ -128,7 +128,8 @@
     "permissionDenied": "Kamera izni reddedildi. Barkod okutmak için tarayıcı ayarlarından bu siteye kamera izni vermen gerekiyor.",
     "noCamera": "Cihazda kullanılabilir bir kamera bulunamadı.",
     "startFailed": "Kamera başlatılamadı. Lütfen tekrar dene.",
-    "close": "Kapat"
+    "close": "Kapat",
+    "torch": "Fener"
   },
   "bookSearch": {
     "headerTitle": "Ara ve Ekle",

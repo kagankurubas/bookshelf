@@ -1,13 +1,33 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { readBarcodes, setZXingModuleOverrides } from 'zxing-wasm/reader';
+import zxingReaderWasmUrl from 'zxing-wasm/reader/zxing_reader.wasm?url';
 import './BarcodeScanner.css';
 
-const SCANNER_ELEMENT_ID = 'barcode-scanner-region';
+// zxing-wasm varsayılan olarak .wasm dosyasını bir CDN'den çekiyor; bunun
+// yerine Vite'ın paketlediği yerel dosyayı kullanması için üzerine yazıyoruz.
+// Modül sadece ilk gerçek tarama çağrısında (readBarcodes) indirilip
+// başlatılıyor, bu yüzden barkod tarayıcıyı hiç açmayan kullanıcılar için
+// bir maliyeti yok.
+setZXingModuleOverrides({
+  locateFile: (path, prefix) => (path.endsWith('.wasm') ? zxingReaderWasmUrl : prefix + path),
+});
+
+const SUPPORTED_FORMATS = ['EAN13', 'EAN8', 'UPCA', 'UPCE'];
+// Kamera CPU/pil tüketimini makul tutmak için 1080p yerine bu genişliğe
+// indirgenmiş bir karede tarama yapılıyor - barkod çözümü için yeterli.
+const DECODE_MAX_WIDTH = 1280;
+const DECODE_INTERVAL_MS = 250;
 
 const HeaderBarcodeIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
     <path d="M4 5v14M8 5v14M12 5v14M13.5 5v14M17 5v14M20 5v14" />
+  </svg>
+);
+
+const TorchIcon = ({ on }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill={on ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8">
+    <path d="M13 2 4 14h6l-1 8 9-12h-6z" strokeLinejoin="round" />
   </svg>
 );
 
@@ -17,7 +37,10 @@ function isCameraSupported() {
 
 function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, title = null }) {
   const { t } = useTranslation();
+  const videoRef = useRef(null);
+  const canvasRef = useRef(document.createElement('canvas'));
   const hasScannedRef = useRef(false);
+  const trackRef = useRef(null);
   // onScan, ebeveyn her render olduğunda yeni bir referans olabilir; efektin
   // sadece mount'ta bir kez çalışıp kamerayı yeniden başlatmaması için ref'te tutuyoruz.
   const onScanRef = useRef(onScan);
@@ -25,31 +48,22 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
   const [errorMessage, setErrorMessage] = useState(() =>
     isCameraSupported() ? '' : t('barcodeScanner.unsupported')
   );
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
+
+  const toggleTorch = () => {
+    const track = trackRef.current;
+    if (!track) return;
+    const nextOn = !torchOn;
+    track
+      .applyConstraints({ advanced: [{ torch: nextOn }] })
+      .then(() => setTorchOn(nextOn))
+      .catch(() => {});
+  };
 
   useEffect(() => {
     onScanRef.current = onScan;
   }, [onScan]);
-
-  useEffect(() => {
-    // html5-qrcode kutuphanesi video.play()'i kendi ic'inde .catch() olmadan
-    // cagiriyor; bilesen kapanirken video DOM'dan kaldirilirsa taraysici bu
-    // play() sozunu "AbortError: ... removed from the document" ile reddediyor
-    // ve bu, yakalanmamis (unhandled) rejection olarak konsola dusuyor. Kutuphanenin
-    // kendi ic cagrisina .catch() ekleyemedigimiz icin, bilesen ac,kkenken
-    // play()'in dondurdugu her promise'e sessiz bir .catch() ekleyip reddi
-    // "yakalanmis" hale getiriyoruz - donen promise ve davranisi degismiyor.
-    const originalPlay = HTMLMediaElement.prototype.play;
-    HTMLMediaElement.prototype.play = function patchedPlay(...args) {
-      const result = originalPlay.apply(this, args);
-      if (result && typeof result.catch === 'function') {
-        result.catch(() => {});
-      }
-      return result;
-    };
-    return () => {
-      HTMLMediaElement.prototype.play = originalPlay;
-    };
-  }, []);
 
   useEffect(() => {
     if (!isCameraSupported()) {
@@ -57,69 +71,73 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
     }
 
     hasScannedRef.current = false;
-    // React 18 StrictMode gelistirme modunda bu efekti mount->cleanup->mount
-    // olarak iki kez calistirir. start() cozulmeden cleanup tetiklenirse bu
-    // bayrak sayesinde yarim kalan instance, cozuldugu an hemen kapatilir -
-    // aksi halde DOM'da iki <video> birikip qrbox hesabini bozuyordu.
     let cancelled = false;
+    let stream = null;
+    let intervalId = null;
 
-    const html5Qrcode = new Html5Qrcode(SCANNER_ELEMENT_ID, {
-      formatsToSupport: [
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-      ],
-      // Destekleyen tarayıcılarda (Chrome/Android) native BarcodeDetector API'si
-      // kullanılır - 1D barkodlarda kütüphanenin kendi decoder'ından daha güvenilir.
-      experimentalFeatures: {
-        useBarCodeDetectorIfSupported: true,
-      },
-      verbose: false,
-    });
-
-    const config = {
-      fps: 12,
-      // qrbox kasıtlı olarak verilmiyor: kütüphane taranacak bölgeyi CSS
-      // boyutu ile kamera çözünürlüğü arasında kırpmasız bir oran varsayarak
-      // hesaplıyor, object-fit:cover ile bu varsayım bozulup görünenle
-      // taranan bölge birbirini tutmuyordu. qrbox'sız bırakmak tüm kareyi
-      // tarıyor - kırpma matematiğinden bağımsız, daha isabetli.
-      videoConstraints: {
-        facingMode: 'environment',
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-        advanced: [{ focusMode: 'continuous' }],
-      },
-    };
-
-    html5Qrcode
-      .start(
-        { facingMode: 'environment' },
-        config,
-        (decodedText) => {
-          if (continuous) {
-            // Toplu modda kamera kapanmaz; hangi ISBN'in tekrar islenip
-            // islenmeyecegine (kisa süreli tekrarlari eleme) ust bilesen karar verir.
-            onScanRef.current(decodedText);
-            return;
-          }
-          if (hasScannedRef.current) return;
-          hasScannedRef.current = true;
-          onScanRef.current(decodedText);
+    navigator.mediaDevices
+      .getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          advanced: [{ focusMode: 'continuous' }],
         },
-        () => {
-          // Her karede barkod bulunamaması normaldir, sessizce yoksay.
-        }
-      )
-      .then(() => {
+      })
+      .then((mediaStream) => {
         if (cancelled) {
-          // Bu efekt zaten temizlenmek istenmis (ör. StrictMode'un ikinci
-          // gecisi) - kamerayi hemen kapat, taranıyor durumuna hic gecme.
-          html5Qrcode.stop().then(() => html5Qrcode.clear()).catch(() => {});
+          mediaStream.getTracks().forEach((tr) => tr.stop());
           return;
         }
+        stream = mediaStream;
+        const track = mediaStream.getVideoTracks()[0];
+        trackRef.current = track;
+        try {
+          if (track.getCapabilities?.().torch) {
+            setTorchSupported(true);
+          }
+        } catch {
+          // Yetenek bilgisi alınamazsa fener butonu basitçe gösterilmez.
+        }
+
+        const video = videoRef.current;
+        video.srcObject = mediaStream;
+        video.play().catch(() => {});
+
         setStatus('scanning');
+
+        const canvas = canvasRef.current;
+        intervalId = setInterval(() => {
+          if (video.readyState < video.HAVE_CURRENT_DATA || video.videoWidth === 0) {
+            return;
+          }
+          const scale = Math.min(1, DECODE_MAX_WIDTH / video.videoWidth);
+          const width = Math.round(video.videoWidth * scale);
+          const height = Math.round(video.videoHeight * scale);
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(video, 0, 0, width, height);
+          const imageData = ctx.getImageData(0, 0, width, height);
+
+          readBarcodes(imageData, { formats: SUPPORTED_FORMATS, tryHarder: true })
+            .then((results) => {
+              const hit = results.find((r) => r.isValid && r.text);
+              if (!hit) return;
+              if (continuous) {
+                // Toplu modda kamera kapanmaz; hangi ISBN'in tekrar islenip
+                // islenmeyecegine (kisa süreli tekrarlari eleme) ust bilesen karar verir.
+                onScanRef.current(hit.text);
+                return;
+              }
+              if (hasScannedRef.current) return;
+              hasScannedRef.current = true;
+              onScanRef.current(hit.text);
+            })
+            .catch(() => {
+              // Bir karede çözümleme başarısız olması normaldir, sessizce yoksay.
+            });
+        }, DECODE_INTERVAL_MS);
       })
       .catch((err) => {
         if (cancelled) return;
@@ -136,11 +154,9 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
 
     return () => {
       cancelled = true;
-      if (html5Qrcode.isScanning) {
-        html5Qrcode.stop().then(() => html5Qrcode.clear()).catch(() => {});
-      }
-      // isScanning henuz false ise start() hala devam ediyordur; yukaridaki
-      // .then() icindeki 'cancelled' kontrolu cozuldugunde kamerayi kapatir.
+      if (intervalId) clearInterval(intervalId);
+      if (stream) stream.getTracks().forEach((tr) => tr.stop());
+      trackRef.current = null;
     };
     // Kamera sadece mount'ta bir kez başlatılır; onScan değişse bile efekt yeniden
     // çalışmaz (güncel değer onScanRef üzerinden okunur). continuous ise bir
@@ -158,9 +174,25 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
       </div>
 
       <div className="barcode-scanner-viewport-wrap">
-        <div id={SCANNER_ELEMENT_ID} className="barcode-scanner-viewport" />
+        <video
+          ref={videoRef}
+          className="barcode-scanner-viewport"
+          muted
+          playsInline
+          style={{ display: status === 'scanning' ? 'block' : 'none' }}
+        />
         {(status === 'starting' || status === 'scanning') && (
           <div className="barcode-scanner-frame-guide" aria-hidden="true" />
+        )}
+        {status === 'scanning' && torchSupported && (
+          <button
+            type="button"
+            onClick={toggleTorch}
+            className={`barcode-scanner-torch-btn ${torchOn ? 'on' : ''}`}
+            title={t('barcodeScanner.torch')}
+          >
+            <TorchIcon on={torchOn} />
+          </button>
         )}
       </div>
 

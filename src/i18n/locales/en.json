@@ -128,7 +128,8 @@
     "permissionDenied": "Camera access was denied. You'll need to allow camera access for this site in your browser settings to scan barcodes.",
     "noCamera": "No usable camera was found on this device.",
     "startFailed": "Couldn't start the camera. Please try again.",
-    "close": "Close"
+    "close": "Close",
+    "torch": "Flashlight"
   },
   "bookSearch": {
     "headerTitle": "Search & Add",
