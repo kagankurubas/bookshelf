@@ -13,23 +13,23 @@ function AppHeader({ activeView, onChangeView, userEmail, onSignOut }) {
         <span className="brand-word">{t('app.name')}</span>
       </div>
 
-      <div className="modern-tabs">
-        <button className={`modern-tab-btn ${activeView === 'cards' ? 'active' : ''}`} onClick={() => onChangeView('cards')}>
-          <GridTabIcon /> {t('nav.cards')}
+      <nav className="modern-tabs">
+        <button className={`modern-tab-btn ${activeView === 'cards' ? 'active' : ''}`} onClick={() => onChangeView('cards')} aria-label={t('nav.cards')}>
+          <GridTabIcon /> <span className="tab-label">{t('nav.cards')}</span>
         </button>
-        <button className={`modern-tab-btn ${activeView === 'table' ? 'active' : ''}`} onClick={() => onChangeView('table')}>
-          <TableTabIcon /> {t('nav.table')}
+        <button className={`modern-tab-btn ${activeView === 'table' ? 'active' : ''}`} onClick={() => onChangeView('table')} aria-label={t('nav.table')}>
+          <TableTabIcon /> <span className="tab-label">{t('nav.table')}</span>
         </button>
-        <button className={`modern-tab-btn ${activeView === 'shelf' ? 'active' : ''}`} onClick={() => onChangeView('shelf')}>
-          <ShelfTabIcon /> {t('nav.shelf')}
+        <button className={`modern-tab-btn ${activeView === 'shelf' ? 'active' : ''}`} onClick={() => onChangeView('shelf')} aria-label={t('nav.shelf')}>
+          <ShelfTabIcon /> <span className="tab-label">{t('nav.shelf')}</span>
         </button>
-        <button className="modern-tab-btn" disabled style={{ cursor: 'not-allowed', opacity: 0.55 }} title={t('nav.exploreTooltip')}>
-          <CompassIcon /> {t('nav.explore')}
+        <button className="modern-tab-btn" disabled style={{ cursor: 'not-allowed', opacity: 0.55 }} title={t('nav.exploreTooltip')} aria-label={t('nav.explore')}>
+          <CompassIcon /> <span className="tab-label">{t('nav.explore')}</span>
           <span className="tab-badge">{t('nav.comingSoon')}</span>
         </button>
-      </div>
+      </nav>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div className="header-actions">
         <div className="lang-switch" role="group" aria-label={t('language.label')}>
           {LANGUAGES.map((lng) => (
             <button

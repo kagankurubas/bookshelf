@@ -37,15 +37,22 @@
 
 .barcode-scanner-viewport {
   width: 100%;
-  min-height: 220px;
+  aspect-ratio: 4 / 5;
+  position: relative;
+  overflow: hidden;
   background-color: #000;
 }
 
 .barcode-scanner-viewport video,
 .barcode-scanner-viewport canvas {
   width: 100% !important;
-  height: auto !important;
+  height: 100% !important;
+  object-fit: cover;
   display: block;
+}
+
+.barcode-scanner-viewport #qr-shaded-region {
+  border-radius: 4px;
 }
 
 .barcode-scanner-hint {
@@ -106,9 +113,19 @@
   cursor: pointer;
 }
 
+@media (min-width: 640px) {
+  .barcode-scanner-viewport {
+    aspect-ratio: 4 / 3;
+  }
+}
+
 @media (max-width: 520px) {
   .barcode-scanner {
     max-width: 100%;
     border-radius: 8px;
+  }
+
+  .barcode-scanner-viewport {
+    aspect-ratio: 3 / 4;
   }
 }

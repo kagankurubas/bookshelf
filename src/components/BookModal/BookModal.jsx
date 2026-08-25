@@ -139,8 +139,8 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
   const statuses = ['Başlanmadı', 'Okunuyor', 'Tamamlandı', 'Yarıda Bırakıldı'];
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: 0, overflow: 'hidden' }}>
+    <div className="modal-overlay book-modal-overlay" onClick={onClose}>
+      <div className="modal-content book-modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: 0, overflow: 'hidden' }}>
         
         <div
           style={{
@@ -199,6 +199,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
           <input
             type="text" placeholder={t('bookModal.titlePlaceholder')} value={title}
             onChange={(e) => setTitle(e.target.value)}
+            className="book-modal-title-input"
             style={{ fontFamily: 'var(--font-heading)', fontSize: '26px', fontWeight: 700, marginBottom: '22px', width: '100%', background: 'transparent', border: 'none', color: 'var(--text)', outline: 'none' }}
           />
 

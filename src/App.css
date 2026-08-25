@@ -158,6 +158,12 @@ html, body, #root {
   letter-spacing: 0.02em;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .lang-switch {
   display: flex;
   align-items: center;
@@ -812,3 +818,122 @@ html, body, #root {
 .shelf-book.category-biyografi { background: linear-gradient(150deg, oklch(62% 0.06 240), oklch(48% 0.06 245)); }
 .shelf-book.category-bilim     { background: linear-gradient(150deg, oklch(60% 0.13 200), oklch(46% 0.12 205)); }
 .shelf-book.category-default   { background: linear-gradient(150deg, oklch(58% 0.02 90), oklch(44% 0.02 90)); }
+
+/* ===== Mobil Uyum ===== */
+@media (max-width: 860px) {
+  .app-header {
+    padding: 16px 20px;
+  }
+
+  .toolbar {
+    padding: 16px 20px 0;
+  }
+
+  .book-list-container,
+  .wooden-shelf-main-wrapper {
+    padding: 20px 20px 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-header {
+    flex-wrap: wrap;
+    row-gap: 12px;
+  }
+
+  .brand-mark {
+    order: 1;
+  }
+
+  .header-actions {
+    order: 2;
+  }
+
+  .modern-tabs {
+    order: 3;
+    width: 100%;
+  }
+
+  .modern-tab-btn {
+    flex: 1;
+    padding: 9px 4px;
+    font-size: 12.5px;
+  }
+
+  .tab-badge {
+    display: none;
+  }
+
+  .account-chip-email {
+    max-width: 110px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 14px 16px;
+  }
+
+  .brand-word {
+    font-size: 17px;
+  }
+
+  .modern-tab-btn {
+    gap: 0;
+    padding: 9px 2px;
+  }
+
+  .modern-tab-btn .tab-label {
+    display: none;
+  }
+
+  .account-chip-email {
+    display: none;
+  }
+
+  .account-chip {
+    padding: 5px;
+  }
+
+  .toolbar {
+    padding: 14px 16px 0;
+    gap: 10px;
+  }
+
+  .toolbar-group {
+    width: 100%;
+  }
+
+  .toolbar-group .select-wrap {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .toolbar-group .select-chip {
+    min-width: 0;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .book-list-container,
+  .wooden-shelf-main-wrapper {
+    padding: 16px 16px 0;
+  }
+
+  .book-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .wooden-shelf-container {
+    gap: 32px;
+  }
+
+  .ai-chat-fab {
+    right: 16px;
+    bottom: 16px;
+    width: 50px;
+    height: 50px;
+  }
+}
