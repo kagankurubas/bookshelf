@@ -75,29 +75,90 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
     let stream = null;
     let intervalId = null;
 
+    const idealConstraints = {
+      // Telefon kameraları genelde 1920x1080'in çok üzerinde çözünürlük
+      // destekliyor; düşük ideal değer istemek, sonradan zoom uygulanınca
+      // kırpılan bölgenin aynı boyuta büyütülüp (upscale) pikselleşmesine
+      // yol açıyordu. Yüksek bir ideal istemek tarayıcının desteklenen en
+      // yüksek çözünürlüğe yakınına çıkmasını sağlıyor - decode zaten
+      // DECODE_MAX_WIDTH'e küçültülüyor, bu yüzden CPU maliyeti sabit kalıyor.
+      width: { ideal: 3840 },
+      height: { ideal: 2160 },
+      advanced: [{ focusMode: 'continuous' }],
+    };
+
     navigator.mediaDevices
-      .getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          advanced: [{ focusMode: 'continuous' }],
-        },
-      })
-      .then((mediaStream) => {
+      .getUserMedia({ video: { facingMode: 'environment', ...idealConstraints } })
+      .then(async (mediaStream) => {
         if (cancelled) {
           mediaStream.getTracks().forEach((tr) => tr.stop());
           return;
         }
+
+        // "environment" facingMode telefonlarda ana lens yerine ikincil
+        // (ultra geniş/makro gibi, genelde düşük çözünürlüklü) bir lense
+        // denk gelebiliyor. Android'de kamera ID 0 neredeyse her zaman ana
+        // arka sensördür - izin alındıktan sonra (enumerateDevices artık
+        // gerçek label döndürür) arka kameraları etiketteki numaraya göre
+        // sıralayıp en düşüğünü deniyoruz.
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const backCams = devices
+            .filter((d) => d.kind === 'videoinput' && /back/i.test(d.label))
+            .map((d) => {
+              const m = d.label.match(/(\d+)/);
+              return { deviceId: d.deviceId, label: d.label, index: m ? parseInt(m[1], 10) : null };
+            })
+            .filter((d) => d.index !== null)
+            .sort((a, b) => a.index - b.index);
+
+          const currentDeviceId = mediaStream.getVideoTracks()[0].getSettings().deviceId;
+          const preferred = backCams[0];
+          if (preferred && preferred.deviceId !== currentDeviceId) {
+            // Çoğu telefon aynı anda iki fiziksel arka kamerayı birden açmaya
+            // izin vermiyor (donanım kilidi) - yeni kamerayı açmadan önce
+            // eskisini bırakmak gerekiyor. Yeni kamera açılamazsa (ör. bu
+            // cihazda concurrent kısıtlama yoksa bile deviceId reddedilirse)
+            // orijinal facingMode isteğiyle tekrar bağlanılıyor.
+            mediaStream.getTracks().forEach((tr) => tr.stop());
+            try {
+              mediaStream = await navigator.mediaDevices.getUserMedia({
+                video: { deviceId: { exact: preferred.deviceId }, ...idealConstraints },
+              });
+            } catch {
+              mediaStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'environment', ...idealConstraints },
+              });
+            }
+            if (cancelled) {
+              mediaStream.getTracks().forEach((tr) => tr.stop());
+              return;
+            }
+          }
+        } catch {
+          // Kamera listesi alınamazsa/değiştirilemezse varsayılan akışla devam edilir.
+        }
+
         stream = mediaStream;
         const track = mediaStream.getVideoTracks()[0];
         trackRef.current = track;
         try {
-          if (track.getCapabilities?.().torch) {
+          const capabilities = track.getCapabilities?.();
+          if (capabilities?.torch) {
             setTorchSupported(true);
           }
+          // Telefonlarda kamera geniş bir alanı yakalıyor ve zoom=1 iken
+          // barkod karede küçük kalıp az piksel kaplayabiliyor - bu 1D
+          // barkod çözümünü zorlaştırıyor. Donanım destekli zoom varsa
+          // (crop sensörden alınır, sadece dijital büyütme değildir)
+          // barkodu daha fazla piksele yaymak için ölçülü şekilde devreye
+          // sokuyoruz.
+          if (capabilities?.zoom) {
+            const targetZoom = Math.min(2, capabilities.zoom.max);
+            track.applyConstraints({ advanced: [{ zoom: targetZoom }] }).catch(() => {});
+          }
         } catch {
-          // Yetenek bilgisi alınamazsa fener butonu basitçe gösterilmez.
+          // Yetenek bilgisi alınamazsa zoom/fener basitçe devre dışı kalır.
         }
 
         const video = videoRef.current;
@@ -107,33 +168,39 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
         setStatus('scanning');
 
         const canvas = canvasRef.current;
+
+        const handleResults = (results) => {
+          const hit = results.find((r) => r.isValid && r.text);
+          if (!hit) return;
+          if (continuous) {
+            // Toplu modda kamera kapanmaz; hangi ISBN'in tekrar islenip
+            // islenmeyecegine (kisa süreli tekrarlari eleme) ust bilesen karar verir.
+            onScanRef.current(hit.text);
+            return;
+          }
+          if (hasScannedRef.current) return;
+          hasScannedRef.current = true;
+          onScanRef.current(hit.text);
+        };
+
+        const decodeFromSource = (source, sourceWidth, sourceHeight) => {
+          const scale = Math.min(1, DECODE_MAX_WIDTH / sourceWidth);
+          const width = Math.round(sourceWidth * scale);
+          const height = Math.round(sourceHeight * scale);
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(source, 0, 0, width, height);
+          const imageData = ctx.getImageData(0, 0, width, height);
+          return readBarcodes(imageData, { formats: SUPPORTED_FORMATS, tryHarder: true });
+        };
+
         intervalId = setInterval(() => {
           if (video.readyState < video.HAVE_CURRENT_DATA || video.videoWidth === 0) {
             return;
           }
-          const scale = Math.min(1, DECODE_MAX_WIDTH / video.videoWidth);
-          const width = Math.round(video.videoWidth * scale);
-          const height = Math.round(video.videoHeight * scale);
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d', { willReadFrequently: true });
-          ctx.drawImage(video, 0, 0, width, height);
-          const imageData = ctx.getImageData(0, 0, width, height);
-
-          readBarcodes(imageData, { formats: SUPPORTED_FORMATS, tryHarder: true })
-            .then((results) => {
-              const hit = results.find((r) => r.isValid && r.text);
-              if (!hit) return;
-              if (continuous) {
-                // Toplu modda kamera kapanmaz; hangi ISBN'in tekrar islenip
-                // islenmeyecegine (kisa süreli tekrarlari eleme) ust bilesen karar verir.
-                onScanRef.current(hit.text);
-                return;
-              }
-              if (hasScannedRef.current) return;
-              hasScannedRef.current = true;
-              onScanRef.current(hit.text);
-            })
+          decodeFromSource(video, video.videoWidth, video.videoHeight)
+            .then(handleResults)
             .catch(() => {
               // Bir karede çözümleme başarısız olması normaldir, sessizce yoksay.
             });
