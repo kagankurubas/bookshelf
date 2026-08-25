@@ -107,6 +107,8 @@
     "publisher": "Publisher (Optional)",
     "publisherPlaceholder": "Publisher Name",
     "isbn": "ISBN (Optional)",
+    "pageCount": "Page Count (Optional)",
+    "pageCountPlaceholder": "e.g. 320",
     "libraries": "Libraries",
     "defaultLibraryHint": "Main library - every book lives here, can't be unchecked",
     "rating": "Rating",

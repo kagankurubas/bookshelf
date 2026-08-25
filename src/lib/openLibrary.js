@@ -13,6 +13,7 @@ function normalizeBookData(isbn, data) {
     publisher: publishers.join(', ') || '',
     coverImage: data.cover?.large || data.cover?.medium || data.cover?.small || null,
     isbn,
+    pageCount: data.number_of_pages || null,
   };
 }
 
@@ -54,6 +55,7 @@ function normalizeSearchDoc(doc) {
     coverImage: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : null,
     isbn: Array.isArray(doc.isbn) ? doc.isbn[0] : null,
     firstPublishYear: doc.first_publish_year || null,
+    pageCount: doc.number_of_pages_median || null,
   };
 }
 

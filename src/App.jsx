@@ -207,6 +207,7 @@ function App() {
       author: book.author,
       coverImage: book.coverImage,
       isbn: book.isbn,
+      pageCount: book.pageCount,
     });
     setIsModalOpen(true);
   };

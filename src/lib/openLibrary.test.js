@@ -29,6 +29,7 @@ describe('getBookByIsbn', () => {
         authors: [{ name: 'Frank Herbert' }],
         publishers: [{ name: 'Ace Books' }],
         cover: { large: 'https://example.com/cover.jpg' },
+        number_of_pages: 412,
       },
     });
 
@@ -40,6 +41,7 @@ describe('getBookByIsbn', () => {
       publisher: 'Ace Books',
       coverImage: 'https://example.com/cover.jpg',
       isbn,
+      pageCount: 412,
     });
   });
 
@@ -84,6 +86,7 @@ describe('searchBooks', () => {
           cover_i: 12345,
           isbn: ['9780553293357'],
           first_publish_year: 1951,
+          number_of_pages_median: 255,
         },
       ],
     });
@@ -97,6 +100,7 @@ describe('searchBooks', () => {
         coverImage: 'https://covers.openlibrary.org/b/id/12345-M.jpg',
         isbn: '9780553293357',
         firstPublishYear: 1951,
+        pageCount: 255,
       },
     ]);
   });

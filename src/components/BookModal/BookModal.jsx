@@ -6,6 +6,7 @@ const iconProps = { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', s
 const PersonIcon = () => (<svg {...iconProps}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" /></svg>);
 const BuildingIcon = () => (<svg {...iconProps}><rect x="4" y="3" width="16" height="18" rx="1" /><path d="M9 21v-4h6v4M9 8h.01M15 8h.01M9 12h.01M15 12h.01" /></svg>);
 const HashIcon = () => (<svg {...iconProps}><path d="M5 9h14M5 15h14M10 3L8 21M16 3l-2 18" /></svg>);
+const PagesIcon = () => (<svg {...iconProps}><path d="M4 5.5C4 4.7 4.7 4 5.5 4H12v16H5.5A1.5 1.5 0 0 1 4 18.5v-13z" /><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H12v16h6.5a1.5 1.5 0 0 0 1.5-1.5v-13z" /></svg>);
 const LibraryStackIcon = () => (<svg {...iconProps}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>);
 const TagIcon = () => (<svg {...iconProps}><path d="M20.6 12.6L12 21l-9-9 8.6-8.4H20.6z" /><circle cx="14.5" cy="7.5" r="1.2" fill="currentColor" stroke="none" /></svg>);
 const RefreshIcon = () => (<svg {...iconProps}><path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 3v6h-6" /></svg>);
@@ -28,6 +29,9 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
   const [dateFinished, setDateFinished] = useState(selectedBook ? selectedBook.dateFinished : '');
   const [coverImage, setCoverImage] = useState(selectedBook ? selectedBook.coverImage || '' : (prefillData?.coverImage || ''));
   const [isbn, setIsbn] = useState(selectedBook ? selectedBook.isbn || '' : (prefillData?.isbn || ''));
+  const [pageCount, setPageCount] = useState(
+    String((selectedBook ? selectedBook.pageCount : prefillData?.pageCount) ?? '')
+  );
 
   const [isAddingCover, setIsAddingCover] = useState(false);
   const [coverPosition, setCoverPosition] = useState(selectedBook ? selectedBook.coverPosition || 50 : 50);
@@ -62,6 +66,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
         coverImage !== (selectedBook.coverImage || '') ||
         coverPosition !== (selectedBook.coverPosition || 50) ||
         isbn !== (selectedBook.isbn || '') ||
+        pageCount !== String(selectedBook.pageCount ?? '') ||
         JSON.stringify(notesList) !== JSON.stringify(selectedBook.notesList || []) ||
         JSON.stringify(selectedLibraries) !== JSON.stringify(selectedBook.libraryIds || [])
       )
@@ -127,6 +132,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
       coverImage,
       coverPosition,
       isbn,
+      pageCount: pageCount.trim() ? parseInt(pageCount, 10) : null,
       notesList,
       shelfId,
       isFavorite,
@@ -224,6 +230,18 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
           <div className="form-group">
             <span className="form-label"><HashIcon /> {t('bookModal.isbn')}</span>
             <input type="text" className="form-input" value={isbn} onChange={(e) => setIsbn(e.target.value)} placeholder="978..." />
+          </div>
+
+          <div className="form-group">
+            <span className="form-label"><PagesIcon /> {t('bookModal.pageCount')}</span>
+            <input
+              type="number"
+              min="0"
+              className="form-input"
+              value={pageCount}
+              onChange={(e) => setPageCount(e.target.value)}
+              placeholder={t('bookModal.pageCountPlaceholder')}
+            />
           </div>
 
           <div className="form-group">

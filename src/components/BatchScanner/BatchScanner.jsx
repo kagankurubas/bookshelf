@@ -74,6 +74,7 @@ function BatchScanner({ books, activeLibraryId, addBook, onClose, onManualAddIsb
           publisher: entry.book.publisher || '',
           coverImage: entry.book.coverImage || '',
           isbn: entry.book.isbn || entry.isbn,
+          pageCount: entry.book.pageCount || null,
           libraryIds: [activeLibraryId],
           shelfRow: 0,
           slotIndex: nextSlot,

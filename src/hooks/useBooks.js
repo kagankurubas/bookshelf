@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 const BOOKS_SELECT = `
   id, title, author, publisher, rating, category, status,
   date_started, date_finished, cover_image, cover_position,
-  shelf_id, is_favorite, shelf_row, slot_index, isbn, created_at,
+  shelf_id, is_favorite, shelf_row, slot_index, isbn, page_count, created_at,
   book_libraries ( library_id ),
   notes ( id, text, created_at )
 `;
@@ -25,6 +25,7 @@ const BOOK_COLUMN_MAP = {
   shelfRow: 'shelf_row',
   slotIndex: 'slot_index',
   isbn: 'isbn',
+  pageCount: 'page_count',
 };
 
 const DATE_FIELDS = new Set(['dateStarted', 'dateFinished']);
@@ -51,6 +52,7 @@ function mapBookRow(row) {
     shelfRow: row.shelf_row ?? 0,
     slotIndex: row.slot_index ?? 0,
     isbn: row.isbn || '',
+    pageCount: row.page_count ?? null,
     libraryIds: (row.book_libraries || []).map((bl) => bl.library_id),
     notesList: (row.notes || [])
       .slice()

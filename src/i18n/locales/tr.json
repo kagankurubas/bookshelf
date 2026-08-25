@@ -107,6 +107,8 @@
     "publisher": "Yayınevi (Opsiyonel)",
     "publisherPlaceholder": "Yayınevi Adı",
     "isbn": "ISBN (Opsiyonel)",
+    "pageCount": "Sayfa Sayısı (Opsiyonel)",
+    "pageCountPlaceholder": "ör. 320",
     "libraries": "Kitaplıklar",
     "defaultLibraryHint": "Ana kitaplık - her kitap burada bulunur, seçimden çıkarılamaz",
     "rating": "Puan",

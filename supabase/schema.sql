@@ -49,6 +49,8 @@ create table if not exists books (
   slot_index integer not null default 0,
   -- Barkod/ISBN ile arama uzerinden kitap eklerken kullanilacak
   isbn text,
+  -- Okuma istatistikleri (toplam sayfa) icin - opsiyonel, bilinmiyorsa bos kalir.
+  page_count integer check (page_count is null or page_count >= 0),
   created_at timestamptz not null default now()
 );
 
@@ -140,3 +142,28 @@ create policy "Users manage own ai_messages" on ai_messages
   ) with check (
     exists (select 1 from ai_conversations c where c.id = conversation_id and c.user_id = auth.uid())
   );
+
+-- =========================================================
+-- 7. get_reading_stats: bir kitaplıktaki tamamlanmış kitaplar için toplam
+--    kitap sayısı, toplam sayfa sayısı ve ortalama puanı tek sorguda
+--    hesaplar (client'ta tüm kitapları çekip toplamak yerine DB'de
+--    agregasyon). security invoker sayesinde çağıranın RLS'i geçerli olur.
+-- =========================================================
+create or replace function get_reading_stats(p_library_id uuid)
+returns table (
+  completed_count bigint,
+  total_pages bigint,
+  average_rating numeric
+)
+language sql
+stable
+security invoker
+as $$
+  select
+    count(*) filter (where b.status = 'Tamamlandı') as completed_count,
+    coalesce(sum(b.page_count) filter (where b.status = 'Tamamlandı'), 0) as total_pages,
+    avg(b.rating) filter (where b.status = 'Tamamlandı' and b.rating > 0) as average_rating
+  from books b
+  join book_libraries bl on bl.book_id = b.id
+  where bl.library_id = p_library_id;
+$$;
