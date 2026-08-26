@@ -7,7 +7,10 @@
 
   --text: oklch(22% 0.01 90);
   --text-secondary: oklch(46% 0.01 90);
-  --text-muted: oklch(58% 0.01 90);
+  /* 58% eskiden ~4.3:1 kontrasttaydi (WCAG AA'in 4.5:1 esiginin altinda) -
+     52% beyaz/surface-alt uzerinde 4.5:1'i rahat gecerken hala text-secondary'den
+     belirgin sekilde daha soluk kaliyor. */
+  --text-muted: oklch(52% 0.01 90);
 
   --border: oklch(91% 0.008 90);
   --border-strong: oklch(86% 0.01 90);

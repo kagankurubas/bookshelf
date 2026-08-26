@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { searchBooks } from '../../lib/openLibrary';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import './BookSearch.css';
 
 const DEBOUNCE_MS = 400;
@@ -14,6 +15,7 @@ const BookPlaceholderIcon = () => (
 
 function BookSearch({ onSelect, onClose }) {
   const { t } = useTranslation();
+  useEscapeKey(onClose);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [status, setStatus] = useState('idle'); // idle | loading | success | empty | error
@@ -87,6 +89,14 @@ function BookSearch({ onSelect, onClose }) {
                 key={`${book.isbn || book.title}-${index}`}
                 className="book-search-item"
                 onClick={() => onSelect(book)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelect(book);
+                  }
+                }}
               >
                 {book.coverImage ? (
                   <img src={book.coverImage} alt={book.title} className="book-search-cover" />

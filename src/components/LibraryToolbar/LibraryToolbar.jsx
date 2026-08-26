@@ -25,11 +25,17 @@ function LibraryToolbar({
           <form onSubmit={onCreateLibrary} className="toolbar-add-library-form">
             <div className="toolbar-add-library-input-wrap">
               <input
-                type="text" placeholder={t('toolbar.namePlaceholder')} value={newLibraryName}
+                type="text" placeholder={t('toolbar.namePlaceholder')} aria-label={t('toolbar.namePlaceholder')} value={newLibraryName}
                 onChange={(e) => onNewLibraryNameChange(e.target.value)} autoFocus
                 className={`form-input ${newLibraryNameError ? 'input-error' : ''}`} style={{ width: '160px' }}
+                aria-invalid={!!newLibraryNameError}
+                aria-describedby={newLibraryNameError ? 'new-library-name-error' : undefined}
               />
-              {newLibraryNameError && <span className="toolbar-add-library-error">{newLibraryNameError}</span>}
+              {newLibraryNameError && (
+                <span id="new-library-name-error" className="toolbar-add-library-error" role="alert">
+                  {newLibraryNameError}
+                </span>
+              )}
             </div>
             <button type="submit" className="btn-primary" style={{ padding: '8px 14px' }}>{t('toolbar.add')}</button>
             <button type="button" onClick={onCancelAddingLibrary} className="chip-btn">{t('toolbar.cancel')}</button>
@@ -42,7 +48,7 @@ function LibraryToolbar({
 
         <div className="select-wrap">
           <LibraryChipIcon />
-          <select className="select-chip" value={activeLibraryId || ''} onChange={(e) => onChangeActiveLibrary(e.target.value)}>
+          <select className="select-chip" aria-label={t('toolbar.activeLibraryLabel')} value={activeLibraryId || ''} onChange={(e) => onChangeActiveLibrary(e.target.value)}>
             {libraries.map((lib) => <option key={lib.id} value={lib.id}>{lib.name} ({t('toolbar.shelfCountSuffix', { count: lib.shelfCount || 2 })})</option>)}
           </select>
           <ChevronDownIcon />
@@ -53,7 +59,7 @@ function LibraryToolbar({
         )}
       </div>
 
-      <button onClick={onOpenAddBook} className="fab-add" title={t('toolbar.addBookTitle')}>
+      <button onClick={onOpenAddBook} className="fab-add" title={t('toolbar.addBookTitle')} aria-label={t('toolbar.addBookTitle')}>
         <PlusIcon size={20} />
       </button>
     </div>

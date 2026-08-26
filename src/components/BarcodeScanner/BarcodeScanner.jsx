@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { readBarcodes, setZXingModuleOverrides } from 'zxing-wasm/reader';
 import zxingReaderWasmUrl from 'zxing-wasm/reader/zxing_reader.wasm?url';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import './BarcodeScanner.css';
 
 // zxing-wasm varsayılan olarak .wasm dosyasını bir CDN'den çekiyor; bunun
@@ -37,6 +38,7 @@ function isCameraSupported() {
 
 function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, title = null }) {
   const { t } = useTranslation();
+  useEscapeKey(onClose);
   const videoRef = useRef(null);
   const canvasRef = useRef(document.createElement('canvas'));
   const hasScannedRef = useRef(false);

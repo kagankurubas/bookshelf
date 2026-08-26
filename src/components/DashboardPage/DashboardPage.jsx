@@ -107,6 +107,7 @@ function DashboardPage({ libraryId, libraryName }) {
           <CalendarIcon />
           <select
             className="dashboard-year-select"
+            aria-label={t('dashboard.yearSelectLabel')}
             value={selectedYear ?? ''}
             onChange={(e) => setSelectedYear(e.target.value ? Number(e.target.value) : null)}
           >

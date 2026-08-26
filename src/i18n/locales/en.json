@@ -23,7 +23,10 @@
     "suggestion2": "💬 Let's talk about the book I'm reading",
     "inputPlaceholder": "Ask a question about a book...",
     "typing": "Typing...",
-    "error": "Something went wrong, want to try again?"
+    "error": "Something went wrong, want to try again?",
+    "conversationSelectLabel": "Select conversation",
+    "close": "Close",
+    "sendLabel": "Send"
   },
   "toolbar": {
     "newLibrary": "New Library",
@@ -34,7 +37,8 @@
     "deleteLibraryTitle": "Delete This Library",
     "addBookTitle": "Add New Book",
     "shelfCountSuffix": "{{count}} shelves",
-    "nameRequired": "Library name can't be empty."
+    "nameRequired": "Library name can't be empty.",
+    "activeLibraryLabel": "Active library"
   },
   "readingStats": {
     "completedBooks": "books completed",
@@ -44,6 +48,7 @@
   },
   "dashboard": {
     "title": "Statistics",
+    "yearSelectLabel": "Select year",
     "allTime": "All Time",
     "yearlyTitle": "By Year",
     "monthlyTitle": "Monthly Reading",
@@ -71,6 +76,9 @@
     "allCategories": "All Categories",
     "allAuthors": "All Authors",
     "allStatuses": "All Statuses",
+    "categoryFilterLabel": "Filter by category",
+    "authorFilterLabel": "Filter by author",
+    "statusFilterLabel": "Filter by status",
     "empty": "No books match the selected filters.",
     "colTitle": "Title",
     "colAuthor": "Author",

@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { BarcodeChoiceIcon, SearchChoiceIcon, StackChoiceIcon, PencilChoiceIcon } from '../icons/Icons';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 
 function AddChoiceModal({ onClose, onBarcodeAdd, onSearchAdd, onBatchAdd, onManualAdd }) {
   const { t } = useTranslation();
+  useEscapeKey(onClose);
 
   return (
     <div className="modal-overlay" onClick={onClose}>

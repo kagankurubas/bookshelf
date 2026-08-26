@@ -26,22 +26,22 @@ function TableView({
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <input
-            type="text" placeholder={t('table.searchPlaceholder')} value={searchQuery}
+            type="text" placeholder={t('table.searchPlaceholder')} aria-label={t('table.searchPlaceholder')} value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)} className="form-input"
             style={{ width: '180px' }}
           />
 
-          <select className="form-select" value={selectedCategory} onChange={(e) => onSelectedCategoryChange(e.target.value)}>
+          <select className="form-select" aria-label={t('table.categoryFilterLabel')} value={selectedCategory} onChange={(e) => onSelectedCategoryChange(e.target.value)}>
             <option value="Tümü">{t('table.allCategories')}</option>
             {categories.map((cat) => <option key={cat} value={cat}>{t(`categories.${cat}`, cat)}</option>)}
           </select>
 
-          <select className="form-select" value={selectedAuthor} onChange={(e) => onSelectedAuthorChange(e.target.value)}>
+          <select className="form-select" aria-label={t('table.authorFilterLabel')} value={selectedAuthor} onChange={(e) => onSelectedAuthorChange(e.target.value)}>
             <option value="Tümü">{t('table.allAuthors')}</option>
             {uniqueAuthors.map((author) => <option key={author} value={author}>{author}</option>)}
           </select>
 
-          <select className="form-select" value={filterStatus} onChange={(e) => onFilterStatusChange(e.target.value)}>
+          <select className="form-select" aria-label={t('table.statusFilterLabel')} value={filterStatus} onChange={(e) => onFilterStatusChange(e.target.value)}>
             <option value="Tümü">{t('table.allStatuses')}</option>
             <option value="Başlanmadı">{t('statuses.Başlanmadı')}</option>
             <option value="Okunuyor">{t('statuses.Okunuyor')}</option>
@@ -77,7 +77,7 @@ function TableView({
                   <td style={{ padding: '12px 16px' }}><span className={`property-tag status ${book.status.toLowerCase().replace(/\s+/g, '-')}`}>{t(`statuses.${book.status}`, book.status)}</span></td>
                   <td style={{ padding: '12px 16px' }}>{book.rating > 0 ? renderStars(book.rating) : '-'}</td>
                   <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                    <button className="table-delete-btn" onClick={(e) => onDeleteBook(e, book.id)} title={t('table.deleteTitle')}><TrashIcon /></button>
+                    <button className="table-delete-btn" onClick={(e) => onDeleteBook(e, book.id)} title={t('table.deleteTitle')} aria-label={t('table.deleteTitle')}><TrashIcon /></button>
                   </td>
                 </tr>
               ))}

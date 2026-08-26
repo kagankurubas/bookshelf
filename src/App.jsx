@@ -237,6 +237,7 @@ function App() {
         className="ai-chat-fab"
         onClick={() => setIsAiChatOpen(true)}
         title={t('aiChat.fabTitle')}
+        aria-label={t('aiChat.fabTitle')}
       >
         <SparkleIcon />
       </button>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAiChat } from '../../hooks/useAiChat';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import './AiChatDrawer.css';
 
 const SparkleIcon = () => (
@@ -17,6 +18,7 @@ const SendIcon = () => (
 
 function AiChatDrawer({ userId, onClose }) {
   const { t } = useTranslation();
+  useEscapeKey(onClose);
   const {
     conversations,
     activeConversationId,
@@ -55,12 +57,13 @@ function AiChatDrawer({ userId, onClose }) {
           <div className="ai-chat-title">
             <SparkleIcon /> {t('aiChat.title')}
           </div>
-          <button type="button" className="ai-chat-close" onClick={onClose}>×</button>
+          <button type="button" className="ai-chat-close" onClick={onClose} title={t('aiChat.close')} aria-label={t('aiChat.close')}>×</button>
         </div>
 
         <div className="ai-chat-convo-bar">
           <select
             className="ai-chat-convo-select"
+            aria-label={t('aiChat.conversationSelectLabel')}
             value={activeConversationId || ''}
             onChange={(e) => (e.target.value ? selectConversation(e.target.value) : startNewConversation())}
           >
@@ -103,10 +106,11 @@ function AiChatDrawer({ userId, onClose }) {
           <input
             className="ai-chat-composer-input"
             placeholder={t('aiChat.inputPlaceholder')}
+            aria-label={t('aiChat.inputPlaceholder')}
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
-          <button type="submit" className="ai-chat-send-btn" disabled={isSending || !input.trim()}>
+          <button type="submit" className="ai-chat-send-btn" disabled={isSending || !input.trim()} aria-label={t('aiChat.sendLabel')}>
             <SendIcon />
           </button>
         </form>

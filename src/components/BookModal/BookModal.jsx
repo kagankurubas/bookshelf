@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import './BookModal.css';
 
 const iconProps = { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 };
@@ -18,6 +19,7 @@ const PlusMiniIcon = () => (<svg width="11" height="11" viewBox="0 0 24 24" fill
 
 function BookModal({ onClose, onSave, selectedBook, prefillData = null, existingAuthors = [], libraries = [], activeLibraryId = null }) {
   const { t } = useTranslation();
+  useEscapeKey(onClose);
   const defaultLibraryId = libraries.find((lib) => lib.isDefault)?.id || null;
   const [title, setTitle] = useState(selectedBook ? selectedBook.title : (prefillData?.title || ''));
   const [author, setAuthor] = useState(selectedBook ? selectedBook.author : (prefillData?.author || ''));
@@ -204,7 +206,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 20px' }}>
               <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '400px' }}>
                 <input
-                  type="url" placeholder={t('bookModal.coverUrlPlaceholder')} autoFocus
+                  type="url" placeholder={t('bookModal.coverUrlPlaceholder')} aria-label={t('bookModal.coverUrlPlaceholder')} autoFocus
                   onChange={(e) => setCoverImage(e.target.value)}
                   className="form-input" style={{ flex: 1, fontSize: '12px' }}
                 />
@@ -222,33 +224,34 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
 
         <div className="modal-body" style={{ padding: '25px 30px' }}>
           <input
-            type="text" placeholder={t('bookModal.titlePlaceholder')} value={title}
+            type="text" placeholder={t('bookModal.titlePlaceholder')} aria-label={t('bookModal.titlePlaceholder')} value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="book-modal-title-input"
             style={{ fontFamily: 'var(--font-heading)', fontSize: '26px', fontWeight: 700, marginBottom: '22px', width: '100%', background: 'transparent', border: 'none', color: 'var(--text)', outline: 'none' }}
           />
 
           <div className="form-group">
-            <span className="form-label"><PersonIcon /> {t('bookModal.author')}</span>
-            <input type="text" className="form-input" list="author-list" value={author} onChange={(e) => setAuthor(e.target.value)} placeholder={t('bookModal.authorPlaceholder')} />
+            <label className="form-label" htmlFor="book-author"><PersonIcon /> {t('bookModal.author')}</label>
+            <input id="book-author" type="text" className="form-input" list="author-list" value={author} onChange={(e) => setAuthor(e.target.value)} placeholder={t('bookModal.authorPlaceholder')} />
             <datalist id="author-list">
               {existingAuthors.map((a, index) => <option key={index} value={a} />)}
             </datalist>
           </div>
 
           <div className="form-group">
-            <span className="form-label"><BuildingIcon /> {t('bookModal.publisher')}</span>
-            <input type="text" className="form-input" value={publisher} onChange={(e) => setPublisher(e.target.value)} placeholder={t('bookModal.publisherPlaceholder')} />
+            <label className="form-label" htmlFor="book-publisher"><BuildingIcon /> {t('bookModal.publisher')}</label>
+            <input id="book-publisher" type="text" className="form-input" value={publisher} onChange={(e) => setPublisher(e.target.value)} placeholder={t('bookModal.publisherPlaceholder')} />
           </div>
 
           <div className="form-group">
-            <span className="form-label"><HashIcon /> {t('bookModal.isbn')}</span>
-            <input type="text" className="form-input" value={isbn} onChange={(e) => setIsbn(e.target.value)} placeholder="978..." />
+            <label className="form-label" htmlFor="book-isbn"><HashIcon /> {t('bookModal.isbn')}</label>
+            <input id="book-isbn" type="text" className="form-input" value={isbn} onChange={(e) => setIsbn(e.target.value)} placeholder="978..." />
           </div>
 
           <div className="form-group">
-            <span className="form-label"><PagesIcon /> {t('bookModal.pageCount')}</span>
+            <label className="form-label" htmlFor="book-page-count"><PagesIcon /> {t('bookModal.pageCount')}</label>
             <input
+              id="book-page-count"
               type="number"
               min="0"
               className="form-input"
@@ -302,35 +305,35 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
           </div>
 
           <div className="form-group">
-            <span className="form-label"><TagIcon /> {t('bookModal.category')}</span>
-            <select className="form-select" value={category} onChange={(e) => setCategory(e.target.value)}>
+            <label className="form-label" htmlFor="book-category"><TagIcon /> {t('bookModal.category')}</label>
+            <select id="book-category" className="form-select" value={category} onChange={(e) => setCategory(e.target.value)}>
               {categories.map(cat => <option key={cat} value={cat}>{t(`categories.${cat}`, cat)}</option>)}
             </select>
           </div>
 
           <div className="form-group">
-            <span className="form-label"><RefreshIcon /> {t('bookModal.status')}</span>
-            <select className="form-select" value={status} onChange={(e) => handleStatusChange(e.target.value)}>
+            <label className="form-label" htmlFor="book-status"><RefreshIcon /> {t('bookModal.status')}</label>
+            <select id="book-status" className="form-select" value={status} onChange={(e) => handleStatusChange(e.target.value)}>
               {statuses.map(stat => <option key={stat} value={stat}>{t(`statuses.${stat}`, stat)}</option>)}
             </select>
           </div>
 
           {status !== 'Başlanmadı' && (
             <div className="form-group">
-              <span className="form-label"><PlayIcon /> {t('bookModal.dateStarted')}</span>
-              <input type="date" className="form-input" value={dateStarted} onChange={(e) => setDateStarted(e.target.value)} />
+              <label className="form-label" htmlFor="book-date-started"><PlayIcon /> {t('bookModal.dateStarted')}</label>
+              <input id="book-date-started" type="date" className="form-input" value={dateStarted} onChange={(e) => setDateStarted(e.target.value)} />
             </div>
           )}
 
           {status === 'Tamamlandı' && (
             <div className="form-group">
-              <span className="form-label"><FlagIcon /> {t('bookModal.dateFinished')}</span>
-              <input type="date" className="form-input" value={dateFinished} onChange={(e) => setDateFinished(e.target.value)} />
+              <label className="form-label" htmlFor="book-date-finished"><FlagIcon /> {t('bookModal.dateFinished')}</label>
+              <input id="book-date-finished" type="date" className="form-input" value={dateFinished} onChange={(e) => setDateFinished(e.target.value)} />
             </div>
           )}
         </div>
 
-        {saveError && <p className="book-modal-save-error">{saveError}</p>}
+        {saveError && <p className="book-modal-save-error" role="alert">{saveError}</p>}
 
         <div className="modal-footer">
           <button className="save-book-btn" onClick={handleSave} disabled={!isModified || isSaving}>

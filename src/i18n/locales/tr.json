@@ -23,7 +23,10 @@
     "suggestion2": "💬 Şu an okuduğum kitap hakkında konuşalım",
     "inputPlaceholder": "Bir kitap hakkında soru sor...",
     "typing": "Yazıyor...",
-    "error": "Bir şeyler ters gitti, tekrar dener misin?"
+    "error": "Bir şeyler ters gitti, tekrar dener misin?",
+    "conversationSelectLabel": "Sohbet seç",
+    "close": "Kapat",
+    "sendLabel": "Gönder"
   },
   "toolbar": {
     "newLibrary": "Yeni Kitaplık",
@@ -34,7 +37,8 @@
     "deleteLibraryTitle": "Bu Kitaplığı Sil",
     "addBookTitle": "Yeni Kitap Ekle",
     "shelfCountSuffix": "{{count}} Kat",
-    "nameRequired": "Kitaplık adı boş olamaz."
+    "nameRequired": "Kitaplık adı boş olamaz.",
+    "activeLibraryLabel": "Aktif kitaplık"
   },
   "readingStats": {
     "completedBooks": "kitap tamamlandı",
@@ -44,6 +48,7 @@
   },
   "dashboard": {
     "title": "İstatistikler",
+    "yearSelectLabel": "Yıl seç",
     "allTime": "Tüm Zamanlar",
     "yearlyTitle": "Yıllara Göre",
     "monthlyTitle": "Aylık Okuma",
@@ -71,6 +76,9 @@
     "allCategories": "Tüm Kategoriler",
     "allAuthors": "Tüm Yazarlar",
     "allStatuses": "Tüm Durumlar",
+    "categoryFilterLabel": "Kategoriye göre filtrele",
+    "authorFilterLabel": "Yazara göre filtrele",
+    "statusFilterLabel": "Duruma göre filtrele",
     "empty": "Seçilen kriterlere uygun kitap bulunamadı.",
     "colTitle": "Kitap Adı",
     "colAuthor": "Yazar",

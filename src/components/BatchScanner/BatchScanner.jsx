@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import BarcodeScanner from '../BarcodeScanner/BarcodeScanner';
 import { getBookByIsbn } from '../../lib/openLibrary';
+import { useEscapeKey } from '../../hooks/useEscapeKey';
 import './BatchScanner.css';
 
 const ClockIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></svg>);
@@ -16,6 +17,7 @@ const REPROCESS_COOLDOWN_MS = 4000;
 
 function BatchScanner({ books, activeLibraryId, addBook, onClose, onManualAddIsbn }) {
   const { t } = useTranslation();
+  useEscapeKey(onClose);
   const [phase, setPhase] = useState('scanning'); // 'scanning' | 'review' | 'done'
   const [entries, setEntries] = useState([]); // { isbn, status: 'pending'|'found'|'not_found', book }
   const lastSeenMapRef = useRef(new Map());
