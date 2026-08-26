@@ -80,6 +80,17 @@ html, body, #root {
   font-family: var(--font-body);
 }
 
+.app-load-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  margin-top: 80px;
+  font-family: var(--font-body);
+  color: var(--danger);
+}
+
 /* Barkod tarama / kitap arama / toplu tarama modallarının overlay içindeki
    ortak sarmalayıcısı - genişlik/padding/box-sizing hepsinde aynıydı, sadece
    max-width farklıydı (bkz. --wide modifier'ı). */

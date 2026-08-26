@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabaseClient';
 export function useReadingYears(libraryId) {
   const [years, setYears] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const fetchYears = useCallback(async () => {
     if (!libraryId) {
@@ -15,9 +16,12 @@ export function useReadingYears(libraryId) {
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase.rpc('get_reading_years', { p_library_id: libraryId });
-    if (!error && data) {
+    const { data, error: rpcError } = await supabase.rpc('get_reading_years', { p_library_id: libraryId });
+    if (rpcError) {
+      setError(rpcError);
+    } else {
       setYears(data.map((row) => Number(row.year)));
+      setError(null);
     }
     setLoading(false);
   }, [libraryId]);
@@ -27,5 +31,5 @@ export function useReadingYears(libraryId) {
     fetchYears();
   }, [fetchYears]);
 
-  return { years, loading, refetchYears: fetchYears };
+  return { years, loading, error, refetchYears: fetchYears };
 }

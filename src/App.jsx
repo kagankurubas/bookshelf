@@ -31,15 +31,26 @@ const BatchScanner = lazy(() => import('./components/BatchScanner/BatchScanner')
 function App() {
   const { t } = useTranslation();
   const { user, loading: authLoading, signIn, signUp, signOut } = useAuth();
-  const { books, loading: booksLoading, addBook, editBook, deleteBook, updateBookPosition, refetchBooks } = useBooks(user?.id);
+  const {
+    books,
+    loading: booksLoading,
+    error: booksError,
+    addBook,
+    editBook,
+    deleteBook,
+    updateBookPosition,
+    refetchBooks,
+  } = useBooks(user?.id);
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
 
   const {
     libraries,
     loading: librariesLoading,
+    error: librariesError,
     createLibrary,
     updateLibrary,
     deleteLibrary,
+    refetchLibraries,
   } = useLibraries(user?.id);
   const [explicitActiveLibraryId, setActiveLibraryId] = useState(null);
   const defaultLibrary = libraries.find((lib) => lib.isDefault) || libraries[0] || null;
@@ -183,6 +194,17 @@ function App() {
 
       {booksLoading || librariesLoading ? (
         <p className="app-loading-text">{t('app.loading')}</p>
+      ) : booksError || librariesError ? (
+        <div className="app-load-error">
+          <p>{t('app.loadError')}</p>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => { refetchBooks(); refetchLibraries(); }}
+          >
+            {t('app.retry')}
+          </button>
+        </div>
       ) : (
       <>
       <AppHeader activeView={activeView} onChangeView={setActiveView} userEmail={user.email} onSignOut={signOut} />

@@ -37,15 +37,33 @@ function DashboardPage({ libraryId, libraryName }) {
   const [trendMetric, setTrendMetric] = useState('books'); // 'books' | 'pages' - aylık + yıllık grafikler için
   const [categoryMetric, setCategoryMetric] = useState('books'); // kategori grafiği için ayrı
 
-  const { years } = useReadingYears(libraryId);
+  const readingYears = useReadingYears(libraryId);
+  const { years } = readingYears;
   const readingStats = useReadingStats(libraryId, selectedYear);
   const categoryStats = useCategoryReadingStats(libraryId, selectedYear);
-  const { yearlyStats } = useYearlyReadingStats(libraryId);
+  const yearlyResult = useYearlyReadingStats(libraryId);
+  const { yearlyStats } = yearlyResult;
 
   // Aylık grafik her zaman somut bir yıl gösterir - "Tüm Zamanlar"
   // seçiliyken veri bulunan en yeni yıla (yoksa içinde bulunulan yıla) düşer.
   const monthlyYear = selectedYear ?? years[0] ?? new Date().getFullYear();
-  const { months } = useMonthlyReadingStats(libraryId, monthlyYear);
+  const monthlyResult = useMonthlyReadingStats(libraryId, monthlyYear);
+  const { months } = monthlyResult;
+
+  // Bu RPC çağrılarından biri başarısız olursa (ağ/DB hatası), aşağıdaki
+  // grafikler sessizce "veri yok" gösterir - kullanıcı bunu gerçek bir boş
+  // kitaplıktan ayırt edemez. O yüzden herhangi biri hata verirse üstte
+  // açık bir "tekrar dene" mesajı gösteriyoruz.
+  const hasLoadError = Boolean(
+    readingYears.error || readingStats.error || categoryStats.error || yearlyResult.error || monthlyResult.error
+  );
+  const handleRetryLoad = () => {
+    readingYears.refetchYears();
+    readingStats.refetchStats();
+    categoryStats.refetchCategories();
+    yearlyResult.refetchYearlyStats();
+    monthlyResult.refetchMonths();
+  };
 
   const foldedCategories = useMemo(
     () => foldCategoriesForChart(categoryStats.categories),
@@ -100,6 +118,15 @@ function DashboardPage({ libraryId, libraryName }) {
           <ChevronDownIcon />
         </div>
       </div>
+
+      {hasLoadError && (
+        <div className="dashboard-error-banner">
+          <span>{t('dashboard.loadError')}</span>
+          <button type="button" className="chip-btn" onClick={handleRetryLoad}>
+            {t('app.retry')}
+          </button>
+        </div>
+      )}
 
       <ReadingStats stats={readingStats} />
 

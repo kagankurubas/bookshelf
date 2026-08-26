@@ -1,7 +1,9 @@
 {
   "app": {
     "name": "BookShelf",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "loadError": "Couldn't load your library. Check your connection and try again.",
+    "retry": "Retry"
   },
   "nav": {
     "cards": "Books",
@@ -50,6 +52,7 @@
     "noYearlyData": "No books have a finish date yet - mark a book completed and set its finish date to see it here.",
     "noMonthlyData": "No books finished this year yet.",
     "noCategoryData": "No books completed yet.",
+    "loadError": "Couldn't load your stats. Check your connection and try again.",
     "monthsShort": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
     "monthsLong": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
   },
@@ -83,7 +86,8 @@
     "removeRow": "Remove Shelf",
     "removeRowTitle": "Remove the bottom shelf row (its books move to the row above)",
     "dragHint": "Drag to reorder",
-    "emptyRowHint": "Drag books here"
+    "emptyRowHint": "Drag books here",
+    "emptyLibraryHint": "No books yet. Add your first one with the + button above."
   },
   "statuses": {
     "Başlanmadı": "Not Started",

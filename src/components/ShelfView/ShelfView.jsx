@@ -39,6 +39,11 @@ function ShelfView({
       .sort((a, b) => (a.slotIndex ?? 0) - (b.slotIndex ?? 0))
   );
 
+  // Kitaplıkta hiç kitap yokken "Kitapları buraya sürükle" ipucu yanıltıcı
+  // olur (sürüklenecek hiçbir şey yok) - bu durumda ilk kitabı nasıl
+  // ekleyeceğini gösteren ayrı bir mesaj gösteriyoruz.
+  const isLibraryEmpty = books.length === 0;
+
   return (
     <main className="wooden-shelf-main-wrapper" onDragEnd={onDragEnd}>
 
@@ -80,7 +85,7 @@ function ShelfView({
                   onDropAt(rowIndex, null);
                 }}
               >
-                <span>{t('shelf.emptyRowHint')}</span>
+                <span>{isLibraryEmpty ? t('shelf.emptyLibraryHint') : t('shelf.emptyRowHint')}</span>
               </div>
             );
           }

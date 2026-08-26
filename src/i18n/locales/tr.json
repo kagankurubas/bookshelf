@@ -1,7 +1,9 @@
 {
   "app": {
     "name": "BookShelf",
-    "loading": "Yükleniyor..."
+    "loading": "Yükleniyor...",
+    "loadError": "Kitaplığın yüklenemedi. Bağlantını kontrol edip tekrar dene.",
+    "retry": "Tekrar Dene"
   },
   "nav": {
     "cards": "Kitaplar",
@@ -50,6 +52,7 @@
     "noYearlyData": "Henüz bitirme tarihi girilmiş kitap yok - bir kitabı tamamlandı yapıp bitirme tarihini girdiğinde burada görünür.",
     "noMonthlyData": "Bu yıl için bitirme tarihi girilmiş kitap yok.",
     "noCategoryData": "Henüz tamamlanmış kitap yok.",
+    "loadError": "İstatistikler yüklenemedi. Bağlantını kontrol edip tekrar dene.",
     "monthsShort": ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"],
     "monthsLong": ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
   },
@@ -83,7 +86,8 @@
     "removeRow": "Raf Sil",
     "removeRowTitle": "En alttaki rafı kaldır (kitapları üstteki rafa taşınır)",
     "dragHint": "Sürükleyerek yer değiştirebilirsin",
-    "emptyRowHint": "Kitapları buraya sürükle"
+    "emptyRowHint": "Kitapları buraya sürükle",
+    "emptyLibraryHint": "Henüz kitap yok. Üstteki + butonuyla ilk kitabını ekleyebilirsin."
   },
   "statuses": {
     "Başlanmadı": "Başlanmadı",
