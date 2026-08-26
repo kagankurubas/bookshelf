@@ -65,6 +65,7 @@
 
 .ai-chat-convo-select {
   flex: 1;
+  min-width: 0;
   background: var(--surface-alt);
   border: 1px solid var(--border-strong);
   border-radius: 8px;
@@ -79,6 +80,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
+  flex-shrink: 0;
   background: var(--accent);
   color: #fff;
   border: none;
