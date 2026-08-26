@@ -1,9 +1,7 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import BookModal from './components/BookModal/BookModal';
-import BarcodeScanner from './components/BarcodeScanner/BarcodeScanner';
 import BookSearch from './components/BookSearch/BookSearch';
-import BatchScanner from './components/BatchScanner/BatchScanner';
 import AppHeader from './components/AppHeader/AppHeader';
 import LibraryToolbar from './components/LibraryToolbar/LibraryToolbar';
 import CardsView from './components/CardsView/CardsView';
@@ -21,6 +19,12 @@ import { useLibraries } from './hooks/useLibraries';
 import { useReadingStats } from './hooks/useReadingStats';
 import { getBookByIsbn } from './lib/openLibrary';
 import './App.css';
+
+// zxing-wasm barkod okuma motorunu tasiyan bu iki bilesen sadece kullanici
+// tarama akisini actiginda gerekiyor - ilk sayfa yukunden ayirmak icin
+// dinamik import ile code-split ediliyor.
+const BarcodeScanner = lazy(() => import('./components/BarcodeScanner/BarcodeScanner'));
+const BatchScanner = lazy(() => import('./components/BatchScanner/BatchScanner'));
 
 function App() {
   const { t } = useTranslation();
@@ -488,7 +492,9 @@ function App() {
       {isScannerOpen && (
         <div className="modal-overlay" onClick={closeScanner}>
           <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '720px', padding: '0 16px', boxSizing: 'border-box' }}>
-            <BarcodeScanner onScan={handleBarcodeScanned} onClose={closeScanner} />
+            <Suspense fallback={null}>
+              <BarcodeScanner onScan={handleBarcodeScanned} onClose={closeScanner} />
+            </Suspense>
           </div>
         </div>
       )}
@@ -504,13 +510,15 @@ function App() {
       {isBatchScanOpen && (
         <div className="modal-overlay" onClick={(e) => e.stopPropagation()}>
           <div style={{ width: '100%', maxWidth: '720px', padding: '0 16px', boxSizing: 'border-box' }}>
-            <BatchScanner
-              books={books}
-              activeLibraryId={activeLibraryId}
-              addBook={addBookToLibrary}
-              onClose={closeBatchScan}
-              onManualAddIsbn={handleManualAddFromIsbn}
-            />
+            <Suspense fallback={null}>
+              <BatchScanner
+                books={books}
+                activeLibraryId={activeLibraryId}
+                addBook={addBookToLibrary}
+                onClose={closeBatchScan}
+                onManualAddIsbn={handleManualAddFromIsbn}
+              />
+            </Suspense>
           </div>
         </div>
       )}
