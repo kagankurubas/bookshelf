@@ -70,6 +70,30 @@ html, body, #root {
   min-height: 100vh;
 }
 
+/* Auth/kitaplık verisi yüklenirken gösterilen tam sayfa yükleniyor metni
+   (App.jsx içinde authLoading ve booksLoading/librariesLoading durumlarında
+   birebir aynı stille iki kez kullanılıyordu - buraya taşındı). */
+.app-loading-text {
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 80px;
+  font-family: var(--font-body);
+}
+
+/* Barkod tarama / kitap arama / toplu tarama modallarının overlay içindeki
+   ortak sarmalayıcısı - genişlik/padding/box-sizing hepsinde aynıydı, sadece
+   max-width farklıydı (bkz. --wide modifier'ı). */
+.modal-inline-panel {
+  width: 100%;
+  max-width: 520px;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.modal-inline-panel--wide {
+  max-width: 720px;
+}
+
 /* ===== Header ===== */
 .app-header {
   display: flex;
@@ -92,21 +116,6 @@ html, body, #root {
   font-size: 20px;
   letter-spacing: -0.01em;
   color: var(--text);
-}
-
-.avatar-badge {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent-2), var(--accent));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 14px;
-  color: #fff;
-  flex-shrink: 0;
 }
 
 /* ===== Sekmeler ===== */
@@ -270,24 +279,6 @@ html, body, #root {
 
 .chip-btn:hover {
   border-color: var(--accent);
-}
-
-.icon-btn-outline {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  border: 1px dashed var(--border-strong);
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-}
-
-.icon-btn-outline:hover {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 
 .btn-danger-outline {

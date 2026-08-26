@@ -169,7 +169,7 @@ function App() {
   if (authLoading) {
     return (
       <div className="main-container">
-        <p style={{ color: 'var(--text-secondary)', textAlign: 'center', marginTop: '80px', fontFamily: 'var(--font-body)' }}>{t('app.loading')}</p>
+        <p className="app-loading-text">{t('app.loading')}</p>
       </div>
     );
   }
@@ -182,7 +182,7 @@ function App() {
     <div className="main-container" onDragEnd={shelfDnd.handleDragEnd}>
 
       {booksLoading || librariesLoading ? (
-        <p style={{ color: 'var(--text-secondary)', textAlign: 'center', marginTop: '80px', fontFamily: 'var(--font-body)' }}>{t('app.loading')}</p>
+        <p className="app-loading-text">{t('app.loading')}</p>
       ) : (
       <>
       <AppHeader activeView={activeView} onChangeView={setActiveView} userEmail={user.email} onSignOut={signOut} />
@@ -276,7 +276,7 @@ function App() {
 
       {addFlow.isScannerOpen && (
         <div className="modal-overlay" onClick={addFlow.closeScanner}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '720px', padding: '0 16px', boxSizing: 'border-box' }}>
+          <div onClick={(e) => e.stopPropagation()} className="modal-inline-panel modal-inline-panel--wide">
             <Suspense fallback={null}>
               <BarcodeScanner onScan={addFlow.handleBarcodeScanned} onClose={addFlow.closeScanner} />
             </Suspense>
@@ -286,7 +286,7 @@ function App() {
 
       {addFlow.isSearchOpen && (
         <div className="modal-overlay" onClick={addFlow.closeSearch}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '520px', padding: '0 16px', boxSizing: 'border-box' }}>
+          <div onClick={(e) => e.stopPropagation()} className="modal-inline-panel">
             <BookSearch onSelect={addFlow.handleSearchResultSelect} onClose={addFlow.closeSearch} />
           </div>
         </div>
@@ -294,7 +294,7 @@ function App() {
 
       {addFlow.isBatchScanOpen && (
         <div className="modal-overlay" onClick={(e) => e.stopPropagation()}>
-          <div style={{ width: '100%', maxWidth: '720px', padding: '0 16px', boxSizing: 'border-box' }}>
+          <div className="modal-inline-panel modal-inline-panel--wide">
             <Suspense fallback={null}>
               <BatchScanner
                 books={books}
