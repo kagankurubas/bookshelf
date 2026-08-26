@@ -18,6 +18,7 @@ import { useBooks } from './hooks/useBooks';
 import { useLibraries } from './hooks/useLibraries';
 import { useReadingStats } from './hooks/useReadingStats';
 import { useAddBookFlow } from './hooks/useAddBookFlow';
+import { useShelfDnd } from './hooks/useShelfDnd';
 import './App.css';
 
 // zxing-wasm barkod okuma motorunu tasiyan bu iki bilesen sadece kullanici
@@ -53,10 +54,12 @@ function App() {
   const [selectedAuthor, setSelectedAuthor] = useState('Tümü');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [draggedBookId, setDraggedBookId] = useState(null);
-  const [dragOverTarget, setDragOverTarget] = useState(null); // { shelfRow, bookId } | null
+  // Aktif kitaplığın raf kat sayısını alalım (artık sabit kapasite yok)
+  const activeLibrary = libraries.find(l => l.id === activeLibraryId) || libraries[0] || { shelfCount: 2 };
+  const shelfCount = activeLibrary.shelfCount || 2;
 
-  const addFlow = useAddBookFlow(draggedBookId);
+  const shelfDnd = useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, updateBookPosition);
+  const addFlow = useAddBookFlow(shelfDnd.draggedBookId);
 
   const categories = [
     'Klasik Edebiyat', 'Kurgu', 'Fantastik Kurgu', 'Bilim Kurgu',
@@ -87,15 +90,6 @@ function App() {
   );
 
   const currentLibraryBooks = books.filter(book => book.libraryIds.includes(activeLibraryId));
-
-  // Aktif kitaplığın raf kat sayısını alalım (artık sabit kapasite yok)
-  const activeLibrary = libraries.find(l => l.id === activeLibraryId) || libraries[0] || { shelfCount: 2 };
-  const shelfCount = activeLibrary.shelfCount || 2;
-
-  // Bir kitaplığın belirli bir raf katında kaç kitap oldugunu sayar - yeni
-  // kitaplar bu katin sonuna eklenir (shelf_row: 0, sirali slot_index).
-  const countBooksInRow = (libraryId, shelfRow) =>
-    books.filter(b => b.libraryIds.includes(libraryId) && (b.shelfRow ?? 0) === shelfRow).length;
 
   // Ana kitaplık silinemez ve her kitap her zaman ona bağlı kalır - bu sayede
   // başka bir kitaplık silinse bile kitaplar veritabanında "sahipsiz" kalıp
@@ -129,7 +123,7 @@ function App() {
           ...bookData,
           libraryIds,
           shelfRow: 0,
-          slotIndex: countBooksInRow(activeLibraryId, 0),
+          slotIndex: shelfDnd.countBooksInRow(activeLibraryId, 0),
         });
       }
       addFlow.clearSelectedBook();
@@ -181,102 +175,6 @@ function App() {
     }
   };
 
-  // Yeni Raf Katı Ekle
-  const handleAddShelfRow = async () => {
-    try {
-      await updateLibrary(activeLibraryId, { shelfCount: (activeLibrary.shelfCount || 2) + 1 });
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // Raf Katı Sil - en alttaki raftaki kitaplar bir üstteki rafın sonuna taşınır
-  const handleRemoveShelfRow = async () => {
-    const currentShelfCount = activeLibrary.shelfCount || 2;
-    if (currentShelfCount <= 1) return;
-
-    const lastRow = currentShelfCount - 1;
-    const targetRow = lastRow - 1;
-
-    try {
-      const rowBooks = currentLibraryBooks
-        .filter(b => (b.shelfRow ?? 0) === lastRow)
-        .sort((a, b) => (a.slotIndex ?? 0) - (b.slotIndex ?? 0));
-
-      if (rowBooks.length > 0) {
-        const targetRowCount = countBooksInRow(activeLibraryId, targetRow);
-        await Promise.all(
-          rowBooks.map((b, i) => updateBookPosition(b.id, targetRow, targetRowCount + i))
-        );
-      }
-
-      await updateLibrary(activeLibraryId, { shelfCount: currentShelfCount - 1 });
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleDragStart = (e, bookId) => {
-    setDraggedBookId(bookId);
-    e.dataTransfer.setData('text/plain', bookId);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragEnd = () => {
-    setDraggedBookId(null);
-    setDragOverTarget(null);
-  };
-
-  // targetBookId === null -> ilgili rafın sonuna ekle
-  const handleDropAt = async (targetShelfRow, targetBookId) => {
-    const activeBookId = draggedBookId;
-    const activeBook = books.find(b => b.id === activeBookId);
-    if (!activeBook) {
-      handleDragEnd();
-      return;
-    }
-
-    const originRow = activeBook.shelfRow ?? 0;
-
-    const rows = {};
-    currentLibraryBooks.forEach((b) => {
-      const row = b.shelfRow ?? 0;
-      if (!rows[row]) rows[row] = [];
-      rows[row].push(b);
-    });
-    Object.values(rows).forEach((arr) => arr.sort((a, b) => (a.slotIndex ?? 0) - (b.slotIndex ?? 0)));
-
-    rows[originRow] = (rows[originRow] || []).filter((b) => b.id !== activeBookId);
-    if (!rows[targetShelfRow]) rows[targetShelfRow] = [];
-
-    const insertIndex = targetBookId === null
-      ? rows[targetShelfRow].length
-      : (() => {
-          const idx = rows[targetShelfRow].findIndex((b) => b.id === targetBookId);
-          return idx === -1 ? rows[targetShelfRow].length : idx;
-        })();
-
-    rows[targetShelfRow].splice(insertIndex, 0, activeBook);
-
-    const touchedRows = new Set([originRow, targetShelfRow]);
-    const updates = [];
-    touchedRows.forEach((rowKey) => {
-      (rows[rowKey] || []).forEach((b, idx) => {
-        if ((b.shelfRow ?? 0) !== rowKey || (b.slotIndex ?? 0) !== idx) {
-          updates.push(updateBookPosition(b.id, rowKey, idx));
-        }
-      });
-    });
-
-    try {
-      await Promise.all(updates);
-    } catch (err) {
-      console.error(err);
-    }
-
-    handleDragEnd();
-  };
-
   const filteredBooks = currentLibraryBooks.filter(book => {
     const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           book.author.toLowerCase().includes(searchQuery.toLowerCase());
@@ -301,7 +199,7 @@ function App() {
   }
 
   return (
-    <div className="main-container" onDragEnd={handleDragEnd}>
+    <div className="main-container" onDragEnd={shelfDnd.handleDragEnd}>
 
       {booksLoading || librariesLoading ? (
         <p style={{ color: 'var(--text-secondary)', textAlign: 'center', marginTop: '80px', fontFamily: 'var(--font-body)' }}>{t('app.loading')}</p>
@@ -369,14 +267,14 @@ function App() {
         <ShelfView
           books={currentLibraryBooks}
           shelfCount={shelfCount}
-          draggedBookId={draggedBookId}
-          dragOverTarget={dragOverTarget}
-          onAddShelfRow={handleAddShelfRow}
-          onRemoveShelfRow={handleRemoveShelfRow}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragOverAt={(shelfRow, bookId) => setDragOverTarget({ shelfRow, bookId })}
-          onDropAt={handleDropAt}
+          draggedBookId={shelfDnd.draggedBookId}
+          dragOverTarget={shelfDnd.dragOverTarget}
+          onAddShelfRow={shelfDnd.handleAddShelfRow}
+          onRemoveShelfRow={shelfDnd.handleRemoveShelfRow}
+          onDragStart={shelfDnd.handleDragStart}
+          onDragEnd={shelfDnd.handleDragEnd}
+          onDragOverAt={shelfDnd.onDragOverAt}
+          onDropAt={shelfDnd.handleDropAt}
           onOpenBook={addFlow.openBookDetailModal}
           getCategoryColorClass={getCategoryColorClass}
         />
