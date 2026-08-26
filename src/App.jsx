@@ -17,7 +17,7 @@ import { useAuth } from './hooks/useAuth';
 import { useBooks } from './hooks/useBooks';
 import { useLibraries } from './hooks/useLibraries';
 import { useReadingStats } from './hooks/useReadingStats';
-import { getBookByIsbn } from './lib/openLibrary';
+import { useAddBookFlow } from './hooks/useAddBookFlow';
 import './App.css';
 
 // zxing-wasm barkod okuma motorunu tasiyan bu iki bilesen sadece kullanici
@@ -30,14 +30,6 @@ function App() {
   const { t } = useTranslation();
   const { user, loading: authLoading, signIn, signUp, signOut } = useAuth();
   const { books, loading: booksLoading, addBook, editBook, deleteBook, updateBookPosition, refetchBooks } = useBooks(user?.id);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedBook, setSelectedBook] = useState(null);
-  const [prefillBook, setPrefillBook] = useState(null);
-  const [isAddChoiceOpen, setIsAddChoiceOpen] = useState(false);
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isBatchScanOpen, setIsBatchScanOpen] = useState(false);
-  const [isLookingUpIsbn, setIsLookingUpIsbn] = useState(false);
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
 
   const {
@@ -63,6 +55,8 @@ function App() {
 
   const [draggedBookId, setDraggedBookId] = useState(null);
   const [dragOverTarget, setDragOverTarget] = useState(null); // { shelfRow, bookId } | null
+
+  const addFlow = useAddBookFlow(draggedBookId);
 
   const categories = [
     'Klasik Edebiyat', 'Kurgu', 'Fantastik Kurgu', 'Bilim Kurgu',
@@ -138,7 +132,7 @@ function App() {
           slotIndex: countBooksInRow(activeLibraryId, 0),
         });
       }
-      setSelectedBook(null);
+      addFlow.clearSelectedBook();
     } catch (err) {
       console.error(err);
       alert(t('alerts.saveBookError'));
@@ -154,93 +148,6 @@ function App() {
       console.error(err);
       alert(t('alerts.deleteBookError'));
     }
-  };
-
-  const openNewBookModal = () => {
-    setIsAddChoiceOpen(true);
-  };
-
-  const openBookDetailModal = (book) => {
-    if (draggedBookId === null) {
-      setSelectedBook(book);
-      setPrefillBook(null);
-      setIsModalOpen(true);
-    }
-  };
-
-  const startManualAdd = () => {
-    setIsAddChoiceOpen(false);
-    setSelectedBook(null);
-    setPrefillBook(null);
-    setIsModalOpen(true);
-  };
-
-  const startBarcodeAdd = () => {
-    setIsAddChoiceOpen(false);
-    setIsScannerOpen(true);
-  };
-
-  const closeScanner = () => {
-    setIsScannerOpen(false);
-  };
-
-  const handleBarcodeScanned = async (isbn) => {
-    setIsScannerOpen(false);
-    setIsLookingUpIsbn(true);
-    try {
-      const bookInfo = await getBookByIsbn(isbn);
-      if (bookInfo) {
-        setSelectedBook(null);
-        setPrefillBook(bookInfo);
-        setIsModalOpen(true);
-      } else {
-        alert(t('isbnLookup.notFound', { isbn }));
-        setIsAddChoiceOpen(true);
-      }
-    } catch (err) {
-      console.error(err);
-      alert(t('isbnLookup.error'));
-      setIsAddChoiceOpen(true);
-    } finally {
-      setIsLookingUpIsbn(false);
-    }
-  };
-
-  const startSearchAdd = () => {
-    setIsAddChoiceOpen(false);
-    setIsSearchOpen(true);
-  };
-
-  const closeSearch = () => {
-    setIsSearchOpen(false);
-  };
-
-  const handleSearchResultSelect = (book) => {
-    setIsSearchOpen(false);
-    setSelectedBook(null);
-    setPrefillBook({
-      title: book.title,
-      author: book.author,
-      coverImage: book.coverImage,
-      isbn: book.isbn,
-      pageCount: book.pageCount,
-    });
-    setIsModalOpen(true);
-  };
-
-  const startBatchScanAdd = () => {
-    setIsAddChoiceOpen(false);
-    setIsBatchScanOpen(true);
-  };
-
-  const closeBatchScan = () => {
-    setIsBatchScanOpen(false);
-  };
-
-  const handleManualAddFromIsbn = (isbn) => {
-    setSelectedBook(null);
-    setPrefillBook({ isbn });
-    setIsModalOpen(true);
   };
 
   const handleCreateLibrary = async (e) => {
@@ -413,7 +320,7 @@ function App() {
         onNewLibraryNameChange={setNewLibraryName}
         onCreateLibrary={handleCreateLibrary}
         onDeleteLibrary={handleDeleteLibrary}
-        onOpenAddBook={openNewBookModal}
+        onOpenAddBook={addFlow.openNewBookModal}
       />
 
       {activeView !== 'dashboard' && <ReadingStats stats={readingStats} />}
@@ -433,7 +340,7 @@ function App() {
       {activeView === 'cards' && (
         <CardsView
           books={currentLibraryBooks}
-          onOpenBook={openBookDetailModal}
+          onOpenBook={addFlow.openBookDetailModal}
           onDeleteBook={handleDeleteBook}
           renderStars={renderStars}
         />
@@ -452,7 +359,7 @@ function App() {
           onSelectedAuthorChange={setSelectedAuthor}
           filterStatus={filterStatus}
           onFilterStatusChange={setFilterStatus}
-          onOpenBook={openBookDetailModal}
+          onOpenBook={addFlow.openBookDetailModal}
           onDeleteBook={handleDeleteBook}
           renderStars={renderStars}
         />
@@ -470,7 +377,7 @@ function App() {
           onDragEnd={handleDragEnd}
           onDragOverAt={(shelfRow, bookId) => setDragOverTarget({ shelfRow, bookId })}
           onDropAt={handleDropAt}
-          onOpenBook={openBookDetailModal}
+          onOpenBook={addFlow.openBookDetailModal}
           getCategoryColorClass={getCategoryColorClass}
         />
       )}
@@ -479,35 +386,35 @@ function App() {
         <DashboardPage libraryId={activeLibraryId} libraryName={activeLibrary.name} />
       )}
 
-      {isAddChoiceOpen && (
+      {addFlow.isAddChoiceOpen && (
         <AddChoiceModal
-          onClose={() => setIsAddChoiceOpen(false)}
-          onBarcodeAdd={startBarcodeAdd}
-          onSearchAdd={startSearchAdd}
-          onBatchAdd={startBatchScanAdd}
-          onManualAdd={startManualAdd}
+          onClose={addFlow.closeAddChoice}
+          onBarcodeAdd={addFlow.startBarcodeAdd}
+          onSearchAdd={addFlow.startSearchAdd}
+          onBatchAdd={addFlow.startBatchScanAdd}
+          onManualAdd={addFlow.startManualAdd}
         />
       )}
 
-      {isScannerOpen && (
-        <div className="modal-overlay" onClick={closeScanner}>
+      {addFlow.isScannerOpen && (
+        <div className="modal-overlay" onClick={addFlow.closeScanner}>
           <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '720px', padding: '0 16px', boxSizing: 'border-box' }}>
             <Suspense fallback={null}>
-              <BarcodeScanner onScan={handleBarcodeScanned} onClose={closeScanner} />
+              <BarcodeScanner onScan={addFlow.handleBarcodeScanned} onClose={addFlow.closeScanner} />
             </Suspense>
           </div>
         </div>
       )}
 
-      {isSearchOpen && (
-        <div className="modal-overlay" onClick={closeSearch}>
+      {addFlow.isSearchOpen && (
+        <div className="modal-overlay" onClick={addFlow.closeSearch}>
           <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '520px', padding: '0 16px', boxSizing: 'border-box' }}>
-            <BookSearch onSelect={handleSearchResultSelect} onClose={closeSearch} />
+            <BookSearch onSelect={addFlow.handleSearchResultSelect} onClose={addFlow.closeSearch} />
           </div>
         </div>
       )}
 
-      {isBatchScanOpen && (
+      {addFlow.isBatchScanOpen && (
         <div className="modal-overlay" onClick={(e) => e.stopPropagation()}>
           <div style={{ width: '100%', maxWidth: '720px', padding: '0 16px', boxSizing: 'border-box' }}>
             <Suspense fallback={null}>
@@ -515,15 +422,15 @@ function App() {
                 books={books}
                 activeLibraryId={activeLibraryId}
                 addBook={addBookToLibrary}
-                onClose={closeBatchScan}
-                onManualAddIsbn={handleManualAddFromIsbn}
+                onClose={addFlow.closeBatchScan}
+                onManualAddIsbn={addFlow.handleManualAddFromIsbn}
               />
             </Suspense>
           </div>
         </div>
       )}
 
-      {isLookingUpIsbn && (
+      {addFlow.isLookingUpIsbn && (
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '320px', padding: '30px', textAlign: 'center' }}>
             <p style={{ color: 'var(--text)', fontFamily: 'var(--font-body)', margin: 0 }}>{t('isbnLookup.loading')}</p>
@@ -531,12 +438,12 @@ function App() {
         </div>
       )}
 
-      {isModalOpen && (
+      {addFlow.isModalOpen && (
         <BookModal
-          onClose={() => { setIsModalOpen(false); setPrefillBook(null); }}
+          onClose={addFlow.closeBookModal}
           onSave={handleSaveBook}
-          selectedBook={selectedBook}
-          prefillData={prefillBook}
+          selectedBook={addFlow.selectedBook}
+          prefillData={addFlow.prefillBook}
           existingAuthors={uniqueAuthors}
           libraries={libraries}
           activeLibraryId={activeLibraryId}
