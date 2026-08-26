@@ -222,7 +222,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
           )}
         </div>
 
-        <div className="modal-body" style={{ padding: '25px 30px' }}>
+        <div className="modal-body book-modal-body">
           <input
             type="text" placeholder={t('bookModal.titlePlaceholder')} aria-label={t('bookModal.titlePlaceholder')} value={title}
             onChange={(e) => setTitle(e.target.value)}

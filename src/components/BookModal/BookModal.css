@@ -62,6 +62,15 @@
   overflow-y: auto;
 }
 
+/* Masaustu padding'i eskiden JSX'te inline style ile veriliyordu - inline
+   style her zaman class tabanli media query'den daha yuksek ozgullukte
+   oldugu icin @media (max-width: 480px) altindaki mobil override hicbir
+   zaman devreye giremiyordu. Bu class sayesinde mobilde asagidaki media
+   query gercekten kazaniyor. */
+.book-modal-body {
+  padding: 25px 30px;
+}
+
 /* Form Elemanları */
 .form-group {
   margin-bottom: 18px;
