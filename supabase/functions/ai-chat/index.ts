@@ -49,10 +49,11 @@ Deno.serve(async (req) => {
     }
     const userId = userData.user.id;
 
-    const { conversationId, message } = await req.json();
+    const { conversationId, message, language } = await req.json();
     if (!message || typeof message !== 'string') {
       return jsonResponse({ error: 'message is required' }, 400);
     }
+    const lang = language === 'en' ? 'en' : 'tr';
 
     // Sohbeti bul, yoksa olustur.
     let convoId = conversationId;
@@ -98,10 +99,17 @@ Deno.serve(async (req) => {
       .insert({ conversation_id: convoId, role: 'user', content: message });
     if (insertUserMsgError) throw insertUserMsgError;
 
-    const systemPrompt = `Sen BookShelf uygulamasinda "Kitap Asistani" adinda yardimsever bir kitap asistanisin. Kullanicinin kitapligindaki kitaplara gore kisisellestirilmis kitap onerileri yap ve okudugu/okumak istedigi kitaplar hakkinda sohbet et. Kisa, samimi ve dogal bir dille (Turkce) yanit ver.
+    const SYSTEM_PROMPTS = {
+      tr: `Sen BookShelf uygulamasinda "Kitap Asistani" adinda yardimsever bir kitap asistanisin. Kullanicinin kitapligindaki kitaplara gore kisisellestirilmis kitap onerileri yap ve okudugu/okumak istedigi kitaplar hakkinda sohbet et. Kisa, samimi ve dogal bir dille (Turkce) yanit ver.
 
 Kullanicinin kitapligi:
-${bookContext || '(henuz kitap eklenmemis)'}`;
+${bookContext || '(henuz kitap eklenmemis)'}`,
+      en: `You are "Book Assistant", a helpful reading assistant inside the BookShelf app. Give personalized book recommendations based on the user's library, and chat with them about books they've read or want to read. Reply briefly, warmly, and in natural English.
+
+The user's library:
+${bookContext || '(no books added yet)'}`,
+    };
+    const systemPrompt = SYSTEM_PROMPTS[lang];
 
     const contents = [
       ...history.map((m) => ({

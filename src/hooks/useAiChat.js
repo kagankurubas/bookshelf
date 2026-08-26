@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabaseClient';
 
 export function useAiChat(userId) {
+  const { i18n } = useTranslation();
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -62,7 +64,7 @@ export function useAiChat(userId) {
 
       try {
         const { data, error: invokeError } = await supabase.functions.invoke('ai-chat', {
-          body: { conversationId: activeConversationId, message: text },
+          body: { conversationId: activeConversationId, message: text, language: i18n.language },
         });
         if (invokeError) throw invokeError;
         if (data?.error) throw new Error(data.error);
@@ -79,7 +81,7 @@ export function useAiChat(userId) {
         setIsSending(false);
       }
     },
-    [activeConversationId, fetchConversations]
+    [activeConversationId, fetchConversations, i18n.language]
   );
 
   return {
