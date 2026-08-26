@@ -122,8 +122,10 @@ create policy "Users manage own books" on books
 create policy "Users manage own book_libraries" on book_libraries
   for all using (
     exists (select 1 from books b where b.id = book_id and b.user_id = auth.uid())
+    and exists (select 1 from libraries l where l.id = library_id and l.user_id = auth.uid())
   ) with check (
     exists (select 1 from books b where b.id = book_id and b.user_id = auth.uid())
+    and exists (select 1 from libraries l where l.id = library_id and l.user_id = auth.uid())
   );
 
 create policy "Users manage own notes" on notes
