@@ -17,11 +17,24 @@ function AuthScreen({ onSignIn, onSignUp }) {
     setError('');
     setInfo('');
     setIsSubmitting(true);
+
+    // Tarayici autofill'i (mobil Safari/Chrome, sifre yoneticileri) input'u
+    // gorsel olarak doldurup React'in onChange'ini hemen tetiklemeyebiliyor -
+    // kullanici forma hic dokunmadan direkt submit ederse email/password
+    // state'i hala bos kalip ilk denemede hatali giris denemesine yol
+    // aciyordu. Submit anindaki gercek DOM degerlerini okumak bu
+    // senkronizasyon farkini ortadan kaldiriyor.
+    const formData = new FormData(e.target);
+    const emailValue = formData.get('email') || email;
+    const passwordValue = formData.get('password') || password;
+    if (emailValue !== email) setEmail(emailValue);
+    if (passwordValue !== password) setPassword(passwordValue);
+
     try {
       if (mode === 'signIn') {
-        await onSignIn(email, password);
+        await onSignIn(emailValue, passwordValue);
       } else {
-        const data = await onSignUp(email, password);
+        const data = await onSignUp(emailValue, passwordValue);
         if (!data.session) {
           setInfo(t('auth.confirmEmailSent'));
         }
@@ -69,6 +82,7 @@ function AuthScreen({ onSignIn, onSignUp }) {
           <form onSubmit={handleSubmit} className="auth-form">
             <input
               type="email"
+              name="email"
               placeholder={t('auth.emailPlaceholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -78,6 +92,7 @@ function AuthScreen({ onSignIn, onSignUp }) {
             />
             <input
               type="password"
+              name="password"
               placeholder={t('auth.passwordPlaceholder')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
