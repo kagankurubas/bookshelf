@@ -19,6 +19,7 @@ import { useLibraries } from './hooks/useLibraries';
 import { useReadingStats } from './hooks/useReadingStats';
 import { useAddBookFlow } from './hooks/useAddBookFlow';
 import { useShelfDnd } from './hooks/useShelfDnd';
+import { useBookFilters } from './hooks/useBookFilters';
 import './App.css';
 
 // zxing-wasm barkod okuma motorunu tasiyan bu iki bilesen sadece kullanici
@@ -49,10 +50,7 @@ function App() {
 
   const [activeView, setActiveView] = useState('cards');
 
-  const [filterStatus, setFilterStatus] = useState('Tümü');
-  const [selectedCategory, setSelectedCategory] = useState('Tümü');
-  const [selectedAuthor, setSelectedAuthor] = useState('Tümü');
-  const [searchQuery, setSearchQuery] = useState('');
+  const bookFilters = useBookFilters(books, activeLibraryId);
 
   // Aktif kitaplığın raf kat sayısını alalım (artık sabit kapasite yok)
   const activeLibrary = libraries.find(l => l.id === activeLibraryId) || libraries[0] || { shelfCount: 2 };
@@ -60,11 +58,6 @@ function App() {
 
   const shelfDnd = useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, updateBookPosition);
   const addFlow = useAddBookFlow(shelfDnd.draggedBookId);
-
-  const categories = [
-    'Klasik Edebiyat', 'Kurgu', 'Fantastik Kurgu', 'Bilim Kurgu',
-    'Distopya', 'Kurgu Dışı', 'Biyografi', 'Bilim', 'Tarih', 'Felsefe'
-  ];
 
   const getCategoryColorClass = (category) => {
     switch (category) {
@@ -80,8 +73,6 @@ function App() {
       default: return 'category-default';
     }
   };
-
-  const uniqueAuthors = [...new Set(books.map(b => b.author))];
 
   const renderStars = (rating) => (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
@@ -175,17 +166,6 @@ function App() {
     }
   };
 
-  const filteredBooks = currentLibraryBooks.filter(book => {
-    const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          book.author.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesCategory = selectedCategory === 'Tümü' || book.category === selectedCategory;
-    const matchesAuthor = selectedAuthor === 'Tümü' || book.author === selectedAuthor;
-    const matchesStatus = filterStatus === 'Tümü' || book.status === filterStatus;
-
-    return matchesSearch && matchesCategory && matchesAuthor && matchesStatus;
-  });
-
   if (authLoading) {
     return (
       <div className="main-container">
@@ -246,17 +226,17 @@ function App() {
 
       {activeView === 'table' && (
         <TableView
-          books={filteredBooks}
-          categories={categories}
-          uniqueAuthors={uniqueAuthors}
-          searchQuery={searchQuery}
-          onSearchQueryChange={setSearchQuery}
-          selectedCategory={selectedCategory}
-          onSelectedCategoryChange={setSelectedCategory}
-          selectedAuthor={selectedAuthor}
-          onSelectedAuthorChange={setSelectedAuthor}
-          filterStatus={filterStatus}
-          onFilterStatusChange={setFilterStatus}
+          books={bookFilters.filteredBooks}
+          categories={bookFilters.categories}
+          uniqueAuthors={bookFilters.uniqueAuthors}
+          searchQuery={bookFilters.searchQuery}
+          onSearchQueryChange={bookFilters.setSearchQuery}
+          selectedCategory={bookFilters.selectedCategory}
+          onSelectedCategoryChange={bookFilters.setSelectedCategory}
+          selectedAuthor={bookFilters.selectedAuthor}
+          onSelectedAuthorChange={bookFilters.setSelectedAuthor}
+          filterStatus={bookFilters.filterStatus}
+          onFilterStatusChange={bookFilters.setFilterStatus}
           onOpenBook={addFlow.openBookDetailModal}
           onDeleteBook={handleDeleteBook}
           renderStars={renderStars}
@@ -342,7 +322,7 @@ function App() {
           onSave={handleSaveBook}
           selectedBook={addFlow.selectedBook}
           prefillData={addFlow.prefillBook}
-          existingAuthors={uniqueAuthors}
+          existingAuthors={bookFilters.uniqueAuthors}
           libraries={libraries}
           activeLibraryId={activeLibraryId}
         />
