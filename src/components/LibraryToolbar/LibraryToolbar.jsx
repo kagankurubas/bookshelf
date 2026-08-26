@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { PlusIcon, LibraryChipIcon, ChevronDownIcon } from '../icons/Icons';
+import CustomSelect from '../CustomSelect/CustomSelect';
 
 function LibraryToolbar({
   libraries,
@@ -48,9 +49,16 @@ function LibraryToolbar({
 
         <div className="select-wrap">
           <LibraryChipIcon />
-          <select className="select-chip" aria-label={t('toolbar.activeLibraryLabel')} value={activeLibraryId || ''} onChange={(e) => onChangeActiveLibrary(e.target.value)}>
-            {libraries.map((lib) => <option key={lib.id} value={lib.id}>{lib.name} ({t('toolbar.shelfCountSuffix', { count: lib.shelfCount || 2 })})</option>)}
-          </select>
+          <CustomSelect
+            className="select-chip"
+            ariaLabel={t('toolbar.activeLibraryLabel')}
+            value={activeLibraryId}
+            onChange={onChangeActiveLibrary}
+            options={libraries.map((lib) => ({
+              value: lib.id,
+              label: `${lib.name} (${t('toolbar.shelfCountSuffix', { count: lib.shelfCount || 2 })})`,
+            }))}
+          />
           <ChevronDownIcon />
         </div>
 

@@ -9,6 +9,7 @@ import { foldCategoriesForChart } from '../../lib/categoryChartColors';
 import ReadingStats from '../ReadingStats/ReadingStats';
 import TrendChart from '../charts/TrendChart';
 import CategoryPieChart from '../charts/CategoryPieChart';
+import CustomSelect from '../CustomSelect/CustomSelect';
 import { ChevronDownIcon } from '../icons/Icons';
 import './DashboardPage.css';
 
@@ -105,17 +106,16 @@ function DashboardPage({ libraryId, libraryName }) {
 
         <div className="dashboard-year-select-wrap">
           <CalendarIcon />
-          <select
+          <CustomSelect
             className="dashboard-year-select"
-            aria-label={t('dashboard.yearSelectLabel')}
-            value={selectedYear ?? ''}
-            onChange={(e) => setSelectedYear(e.target.value ? Number(e.target.value) : null)}
-          >
-            <option value="">{t('dashboard.allTime')}</option>
-            {years.map((year) => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
+            ariaLabel={t('dashboard.yearSelectLabel')}
+            value={selectedYear}
+            onChange={setSelectedYear}
+            options={[
+              { value: null, label: t('dashboard.allTime') },
+              ...years.map((year) => ({ value: year, label: String(year) })),
+            ]}
+          />
           <ChevronDownIcon />
         </div>
       </div>
