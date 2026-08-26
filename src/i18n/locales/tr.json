@@ -211,9 +211,7 @@
     "deleteLibraryError": "Kitaplık silinirken bir hata oluştu."
   },
   "language": {
-    "label": "Dil",
-    "tr": "Türkçe",
-    "en": "İngilizce"
+    "label": "Dil"
   },
   "auth": {
     "signIn": "Giriş Yap",

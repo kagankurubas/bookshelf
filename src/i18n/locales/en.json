@@ -211,9 +211,7 @@
     "deleteLibraryError": "Something went wrong while deleting the library."
   },
   "language": {
-    "label": "Language",
-    "tr": "Turkish",
-    "en": "English"
+    "label": "Language"
   },
   "auth": {
     "signIn": "Sign In",
