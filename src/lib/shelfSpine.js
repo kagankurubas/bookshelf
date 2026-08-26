@@ -29,7 +29,7 @@ export function getSpineFilter(id) {
   return `hue-rotate(${hueShift}deg) saturate(${saturate}) brightness(${brightness})`;
 }
 
-const CATEGORY_EMBLEMS = {
+const CATEGORY_EMBLEMS_TR = {
   'Klasik Edebiyat': 'KLS',
   'Fantastik Kurgu': 'FNT',
   'Bilim Kurgu': 'BLK',
@@ -41,11 +41,26 @@ const CATEGORY_EMBLEMS = {
   'Bilim': 'BLM',
 };
 
+const CATEGORY_EMBLEMS_EN = {
+  'Klasik Edebiyat': 'CLS',
+  'Fantastik Kurgu': 'FAN',
+  'Bilim Kurgu': 'SCI',
+  'Distopya': 'DYS',
+  'Kurgu': 'FIC',
+  'Tarih': 'HIS',
+  'Felsefe': 'PHI',
+  'Biyografi': 'BIO',
+  'Bilim': 'SCI',
+};
+
 // Sırt üzerindeki küçük folyo rozetine yazılan 3 harfli kategori kısaltması -
 // renk tek başına yeterince ayırt edici olmadığında (renk körlüğü, benzer
-// tonlar) kategoriyi metinle de okunur kılıyor.
-export function getCategoryEmblem(category) {
-  if (CATEGORY_EMBLEMS[category]) return CATEGORY_EMBLEMS[category];
+// tonlar) kategoriyi metinle de okunur kılıyor. Kategori DB'de her zaman
+// Türkçe canonical string olarak tutuluyor, bu yüzden hangi haritanın
+// kullanılacağını UI dili (language) belirliyor.
+export function getCategoryEmblem(category, language = 'tr') {
+  const emblems = language === 'en' ? CATEGORY_EMBLEMS_EN : CATEGORY_EMBLEMS_TR;
+  if (emblems[category]) return emblems[category];
   return category ? category.slice(0, 3).toUpperCase() : '';
 }
 

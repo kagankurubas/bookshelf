@@ -17,7 +17,7 @@ function ShelfView({
   onOpenBook,
   getCategoryColorClass,
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const containerRef = useRef(null);
   const [availableWidth, setAvailableWidth] = useState(0);
 
@@ -105,7 +105,7 @@ function ShelfView({
                     const isHovered = dragOverTarget?.shelfRow === rowIndex && dragOverTarget?.bookId === book.id;
                     const { width, height } = getSpineSize(book.id);
                     const spineFilter = getSpineFilter(book.id);
-                    const emblem = getCategoryEmblem(book.category);
+                    const emblem = getCategoryEmblem(book.category, i18n.language);
 
                     return (
                       <div
