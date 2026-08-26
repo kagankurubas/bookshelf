@@ -10,6 +10,7 @@ function LibraryToolbar({
   onCancelAddingLibrary,
   newLibraryName,
   onNewLibraryNameChange,
+  newLibraryNameError,
   onCreateLibrary,
   onDeleteLibrary,
   onOpenAddBook,
@@ -21,12 +22,15 @@ function LibraryToolbar({
     <div className="toolbar">
       <div className="toolbar-group">
         {isAddingLibrary ? (
-          <form onSubmit={onCreateLibrary} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <input
-              type="text" placeholder={t('toolbar.namePlaceholder')} value={newLibraryName}
-              onChange={(e) => onNewLibraryNameChange(e.target.value)} autoFocus
-              className="form-input" style={{ width: '160px' }}
-            />
+          <form onSubmit={onCreateLibrary} className="toolbar-add-library-form">
+            <div className="toolbar-add-library-input-wrap">
+              <input
+                type="text" placeholder={t('toolbar.namePlaceholder')} value={newLibraryName}
+                onChange={(e) => onNewLibraryNameChange(e.target.value)} autoFocus
+                className={`form-input ${newLibraryNameError ? 'input-error' : ''}`} style={{ width: '160px' }}
+              />
+              {newLibraryNameError && <span className="toolbar-add-library-error">{newLibraryNameError}</span>}
+            </div>
             <button type="submit" className="btn-primary" style={{ padding: '8px 14px' }}>{t('toolbar.add')}</button>
             <button type="button" onClick={onCancelAddingLibrary} className="chip-btn">{t('toolbar.cancel')}</button>
           </form>

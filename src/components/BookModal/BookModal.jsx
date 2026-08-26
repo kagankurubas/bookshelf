@@ -117,8 +117,9 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
   };
 
   const handleSave = async () => {
+    setSaveError(null);
     if (!title || !author) {
-      alert(t('bookModal.validationError'));
+      setSaveError(t('bookModal.validationError'));
       return;
     }
 
@@ -143,7 +144,6 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
     };
 
     setIsSaving(true);
-    setSaveError(null);
     try {
       await onSave(bookData);
       onClose();

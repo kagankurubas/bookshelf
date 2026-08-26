@@ -33,7 +33,8 @@
     "deleteLibrary": "Delete Library",
     "deleteLibraryTitle": "Delete This Library",
     "addBookTitle": "Add New Book",
-    "shelfCountSuffix": "{{count}} shelves"
+    "shelfCountSuffix": "{{count}} shelves",
+    "nameRequired": "Library name can't be empty."
   },
   "readingStats": {
     "completedBooks": "books completed",

@@ -58,6 +58,7 @@ function App() {
   const readingStats = useReadingStats(activeLibraryId);
   const [newLibraryName, setNewLibraryName] = useState('');
   const [isAddingLibrary, setIsAddingLibrary] = useState(false);
+  const [libraryNameError, setLibraryNameError] = useState(null);
 
   const [activeView, setActiveView] = useState('cards');
 
@@ -150,7 +151,10 @@ function App() {
 
   const handleCreateLibrary = async (e) => {
     e.preventDefault();
-    if (!newLibraryName.trim()) return;
+    if (!newLibraryName.trim()) {
+      setLibraryNameError(t('toolbar.nameRequired'));
+      return;
+    }
     try {
       const newLib = await createLibrary({
         name: newLibraryName.trim(),
@@ -162,6 +166,7 @@ function App() {
       setActiveLibraryId(newLib.id);
       setNewLibraryName('');
       setIsAddingLibrary(false);
+      setLibraryNameError(null);
     } catch (err) {
       console.error(err);
       alert(t('alerts.createLibraryError'));
@@ -216,10 +221,11 @@ function App() {
         activeLibraryId={activeLibraryId}
         onChangeActiveLibrary={setActiveLibraryId}
         isAddingLibrary={isAddingLibrary}
-        onStartAddingLibrary={() => setIsAddingLibrary(true)}
-        onCancelAddingLibrary={() => setIsAddingLibrary(false)}
+        onStartAddingLibrary={() => { setIsAddingLibrary(true); setLibraryNameError(null); }}
+        onCancelAddingLibrary={() => { setIsAddingLibrary(false); setLibraryNameError(null); }}
         newLibraryName={newLibraryName}
-        onNewLibraryNameChange={setNewLibraryName}
+        onNewLibraryNameChange={(value) => { setNewLibraryName(value); setLibraryNameError(null); }}
+        newLibraryNameError={libraryNameError}
         onCreateLibrary={handleCreateLibrary}
         onDeleteLibrary={handleDeleteLibrary}
         onOpenAddBook={addFlow.openNewBookModal}

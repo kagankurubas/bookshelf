@@ -339,6 +339,28 @@ html, body, #root {
   color: var(--text-muted);
 }
 
+.toolbar-add-library-form {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.toolbar-add-library-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-input.input-error {
+  border-color: var(--danger);
+}
+
+.toolbar-add-library-error {
+  color: var(--danger);
+  font-size: 11px;
+  font-family: var(--font-body);
+}
+
 .select-chip {
   appearance: none;
   -webkit-appearance: none;

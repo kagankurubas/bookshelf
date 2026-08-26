@@ -33,7 +33,8 @@
     "deleteLibrary": "Kitaplığı Sil",
     "deleteLibraryTitle": "Bu Kitaplığı Sil",
     "addBookTitle": "Yeni Kitap Ekle",
-    "shelfCountSuffix": "{{count}} Kat"
+    "shelfCountSuffix": "{{count}} Kat",
+    "nameRequired": "Kitaplık adı boş olamaz."
   },
   "readingStats": {
     "completedBooks": "kitap tamamlandı",
