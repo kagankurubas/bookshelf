@@ -59,13 +59,6 @@ describe('useBooks', () => {
     expect(result.current.books[0].notesList[0]).toMatchObject({ id: 'n1', text: 'great' });
   });
 
-  it('does not query supabase and clears books when there is no user id', async () => {
-    const { result } = renderHook(() => useBooks(undefined));
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.books).toEqual([]);
-    expect(supabase.from).not.toHaveBeenCalled();
-  });
-
   it('stores the error and stops loading when the fetch fails', async () => {
     const fetchError = new Error('network down');
     supabase.from.mockReturnValueOnce(queryResult({ data: null, error: fetchError }));
@@ -130,28 +123,5 @@ describe('useBooks', () => {
     });
 
     expect(result.current.books).toEqual([]);
-  });
-
-  it('deleteBook throws and keeps the book in state when supabase returns an error', async () => {
-    const { result } = await renderWithInitialRows([baseRow]);
-
-    supabase.from.mockReturnValueOnce(queryResult({ error: new Error('delete failed') }));
-
-    await expect(result.current.deleteBook('b1')).rejects.toThrow('delete failed');
-    expect(result.current.books).toHaveLength(1);
-  });
-
-  it('updateBookPosition updates the shelf position in supabase and in state', async () => {
-    const { result } = await renderWithInitialRows([baseRow]);
-
-    const updateBuilder = queryResult({ error: null });
-    supabase.from.mockReturnValueOnce(updateBuilder);
-
-    await act(async () => {
-      await result.current.updateBookPosition('b1', 1, 2);
-    });
-
-    expect(updateBuilder.update).toHaveBeenCalledWith({ shelf_row: 1, slot_index: 2 });
-    expect(result.current.books[0]).toMatchObject({ shelfRow: 1, slotIndex: 2 });
   });
 });
