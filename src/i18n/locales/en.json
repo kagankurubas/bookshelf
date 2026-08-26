@@ -145,6 +145,8 @@
     "dateFinished": "Finished",
     "saveNew": "Save Book",
     "saveExisting": "Save Changes",
+    "saving": "Saving...",
+    "saveError": "Couldn't save. Check your connection and try again - what you entered is still here.",
     "validationError": "Please fill in the book title and author."
   },
   "barcodeScanner": {
@@ -195,7 +197,6 @@
     "unknownAuthorFallback": "Unknown Author"
   },
   "alerts": {
-    "saveBookError": "Something went wrong while saving the book.",
     "deleteBookError": "Something went wrong while deleting the book.",
     "createLibraryError": "Something went wrong while creating the library.",
     "deleteLibraryError": "Something went wrong while deleting the library."

@@ -145,6 +145,8 @@
     "dateFinished": "Bitiş",
     "saveNew": "Kitabı Kaydet",
     "saveExisting": "Değişiklikleri Kaydet",
+    "saving": "Kaydediliyor...",
+    "saveError": "Kaydedilemedi. Bağlantını kontrol edip tekrar dene, girdiklerin kaybolmadı.",
     "validationError": "Lütfen Kitap Adı ve Yazar alanlarını doldurun."
   },
   "barcodeScanner": {
@@ -195,7 +197,6 @@
     "unknownAuthorFallback": "Bilinmeyen Yazar"
   },
   "alerts": {
-    "saveBookError": "Kitap kaydedilirken bir hata oluştu.",
     "deleteBookError": "Kitap silinirken bir hata oluştu.",
     "createLibraryError": "Kitaplık oluşturulurken bir hata oluştu.",
     "deleteLibraryError": "Kitaplık silinirken bir hata oluştu."

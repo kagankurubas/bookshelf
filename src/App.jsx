@@ -131,7 +131,9 @@ function App() {
       addFlow.clearSelectedBook();
     } catch (err) {
       console.error(err);
-      alert(t('alerts.saveBookError'));
+      // BookModal bu hatayi yakalayip kendi satir ici mesajini gosterip
+      // formu acik tutuyor - burada ayrica alert() gostermiyoruz.
+      throw err;
     }
   };
 

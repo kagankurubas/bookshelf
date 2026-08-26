@@ -33,6 +33,9 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
     String((selectedBook ? selectedBook.pageCount : prefillData?.pageCount) ?? '')
   );
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
   const [isAddingCover, setIsAddingCover] = useState(false);
   const [coverPosition, setCoverPosition] = useState(selectedBook ? selectedBook.coverPosition || 50 : 50);
   const [isDragging, setIsDragging] = useState(false);
@@ -113,7 +116,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
     setIsDragging(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title || !author) {
       alert(t('bookModal.validationError'));
       return;
@@ -139,8 +142,19 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
       libraryIds: selectedLibraries,
     };
 
-    onSave(bookData);
-    onClose();
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      await onSave(bookData);
+      onClose();
+    } catch {
+      // Kaydetme basarisiz oldu - modal acik kalir, kullanicinin girdigi
+      // veriler kaybolmaz, tekrar denemesi icin satir ici hata gosterilir
+      // (App.jsx tarafindaki genel alert() bu senaryoda artik gosterilmiyor).
+      setSaveError(t('bookModal.saveError'));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const categories = [
@@ -316,9 +330,13 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
           )}
         </div>
 
+        {saveError && <p className="book-modal-save-error">{saveError}</p>}
+
         <div className="modal-footer">
-          <button className="save-book-btn" onClick={handleSave} disabled={!isModified}>
-            {selectedBook ? t('bookModal.saveExisting') : t('bookModal.saveNew')}
+          <button className="save-book-btn" onClick={handleSave} disabled={!isModified || isSaving}>
+            {isSaving
+              ? t('bookModal.saving')
+              : selectedBook ? t('bookModal.saveExisting') : t('bookModal.saveNew')}
           </button>
         </div>
       </div>
