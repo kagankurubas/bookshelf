@@ -193,14 +193,14 @@ Use **Sign Up** on the screen that opens to create your first account.
 ![65 tests passing](https://img.shields.io/badge/tests-65_passing-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
-A modest but real Vitest + React Testing Library suite, covering the
-parts that don't need a live Supabase connection: the deterministic
+A real Vitest + React Testing Library suite covering the app's core
+logic: the auth, books and libraries hooks and the AI chat hook (with
+Supabase mocked), shelf drag-and-drop reordering, the deterministic
 shelf-spine sizing math, the dashboard's colorblind-safe category
 color mapping, the Open Library API wrapper (response mapping and
 caching, with `fetch` mocked), and a couple of presentational
-components (rendering, click handlers, translated labels). Hooks,
-drag-and-drop reordering and the AI chat flow aren't covered yet —
-basic coverage, not exhaustive.
+components (rendering, click handlers, translated labels). Modest but
+real coverage, not exhaustive.
 
 Every push to `main` also runs lint + test + build in
 [GitHub Actions](https://github.com/kagankurubas/bookshelf/actions).
@@ -393,14 +393,14 @@ Açılan sayfadan **Kayıt Ol** ile ilk hesabını oluştur.
 ![65 test geçiyor](https://img.shields.io/badge/testler-65_ge%C3%A7iyor-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
-Canlı bir Supabase bağlantısı gerektirmeyen kısımlar için mütevazı ama
-gerçek bir Vitest + React Testing Library paketi var: deterministik
-kitap sırtı boyutlandırma matematiği, dashboard'daki renk-körlüğü
-güvenli kategori renk eşlemesi, Open Library API sarmalayıcısı (yanıt
-eşleme ve önbellekleme, `fetch` mock'lanarak), ve birkaç sunum bileşeni
-(render, tıklama davranışı, çevrilen etiketler). Hook'lar, sürükle-bırak
-ile yeniden sıralama ve AI sohbet akışı henüz kapsanmıyor — temel bir
-coverage, kapsamlı değil.
+Uygulamanın temel mantığını kapsayan gerçek bir Vitest + React Testing
+Library paketi var: auth, kitaplar ve kitaplıklar hook'ları ile AI sohbet
+hook'u (Supabase mock'lanarak), raf üzerinde sürükle-bırak ile yeniden
+sıralama, deterministik kitap sırtı boyutlandırma matematiği,
+dashboard'daki renk-körlüğü güvenli kategori renk eşlemesi, Open Library
+API sarmalayıcısı (yanıt eşleme ve önbellekleme, `fetch` mock'lanarak),
+ve birkaç sunum bileşeni (render, tıklama davranışı, çevrilen etiketler).
+Mütevazı ama gerçek bir coverage, kapsamlı değil.
 
 `main`'e her push'ta ayrıca
 [GitHub Actions](https://github.com/kagankurubas/bookshelf/actions)
