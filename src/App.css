@@ -1014,4 +1014,15 @@ html, body, #root {
     width: 50px;
     height: 50px;
   }
+
+  /* .fab-add gercek bir position:fixed FAB degildi - LibraryToolbar'daki
+     .toolbar akisinin son elemani olarak duruyordu. Mobilde ai-chat-fab
+     ile ayni deneyimi vermek icin sabit bir koseye alindi - ai-chat-fab
+     sag-altta kaldigi icin cakismamak adina sol-alt secildi. */
+  .fab-add {
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    z-index: 40;
+  }
 }
