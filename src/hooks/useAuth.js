@@ -19,7 +19,15 @@ export function useAuth() {
   }, []);
 
   const signUp = useCallback(async (email, password) => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    // Redirect'i acikca vermezsek Supabase Dashboard'daki Site URL fallback'ine
+    // duser - o deger prod/dev arasinda tutarsiz olabilir ve dogrulama linki
+    // kullaniciyi 404'e dusurebilir. window.location.origin her ortamda
+    // (localhost, Netlify) dogru degeri verir.
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    });
     if (error) throw error;
     return data;
   }, []);
