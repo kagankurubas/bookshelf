@@ -9,9 +9,11 @@
 // oturumuyla dogrulanir, service-role client'i sadece ondan SONRA ve
 // sadece o kullanicinin kendi id'siyle kullanilir.
 //
-// Gerekli secret: SUPABASE_SERVICE_ROLE_KEY (Dashboard > Edge Functions > Secrets
-//   > Project Settings > API'deki "service_role" anahtari)
-// SUPABASE_URL ve SUPABASE_ANON_KEY Supabase tarafindan otomatik saglanir.
+// Ekstra secret eklemeye GEREK YOK: SUPABASE_URL, SUPABASE_ANON_KEY ve
+// SUPABASE_SERVICE_ROLE_KEY, her Edge Function'a Supabase tarafindan
+// otomatik enjekte edilir. Dashboard'da bu isimlerle (SUPABASE_ on-eki ile
+// baslayan) manuel bir secret olusturmaya calisirsan zaten "Name must not
+// start with the SUPABASE_ prefix" hatasi alirsin - bu beklenen davranis.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 

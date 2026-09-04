@@ -186,15 +186,16 @@ it grants unrestricted access on its own and must stay server-side.
 The "Delete My Account" option in Settings needs its own Edge
 Function, since removing a user requires the service-role key:
 
-1. Supabase Dashboard → **Edge Functions** → create a new function
-   named `delete-account`, paste the contents of
-   `supabase/functions/delete-account/index.ts`, deploy.
-2. In the same section, add a **Secret** named
-   `SUPABASE_SERVICE_ROLE_KEY` with your project's `service_role` key
-   (Project Settings → API).
+- Supabase Dashboard → **Edge Functions** → create a new function
+  named `delete-account`, paste the contents of
+  `supabase/functions/delete-account/index.ts`, deploy.
 
-Like the Gemini key, this must **never** go into `.env` — it bypasses
-Row Level Security entirely and must stay server-side.
+No secret to add here — unlike the Gemini key, the service-role key
+doesn't go through `.env` or a manual Secret at all: Supabase injects
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`
+into every Edge Function automatically. (The Dashboard actually
+refuses to let you create a secret with the `SUPABASE_` prefix
+yourself — that's expected, not an error to work around.)
 
 **6. Run**
 
@@ -412,16 +413,18 @@ Function'ın sunucu tarafında saklanmalı.
 Ayarlar'daki "Hesabımı Sil" seçeneği kendi Edge Function'ına ihtiyaç
 duyar, çünkü bir kullanıcıyı silmek service-role anahtarı gerektirir:
 
-1. Supabase Dashboard → **Edge Functions** → yeni fonksiyon oluştur,
-   adını `delete-account` yap, içeriğini
-   `supabase/functions/delete-account/index.ts` dosyasından yapıştır,
-   deploy et.
-2. Aynı yerde **Secrets** kısmına `SUPABASE_SERVICE_ROLE_KEY` adında bir
-   secret ekle (değeri projenin `service_role` anahtarı — Project
-   Settings → API).
+- Supabase Dashboard → **Edge Functions** → yeni fonksiyon oluştur,
+  adını `delete-account` yap, içeriğini
+  `supabase/functions/delete-account/index.ts` dosyasından yapıştır,
+  deploy et.
 
-Gemini anahtarı gibi bu da **asla** `.env`'e eklenmemeli — Row Level
-Security'yi tamamen atlar ve sadece sunucu tarafında saklanmalı.
+Burada eklenecek bir secret yok — Gemini anahtarının aksine
+service-role anahtarı `.env`'den ya da manuel bir Secret'tan hiç
+geçmiyor: Supabase her Edge Function'a `SUPABASE_URL`,
+`SUPABASE_ANON_KEY` ve `SUPABASE_SERVICE_ROLE_KEY`'i otomatik olarak
+enjekte ediyor. (Dashboard, `SUPABASE_` ön ekiyle başlayan bir secret'ı
+kendin oluşturmana zaten izin vermiyor — bu beklenen bir davranış,
+aşılması gereken bir hata değil.)
 
 **6. Çalıştır**
 
