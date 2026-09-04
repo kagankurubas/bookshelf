@@ -1,0 +1,141 @@
+.settings-modal {
+  max-width: 460px;
+}
+
+.settings-section-title {
+  font-family: var(--font-heading);
+  color: var(--text);
+  margin: 0 0 18px;
+}
+
+.settings-account-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg, #f7f5f2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 24px;
+}
+
+.settings-account-label {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.settings-account-value {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-danger-zone {
+  border: 1px solid oklch(75% 0.14 25 / 0.4);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.settings-danger-title {
+  font-family: var(--font-body);
+  color: var(--danger);
+  font-size: 14px;
+  margin: 0 0 6px;
+}
+
+.settings-danger-description {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+
+/* ===== Hesap silme onay modalı ===== */
+.delete-account-modal {
+  max-width: 460px;
+}
+
+.delete-account-title {
+  font-family: var(--font-heading);
+  color: var(--text);
+  margin: 0 0 10px;
+}
+
+.delete-account-warning {
+  font-family: var(--font-body);
+  font-weight: 700;
+  color: var(--danger);
+  font-size: 13.5px;
+  margin: 0 0 10px;
+}
+
+.delete-account-list {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 18px;
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.delete-account-method-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.delete-account-method-tab {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 12.5px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.delete-account-method-tab.active {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.delete-account-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn-danger-solid {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-danger-solid:hover:not(:disabled) {
+  background: var(--danger-hover);
+}
+
+.btn-danger-solid:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

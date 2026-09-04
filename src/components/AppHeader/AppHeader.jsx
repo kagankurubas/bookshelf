@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { BookLogoIcon, GridTabIcon, TableTabIcon, ShelfTabIcon, DashboardTabIcon, CompassIcon } from '../icons/Icons';
+import { BookLogoIcon, GridTabIcon, TableTabIcon, ShelfTabIcon, DashboardTabIcon, CompassIcon, SettingsIcon } from '../icons/Icons';
 
 const LANGUAGES = ['tr', 'en'];
 
-function AppHeader({ activeView, onChangeView, userEmail, onSignOut }) {
+function AppHeader({ activeView, onChangeView, userEmail, onSignOut, onOpenSettings }) {
   const { t, i18n } = useTranslation();
 
   return (
@@ -49,6 +49,15 @@ function AppHeader({ activeView, onChangeView, userEmail, onSignOut }) {
         {userEmail && (
           <div className="account-chip" title={userEmail}>
             <span className="account-chip-email">{userEmail}</span>
+            <button
+              type="button"
+              className="account-chip-settings"
+              onClick={onOpenSettings}
+              title={t('settings.title')}
+              aria-label={t('settings.title')}
+            >
+              <SettingsIcon />
+            </button>
             <button type="button" className="account-chip-signout" onClick={onSignOut}>
               {t('auth.signOut')}
             </button>

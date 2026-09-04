@@ -10,10 +10,12 @@ import ShelfView from './components/ShelfView/ShelfView';
 import AddChoiceModal from './components/AddChoiceModal/AddChoiceModal';
 import AuthScreen from './components/AuthScreen/AuthScreen';
 import AiChatDrawer from './components/AiChatDrawer/AiChatDrawer';
+import SettingsModal from './components/SettingsModal/SettingsModal';
 import ReadingStats from './components/ReadingStats/ReadingStats';
 import DashboardPage from './components/DashboardPage/DashboardPage';
 import { StarIcon, SparkleIcon } from './components/icons/Icons';
 import { useAuth } from './hooks/useAuth';
+import { useAuthRedirectError } from './hooks/useAuthRedirectError';
 import { useBooks } from './hooks/useBooks';
 import { useLibraries } from './hooks/useLibraries';
 import { useReadingStats } from './hooks/useReadingStats';
@@ -31,6 +33,9 @@ const BatchScanner = lazy(() => import('./components/BatchScanner/BatchScanner')
 function App() {
   const { t } = useTranslation();
   const { user, loading: authLoading, signIn, signUp, signOut } = useAuth();
+  const redirectError = useAuthRedirectError();
+  const [accountDeletedNotice, setAccountDeletedNotice] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const {
     books,
     loading: booksLoading,
@@ -193,7 +198,14 @@ function App() {
   }
 
   if (!user) {
-    return <AuthScreen onSignIn={signIn} onSignUp={signUp} />;
+    return (
+      <AuthScreen
+        onSignIn={signIn}
+        onSignUp={signUp}
+        redirectError={redirectError}
+        accountDeletedNotice={accountDeletedNotice}
+      />
+    );
   }
 
   return (
@@ -214,7 +226,24 @@ function App() {
         </div>
       ) : (
       <>
-      <AppHeader activeView={activeView} onChangeView={setActiveView} userEmail={user.email} onSignOut={signOut} />
+      <AppHeader
+        activeView={activeView}
+        onChangeView={setActiveView}
+        userEmail={user.email}
+        onSignOut={signOut}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+      />
+
+      {isSettingsOpen && (
+        <SettingsModal
+          userEmail={user.email}
+          onClose={() => setIsSettingsOpen(false)}
+          onAccountDeleted={() => {
+            setIsSettingsOpen(false);
+            setAccountDeletedNotice(true);
+          }}
+        />
+      )}
 
       <LibraryToolbar
         libraries={libraries}

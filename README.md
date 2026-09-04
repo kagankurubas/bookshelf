@@ -26,7 +26,7 @@
   <a href="https://github.com/kagankurubas/bookshelf/actions/workflows/ci.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status">
   </a>
-  <img src="https://img.shields.io/badge/tests-65_passing-3ECF8E?style=for-the-badge" alt="65 tests passing">
+  <img src="https://img.shields.io/badge/tests-86_passing-3ECF8E?style=for-the-badge" alt="86 tests passing">
 </p>
 
 <p align="center">
@@ -74,6 +74,10 @@ library and lets you chat about what you're reading.
 - **Multi-language** — Turkish / English.
 - **Accounts** — email/password sign-in; every user's data (libraries,
   books, chats) is isolated via Supabase Row Level Security.
+- **Account deletion** — permanently delete your account and every bit
+  of your data (libraries, books, Book Assistant chat history) from
+  Settings, behind a confirmation step (type to confirm, or re-enter
+  your password).
 
 ### Screenshots
 
@@ -136,6 +140,14 @@ Create a free project at [supabase.com](https://supabase.com).
   specifically (add column → backfill existing rows to the first
   account → lock down RLS) — see the comments in each file.
 
+> **Important:** Under Supabase Dashboard → **Authentication → URL
+> Configuration**, the **Site URL** and **Redirect URLs** fields must
+> match where the app actually runs (your production Netlify domain,
+> plus `http://localhost:5173/**` for local dev). This can't be done
+> from code — it's a manual dashboard step — otherwise the link in the
+> "verify your email" message can send users to the wrong address
+> (and a 404) after sign-up.
+
 **3. Environment variables**
 
 Copy `.env.example` to `.env` and fill in your Supabase project URL
@@ -169,7 +181,22 @@ The app works fully without the AI chat feature. To enable it:
 This key must **never** go into `.env` — unlike the Supabase anon key,
 it grants unrestricted access on its own and must stay server-side.
 
-**5. Run**
+**5. Account deletion**
+
+The "Delete My Account" option in Settings needs its own Edge
+Function, since removing a user requires the service-role key:
+
+1. Supabase Dashboard → **Edge Functions** → create a new function
+   named `delete-account`, paste the contents of
+   `supabase/functions/delete-account/index.ts`, deploy.
+2. In the same section, add a **Secret** named
+   `SUPABASE_SERVICE_ROLE_KEY` with your project's `service_role` key
+   (Project Settings → API).
+
+Like the Gemini key, this must **never** go into `.env` — it bypasses
+Row Level Security entirely and must stay server-side.
+
+**6. Run**
 
 ```bash
 npm run dev
@@ -190,7 +217,7 @@ Use **Sign Up** on the screen that opens to create your first account.
 
 ### Tests
 
-![65 tests passing](https://img.shields.io/badge/tests-65_passing-3ECF8E?style=flat-square)
+![86 tests passing](https://img.shields.io/badge/tests-86_passing-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
 A real Vitest + React Testing Library suite covering the app's core
@@ -272,6 +299,9 @@ dahil.
 - **Hesaplar** — e-posta/şifre ile giriş, her kullanıcının verisi
   (kitaplıklar, kitaplar, sohbetler) yalnızca kendisine ait ve izole
   (Supabase Row Level Security).
+- **Hesap silme** — Ayarlar'dan hesabını ve tüm verini (kitaplıklar,
+  kitaplar, Kitap Asistanı sohbet geçmişi) bir onay adımının ardından
+  (onay metni yaz ya da şifreni tekrar gir) kalıcı olarak silebilirsin.
 
 ### Ekran görüntüleri
 
@@ -334,6 +364,14 @@ npm install
   ilerlemeli (önce kolon eklenir, sonra mevcut veri ilk hesaba bağlanır,
   en son RLS kilitlenir) — ayrıntılar dosyaların içindeki yorumlarda.
 
+> **Önemli:** Supabase Dashboard → **Authentication → URL Configuration**
+> altında **Site URL** ve **Redirect URLs** alanlarının uygulamanın
+> gerçekte çalıştığı adreslerle eşleşmesi gerekir (ör. production
+> Netlify domain'in ve yerel geliştirme için `http://localhost:5173/**`).
+> Bu adım koddan yapılamaz, dashboard'dan elle ayarlanmalı — aksi halde
+> kayıt sonrası gelen doğrulama e-postasındaki link kullanıcıyı yanlış
+> bir adrese (dolayısıyla 404'e) yönlendirebilir.
+
 **3. Ortam değişkenleri**
 
 `.env.example` dosyasını `.env` olarak kopyala ve Supabase proje
@@ -369,7 +407,23 @@ Bu anahtar **asla** `.env`'e eklenmemeli — Gemini anahtarı, Supabase'in
 anon key'inin aksine tek başına tam yetki verir ve sadece Edge
 Function'ın sunucu tarafında saklanmalı.
 
-**5. Çalıştır**
+**5. Hesap silme**
+
+Ayarlar'daki "Hesabımı Sil" seçeneği kendi Edge Function'ına ihtiyaç
+duyar, çünkü bir kullanıcıyı silmek service-role anahtarı gerektirir:
+
+1. Supabase Dashboard → **Edge Functions** → yeni fonksiyon oluştur,
+   adını `delete-account` yap, içeriğini
+   `supabase/functions/delete-account/index.ts` dosyasından yapıştır,
+   deploy et.
+2. Aynı yerde **Secrets** kısmına `SUPABASE_SERVICE_ROLE_KEY` adında bir
+   secret ekle (değeri projenin `service_role` anahtarı — Project
+   Settings → API).
+
+Gemini anahtarı gibi bu da **asla** `.env`'e eklenmemeli — Row Level
+Security'yi tamamen atlar ve sadece sunucu tarafında saklanmalı.
+
+**6. Çalıştır**
 
 ```bash
 npm run dev
@@ -390,7 +444,7 @@ Açılan sayfadan **Kayıt Ol** ile ilk hesabını oluştur.
 
 ### Testler
 
-![65 test geçiyor](https://img.shields.io/badge/testler-65_ge%C3%A7iyor-3ECF8E?style=flat-square)
+![86 test geçiyor](https://img.shields.io/badge/testler-86_ge%C3%A7iyor-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
 Uygulamanın temel mantığını kapsayan gerçek bir Vitest + React Testing

@@ -241,6 +241,23 @@ html, body, #root {
   white-space: nowrap;
 }
 
+.account-chip-settings {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.account-chip-settings:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 .account-chip-signout {
   background: var(--surface);
   border: 1px solid var(--border);

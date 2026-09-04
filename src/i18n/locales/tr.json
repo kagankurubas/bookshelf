@@ -222,7 +222,35 @@
     "submitting": "Gönderiliyor...",
     "confirmEmailSent": "Hesabını doğrulamak için e-postana gönderilen bağlantıya tıkla.",
     "genericError": "Bir şeyler ters gitti, tekrar dene.",
+    "verifyLinkExpired": "Doğrulama linkinin süresi dolmuş. Giriş yapmayı dene ya da tekrar kayıt olup yeni bir doğrulama e-postası iste.",
+    "verifyLinkError": "Doğrulama linki geçersiz. Tekrar kayıt olup yeni bir doğrulama e-postası iste.",
     "promoTitle": "Kitaplığın, her yerde yanında.",
     "promoSubtitle": "Kitaplarını takip et, raflarını düzenle — yakında arkadaşlarınla kitap paylaşabileceğin bir topluluk da burada olacak."
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "close": "Kapat",
+    "emailLabel": "E-posta",
+    "dangerZoneTitle": "Tehlikeli Bölge",
+    "deleteAccountDescription": "Hesabını sildiğinde tüm kitaplıkların, kitapların ve Kitap Asistanı sohbet geçmişin kalıcı olarak silinir. Bu işlem geri alınamaz.",
+    "deleteAccountButton": "Hesabımı Sil"
+  },
+  "deleteAccount": {
+    "title": "Hesabını Sil",
+    "warning": "Bu işlem geri alınamaz.",
+    "warningLibraries": "Tüm kitaplıkların kalıcı olarak silinecek.",
+    "warningBooks": "Tüm kitapların ve notların kalıcı olarak silinecek.",
+    "warningChats": "Kitap Asistanı sohbet geçmişin kalıcı olarak silinecek.",
+    "methodGroupLabel": "Onay yöntemi",
+    "methodText": "Onay metni yaz",
+    "methodPassword": "Şifreyle onayla",
+    "confirmWord": "SİL",
+    "confirmTextPlaceholder": "Onaylamak için \"{{word}}\" yaz",
+    "wrongPassword": "Şifre yanlış.",
+    "error": "Hesap silinirken bir hata oluştu. Lütfen tekrar dene.",
+    "cancel": "Vazgeç",
+    "confirmButton": "Hesabımı Kalıcı Olarak Sil",
+    "deleting": "Siliniyor...",
+    "notice": "Hesabın ve tüm verilerin kalıcı olarak silindi."
   }
 }

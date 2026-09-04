@@ -222,7 +222,35 @@
     "submitting": "Submitting...",
     "confirmEmailSent": "Click the link we emailed you to confirm your account.",
     "genericError": "Something went wrong, please try again.",
+    "verifyLinkExpired": "That verification link has expired. Try signing in, or sign up again to get a new verification email.",
+    "verifyLinkError": "That verification link is invalid. Sign up again to get a new verification email.",
     "promoTitle": "Your bookshelf, wherever you go.",
     "promoSubtitle": "Track your books and organize your shelves — a community for sharing books with friends is coming soon, too."
+  },
+  "settings": {
+    "title": "Settings",
+    "close": "Close",
+    "emailLabel": "Email",
+    "dangerZoneTitle": "Danger Zone",
+    "deleteAccountDescription": "Deleting your account permanently deletes all your libraries, books, and Book Assistant chat history. This can't be undone.",
+    "deleteAccountButton": "Delete My Account"
+  },
+  "deleteAccount": {
+    "title": "Delete Your Account",
+    "warning": "This action cannot be undone.",
+    "warningLibraries": "All your libraries will be permanently deleted.",
+    "warningBooks": "All your books and notes will be permanently deleted.",
+    "warningChats": "Your Book Assistant chat history will be permanently deleted.",
+    "methodGroupLabel": "Confirmation method",
+    "methodText": "Type to confirm",
+    "methodPassword": "Confirm with password",
+    "confirmWord": "DELETE",
+    "confirmTextPlaceholder": "Type \"{{word}}\" to confirm",
+    "wrongPassword": "Incorrect password.",
+    "error": "Something went wrong deleting your account. Please try again.",
+    "cancel": "Cancel",
+    "confirmButton": "Permanently Delete My Account",
+    "deleting": "Deleting...",
+    "notice": "Your account and all your data have been permanently deleted."
   }
 }

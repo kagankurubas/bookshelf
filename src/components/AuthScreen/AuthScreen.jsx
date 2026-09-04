@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { BookLogoIcon } from '../icons/Icons';
 import './AuthScreen.css';
 
-function AuthScreen({ onSignIn, onSignUp }) {
+function AuthScreen({ onSignIn, onSignUp, redirectError, accountDeletedNotice }) {
   const { t } = useTranslation();
   const [mode, setMode] = useState('signIn'); // 'signIn' | 'signUp'
   const [email, setEmail] = useState('');
@@ -11,11 +11,30 @@ function AuthScreen({ onSignIn, onSignUp }) {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Supabase dogrulama linki gecersizse (suresi dolmus, zaten kullanilmis vb.)
+  // kullaniciyi bos bir ekran yerine burada anlasilir bir mesajla karsilamak
+  // icin. Dogrudan prop'tan turetiliyor, bir lazy state kopyasina
+  // ALINMIYOR: kullanici bu ekran zaten acikken ayni sekmede eski bir
+  // dogrulama linkine tekrar tiklarsa (hash-only navigasyon, component
+  // yeniden mount olmaz) useAuthRedirectError redirectError prop'unu
+  // SONRADAN gunceller - bir lazy state kopyasi bu degisikligi hicbir
+  // zaman yakalayamazdi (bildirilen bug buydu). Yeni bir submit hatasi
+  // geldiginde `error` OR ile onune gecer, o yuzden ayrica "dismiss"
+  // durumu tutmaya gerek yok.
+  const redirectErrorMessage = redirectError
+    ? (redirectError.errorCode === 'otp_expired' ? t('auth.verifyLinkExpired') : t('auth.verifyLinkError'))
+    : '';
+
+  // Hesabini az once silmis bir kullanici signOut ile buraya donuyor - normal
+  // "onay mailini kontrol et" mesajiyla ayni alani kullanan bir bildirim.
+  const [showAccountDeletedNotice, setShowAccountDeletedNotice] = useState(() => Boolean(accountDeletedNotice));
+  const accountDeletedMessage = showAccountDeletedNotice && accountDeletedNotice ? t('deleteAccount.notice') : '';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setInfo('');
+    setShowAccountDeletedNotice(false);
     setIsSubmitting(true);
 
     // Tarayici autofill'i (mobil Safari/Chrome, sifre yoneticileri) input'u
@@ -66,14 +85,14 @@ function AuthScreen({ onSignIn, onSignUp }) {
             <button
               type="button"
               className={`auth-mode-tab ${mode === 'signIn' ? 'active' : ''}`}
-              onClick={() => { setMode('signIn'); setError(''); setInfo(''); }}
+              onClick={() => { setMode('signIn'); setError(''); setInfo(''); setShowAccountDeletedNotice(false); }}
             >
               {t('auth.signIn')}
             </button>
             <button
               type="button"
               className={`auth-mode-tab ${mode === 'signUp' ? 'active' : ''}`}
-              onClick={() => { setMode('signUp'); setError(''); setInfo(''); }}
+              onClick={() => { setMode('signUp'); setError(''); setInfo(''); setShowAccountDeletedNotice(false); }}
             >
               {t('auth.signUp')}
             </button>
@@ -102,8 +121,12 @@ function AuthScreen({ onSignIn, onSignUp }) {
               required
             />
 
-            {error && <p className="auth-message auth-message-error">{error}</p>}
-            {info && <p className="auth-message auth-message-info">{info}</p>}
+            {(error || redirectErrorMessage) && (
+              <p className="auth-message auth-message-error">{error || redirectErrorMessage}</p>
+            )}
+            {(info || accountDeletedMessage) && (
+              <p className="auth-message auth-message-info">{info || accountDeletedMessage}</p>
+            )}
 
             <button type="submit" className="btn-primary auth-submit" disabled={isSubmitting}>
               {isSubmitting ? t('auth.submitting') : mode === 'signIn' ? t('auth.signIn') : t('auth.signUp')}
