@@ -71,4 +71,19 @@ describe('AuthScreen', () => {
 
     expect(screen.getByText('Doğrulama linkinin süresi dolmuş. Giriş yapmayı dene ya da tekrar kayıt olup yeni bir doğrulama e-postası iste.')).toBeInTheDocument();
   });
+
+  // Bug repro: redirectError bu sekmenin tum omru boyunca App'in
+  // hafizasinda kalabiliyor (ör. kullanici gecersiz linkle inip sonra giris
+  // yapip hesabini sildiyse) - App bunu temizlemeyi unutursa bile AuthScreen
+  // TEK BASINA iki celisen mesaji (silme basarili + link suresi dolmus)
+  // ust uste gostermemeli; silme bildirimi kazanmali.
+  it('shows only the account-deleted notice, never the stale redirect-error message, when both are present', () => {
+    renderScreen({
+      accountDeletedNotice: true,
+      redirectError: { error: 'access_denied', errorCode: 'otp_expired', errorDescription: 'expired' },
+    });
+
+    expect(screen.getByText('Hesabın ve tüm verilerin kalıcı olarak silindi.')).toBeInTheDocument();
+    expect(screen.queryByText(/doğrulama linki/i)).not.toBeInTheDocument();
+  });
 });

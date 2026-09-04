@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 // Supabase, dogrulama/parola-sifirlama linki gecersizse (suresi dolmus,
 // zaten kullanilmis vb.) kullaniciyi yine emailRedirectTo'ya yonlendirir
@@ -58,5 +58,13 @@ export function useAuthRedirectError() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  return redirectError;
+  // Bu state, sayfa hic yenilenmeden gecen TUM tab omru boyunca yasar -
+  // kullanici gecersiz bir linkle inip mesaji gorduktan sonra giris yapip
+  // uygulamayi kullanmaya devam etse bile silinmez. Bu yuzden onunla ayni
+  // ekranda (AuthScreen) baska, birbiriyle celisen bir bildirim daha
+  // gosterilecekse (ör. hesap silme basarili mesaji) cagiran taraf bu
+  // eski/alakasiz hatayi bilincli olarak temizleyebilmeli.
+  const clearRedirectError = useCallback(() => setRedirectError(null), []);
+
+  return [redirectError, clearRedirectError];
 }

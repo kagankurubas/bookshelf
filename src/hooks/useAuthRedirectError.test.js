@@ -27,20 +27,20 @@ describe('useAuthRedirectError', () => {
   it('returns null for a plain landing (no hash), i.e. the successful sign-in redirect', () => {
     setHash('');
     const { result } = renderHook(() => useAuthRedirectError());
-    expect(result.current).toBeNull();
+    expect(result.current[0]).toBeNull();
   });
 
   it('returns null when the hash has no error param (e.g. Supabase session tokens)', () => {
     setHash('#access_token=abc&token_type=bearer');
     const { result } = renderHook(() => useAuthRedirectError());
-    expect(result.current).toBeNull();
+    expect(result.current[0]).toBeNull();
   });
 
   it('parses an expired verification link and clears the hash from the URL', () => {
     setHash('#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired');
     const { result } = renderHook(() => useAuthRedirectError());
 
-    expect(result.current).toEqual({
+    expect(result.current[0]).toEqual({
       error: 'access_denied',
       errorCode: 'otp_expired',
       errorDescription: 'Email link is invalid or has expired',
@@ -52,7 +52,7 @@ describe('useAuthRedirectError', () => {
     setHash('#error=access_denied&error_description=Something+went+wrong');
     const { result } = renderHook(() => useAuthRedirectError());
 
-    expect(result.current).toEqual({
+    expect(result.current[0]).toEqual({
       error: 'access_denied',
       errorCode: null,
       errorDescription: 'Something went wrong',
@@ -67,11 +67,11 @@ describe('useAuthRedirectError', () => {
   it('picks up an expired-link error that appears in the hash AFTER the hook has already mounted, and clears it', () => {
     setHash('');
     const { result } = renderHook(() => useAuthRedirectError());
-    expect(result.current).toBeNull();
+    expect(result.current[0]).toBeNull();
 
     navigateHashInPlace('#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired');
 
-    expect(result.current).toEqual({
+    expect(result.current[0]).toEqual({
       error: 'access_denied',
       errorCode: 'otp_expired',
       errorDescription: 'Email link is invalid or has expired',
@@ -85,7 +85,7 @@ describe('useAuthRedirectError', () => {
 
     navigateHashInPlace('#access_token=abc&token_type=bearer');
 
-    expect(result.current).toBeNull();
+    expect(result.current[0]).toBeNull();
     expect(window.location.hash).toBe('#access_token=abc&token_type=bearer');
   });
 
@@ -101,11 +101,26 @@ describe('useAuthRedirectError', () => {
       wrapper: ({ children }) => createElement(StrictMode, null, children),
     });
 
-    expect(result.current).toEqual({
+    expect(result.current[0]).toEqual({
       error: 'access_denied',
       errorCode: 'otp_expired',
       errorDescription: 'Email link is invalid or has expired',
     });
     expect(window.location.hash).toBe('');
+  });
+
+  // Bug repro: hesap silme sonrasi useAuthRedirectError'in state'i, sekmenin
+  // baska bir noktasinda okunmus eski/alakasiz bir hatayi tutmaya devam
+  // ediyordu ve AuthScreen'de silme basari mesajiyla ust uste gorunuyordu.
+  // Cagiran taraf (App) bunu clearRedirectError() ile bilincli olarak
+  // temizleyebilmeli.
+  it('clears the redirect error via clearRedirectError, e.g. right before showing an unrelated notice', () => {
+    setHash('#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired');
+    const { result } = renderHook(() => useAuthRedirectError());
+    expect(result.current[0]).not.toBeNull();
+
+    act(() => result.current[1]());
+
+    expect(result.current[0]).toBeNull();
   });
 });

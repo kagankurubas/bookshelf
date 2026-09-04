@@ -33,7 +33,7 @@ const BatchScanner = lazy(() => import('./components/BatchScanner/BatchScanner')
 function App() {
   const { t } = useTranslation();
   const { user, loading: authLoading, signIn, signUp, signOut } = useAuth();
-  const redirectError = useAuthRedirectError();
+  const [redirectError, clearRedirectError] = useAuthRedirectError();
   const [accountDeletedNotice, setAccountDeletedNotice] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const {
@@ -240,6 +240,13 @@ function App() {
           onClose={() => setIsSettingsOpen(false)}
           onAccountDeleted={() => {
             setIsSettingsOpen(false);
+            // Hesap silme, doğrulama linki hatasıyla alakasız - ama
+            // redirectError bu sekmenin tüm ömrü boyunca hafızada kalabilir
+            // (ör. kullanıcı gecersiz linkle inip sonra giriş yapıp hesabını
+            // sildiyse). İkisi aynı anda anlamlı olmadığı için bilinçli
+            // olarak temizliyoruz, aksi halde AuthScreen'de iki mesaj üst
+            // üste görünür.
+            clearRedirectError();
             setAccountDeletedNotice(true);
           }}
         />

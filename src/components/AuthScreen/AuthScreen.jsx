@@ -21,7 +21,11 @@ function AuthScreen({ onSignIn, onSignUp, redirectError, accountDeletedNotice })
   // zaman yakalayamazdi (bildirilen bug buydu). Yeni bir submit hatasi
   // geldiginde `error` OR ile onune gecer, o yuzden ayrica "dismiss"
   // durumu tutmaya gerek yok.
-  const redirectErrorMessage = redirectError
+  // accountDeletedNotice ile ayni anda gosterilmesi anlamsiz (App bu durumda
+  // redirectError'i zaten temizliyor, ama burada da savunma amacli
+  // geciyoruz - AuthScreen tek basina, App'in o temizlemeyi unuttugu bir
+  // durumda bile iki celisen mesaji asla ust uste gostermemeli).
+  const redirectErrorMessage = redirectError && !accountDeletedNotice
     ? (redirectError.errorCode === 'otp_expired' ? t('auth.verifyLinkExpired') : t('auth.verifyLinkError'))
     : '';
 
