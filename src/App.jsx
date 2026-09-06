@@ -316,12 +316,16 @@ function App() {
           shelfCount={shelfCount}
           draggedBookId={shelfDnd.draggedBookId}
           dragOverTarget={shelfDnd.dragOverTarget}
+          pickedBookId={shelfDnd.pickedBookId}
           onAddShelfRow={shelfDnd.handleAddShelfRow}
           onRemoveShelfRow={shelfDnd.handleRemoveShelfRow}
           onDragStart={shelfDnd.handleDragStart}
           onDragEnd={shelfDnd.handleDragEnd}
           onDragOverAt={shelfDnd.onDragOverAt}
           onDropAt={shelfDnd.handleDropAt}
+          onPickBook={shelfDnd.handlePickBook}
+          onPlaceBook={shelfDnd.handlePlaceBook}
+          onCancelPick={shelfDnd.cancelPick}
           onOpenBook={addFlow.openBookDetailModal}
           getCategoryColorClass={getCategoryColorClass}
         />

@@ -96,7 +96,9 @@
     "removeRowTitle": "Remove the bottom shelf row (its books move to the row above)",
     "dragHint": "Drag to reorder",
     "emptyRowHint": "Drag books here",
-    "emptyLibraryHint": "No books yet. Add your first one with the + button above."
+    "emptyLibraryHint": "No books yet. Add your first one with the + button above.",
+    "moveHandleTitle": "Hold to move",
+    "movePickHint": "Choose a spot to move it to"
   },
   "statuses": {
     "Başlanmadı": "Not Started",

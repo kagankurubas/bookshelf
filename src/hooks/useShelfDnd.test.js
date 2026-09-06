@@ -111,4 +111,49 @@ describe('useShelfDnd', () => {
     expect(updateBookPosition).not.toHaveBeenCalled();
     expect(updateLibrary).not.toHaveBeenCalled();
   });
+
+  // Dokunmatik ekranlarda native surukleme calismadigi icin "dokun -> sec ->
+  // hedefe dokun" akisi ikinci bir tasima yolu olarak eklendi.
+  it('handlePickBook selects a book, and picking it again cancels the selection', () => {
+    const books = [book('A', 0, 0)];
+    const { result } = setup(books);
+
+    act(() => result.current.handlePickBook('A'));
+    expect(result.current.pickedBookId).toBe('A');
+
+    act(() => result.current.handlePickBook('A'));
+    expect(result.current.pickedBookId).toBeNull();
+  });
+
+  it('cancelPick clears the picked book', () => {
+    const books = [book('A', 0, 0)];
+    const { result } = setup(books);
+
+    act(() => result.current.handlePickBook('A'));
+    act(() => result.current.cancelPick());
+
+    expect(result.current.pickedBookId).toBeNull();
+  });
+
+  it('handlePlaceBook moves the picked book like handleDropAt and clears the selection', async () => {
+    const books = [book('A', 0, 0), book('B', 0, 1), book('C', 1, 0)];
+    const { result, updateBookPosition } = setup(books);
+
+    act(() => result.current.handlePickBook('A'));
+    // Place at the end of row 1 (targetBookId === null).
+    await act(async () => result.current.handlePlaceBook(1, null));
+
+    expect(updateBookPosition).toHaveBeenCalledWith('B', 0, 0);
+    expect(updateBookPosition).toHaveBeenCalledWith('A', 1, 1);
+    expect(result.current.pickedBookId).toBeNull();
+  });
+
+  it('handlePlaceBook is a no-op when nothing is picked', async () => {
+    const books = [book('A', 0, 0)];
+    const { result, updateBookPosition } = setup(books);
+
+    await act(async () => result.current.handlePlaceBook(0, 'A'));
+
+    expect(updateBookPosition).not.toHaveBeenCalled();
+  });
 });

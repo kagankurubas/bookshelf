@@ -96,7 +96,9 @@
     "removeRowTitle": "En alttaki rafı kaldır (kitapları üstteki rafa taşınır)",
     "dragHint": "Sürükleyerek yer değiştirebilirsin",
     "emptyRowHint": "Kitapları buraya sürükle",
-    "emptyLibraryHint": "Henüz kitap yok. Üstteki + butonuyla ilk kitabını ekleyebilirsin."
+    "emptyLibraryHint": "Henüz kitap yok. Üstteki + butonuyla ilk kitabını ekleyebilirsin.",
+    "moveHandleTitle": "Taşımak için tut",
+    "movePickHint": "Taşımak için bir yer seç"
   },
   "statuses": {
     "Başlanmadı": "Başlanmadı",

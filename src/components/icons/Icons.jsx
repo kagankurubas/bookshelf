@@ -85,6 +85,14 @@ export const SettingsIcon = () => (
   </svg>
 );
 
+export const MoveHandleIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="8" cy="6" r="2" /><circle cx="16" cy="6" r="2" />
+    <circle cx="8" cy="12" r="2" /><circle cx="16" cy="12" r="2" />
+    <circle cx="8" cy="18" r="2" /><circle cx="16" cy="18" r="2" />
+  </svg>
+);
+
 export const SparkleIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 5.6L19 9l-5.2 1.9L12 16l-1.8-5.1L5 9l5.2-1.4z" /></svg>
 );

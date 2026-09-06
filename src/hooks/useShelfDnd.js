@@ -7,6 +7,9 @@ import { useState } from 'react';
 export function useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, updateBookPosition) {
   const [draggedBookId, setDraggedBookId] = useState(null);
   const [dragOverTarget, setDragOverTarget] = useState(null); // { shelfRow, bookId } | null
+  // Dokunmatik ekranlarda native HTML5 drag&drop calismadigi icin, "kitaba
+  // dokun -> hedefe dokun" seklinde ikinci bir tasima yolu: secili kitabin id'si.
+  const [pickedBookId, setPickedBookId] = useState(null);
 
   const currentLibraryBooks = books.filter((b) => b.libraryIds.includes(activeLibraryId));
 
@@ -65,14 +68,12 @@ export function useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, u
     setDragOverTarget({ shelfRow, bookId });
   };
 
-  // targetBookId === null -> ilgili rafın sonuna ekle
-  const handleDropAt = async (targetShelfRow, targetBookId) => {
-    const activeBookId = draggedBookId;
+  // targetBookId === null -> ilgili rafın sonuna ekle. Hem native mouse
+  // surukle-birak (handleDropAt) hem de dokunarak-sec-tasima (handlePlaceBook)
+  // ayni yeniden siralama mantigini kullanir.
+  const moveBookTo = async (activeBookId, targetShelfRow, targetBookId) => {
     const activeBook = books.find((b) => b.id === activeBookId);
-    if (!activeBook) {
-      handleDragEnd();
-      return;
-    }
+    if (!activeBook) return;
 
     const originRow = activeBook.shelfRow ?? 0;
 
@@ -111,13 +112,32 @@ export function useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, u
     } catch (err) {
       console.error(err);
     }
+  };
 
+  const handleDropAt = async (targetShelfRow, targetBookId) => {
+    await moveBookTo(draggedBookId, targetShelfRow, targetBookId);
     handleDragEnd();
+  };
+
+  // Kitabin uzerindeki tutamaca (MoveHandleIcon) dokununca secilir/secimi
+  // kaldirilir - ayni kitaba tekrar dokunmak secimi iptal eder.
+  const handlePickBook = (bookId) => {
+    setPickedBookId((current) => (current === bookId ? null : bookId));
+  };
+
+  const cancelPick = () => setPickedBookId(null);
+
+  // targetBookId === null -> ilgili rafın sonuna tasi
+  const handlePlaceBook = async (targetShelfRow, targetBookId) => {
+    if (!pickedBookId) return;
+    await moveBookTo(pickedBookId, targetShelfRow, targetBookId);
+    setPickedBookId(null);
   };
 
   return {
     draggedBookId,
     dragOverTarget,
+    pickedBookId,
     countBooksInRow,
     handleAddShelfRow,
     handleRemoveShelfRow,
@@ -125,5 +145,8 @@ export function useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, u
     handleDragEnd,
     onDragOverAt,
     handleDropAt,
+    handlePickBook,
+    handlePlaceBook,
+    cancelPick,
   };
 }

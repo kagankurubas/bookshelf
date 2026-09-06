@@ -914,6 +914,77 @@ html, body, #root {
 .shelf-book.category-bilim     { background: linear-gradient(160deg, oklch(66% 0.15 200) 0%, oklch(54% 0.14 194) 55%, oklch(40% 0.12 190) 100%); }
 .shelf-book.category-default   { background: linear-gradient(160deg, oklch(66% 0.03 90) 0%, oklch(54% 0.03 90) 55%, oklch(40% 0.02 90) 100%); }
 
+/* ===== Dokunarak-tasima (mobil surukle-birak alternatifi) =====
+   Native HTML5 drag&drop dokunmatik ekranlarda calismadigi icin: kitabin
+   tutamacina dokun -> "secili" olur -> baska bir kitaba/bos alana dokun ->
+   oraya tasinir (bkz. useShelfDnd.handlePickBook/handlePlaceBook). */
+.shelf-move-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-soft-text);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.shelf-book-move-handle {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.4);
+  color: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.shelf-book:hover .shelf-book-move-handle,
+.shelf-book-move-handle:focus-visible {
+  opacity: 1;
+}
+
+/* Fare "hover" hicbir zaman olmayan dokunmatik ekranlarda tutamac,
+   tek gorunur olma yolu oldugu icin her zaman gosterilir. */
+@media (hover: none) {
+  .shelf-book-move-handle {
+    opacity: 1;
+  }
+}
+
+.shelf-book.picked {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  transform: translateY(-10px);
+}
+
+.shelf-book.pick-target {
+  outline: 2px dashed oklch(55% 0.14 165 / 0.55);
+  outline-offset: 2px;
+  cursor: pointer;
+}
+
+.shelf-row-empty.pick-target {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* ===== Mobil Uyum ===== */
 @media (max-width: 860px) {
   .app-header {

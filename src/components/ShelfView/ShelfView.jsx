@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PlusIcon } from '../icons/Icons';
+import { PlusIcon, MoveHandleIcon } from '../icons/Icons';
 import { getSpineSize, getSpineFilter, getCategoryEmblem, chunkIntoLines } from '../../lib/shelfSpine';
 
 function ShelfView({
@@ -8,12 +8,16 @@ function ShelfView({
   shelfCount,
   draggedBookId,
   dragOverTarget,
+  pickedBookId,
   onAddShelfRow,
   onRemoveShelfRow,
   onDragStart,
   onDragEnd,
   onDragOverAt,
   onDropAt,
+  onPickBook,
+  onPlaceBook,
+  onCancelPick,
   onOpenBook,
   getCategoryColorClass,
 }) {
@@ -43,6 +47,10 @@ function ShelfView({
   // olur (sürüklenecek hiçbir şey yok) - bu durumda ilk kitabı nasıl
   // ekleyeceğini gösteren ayrı bir mesaj gösteriyoruz.
   const isLibraryEmpty = books.length === 0;
+  // Dokunmatik ekranlarda native surukleme calismadigi icin ikinci bir
+  // tasima yolu: kitabin tutamacina dokununca "secili" olur, sonra herhangi
+  // bir kitaba/bos alana dokununca oraya tasinir (bkz. useShelfDnd).
+  const isPicking = pickedBookId !== null;
 
   return (
     <main className="wooden-shelf-main-wrapper" onDragEnd={onDragEnd}>
@@ -67,7 +75,14 @@ function ShelfView({
         )}
       </div>
 
-      <div className="wooden-shelf-container" ref={containerRef}>
+      {isPicking && (
+        <div className="shelf-move-banner">
+          <span>{t('shelf.movePickHint')}</span>
+          <button type="button" className="chip-btn" onClick={onCancelPick}>{t('toolbar.cancel')}</button>
+        </div>
+      )}
+
+      <div className={`wooden-shelf-container ${isPicking ? 'picking' : ''}`} ref={containerRef}>
         {rows.map((rowBooks, rowIndex) => {
           const isAppendHovered = dragOverTarget?.shelfRow === rowIndex && dragOverTarget?.bookId === null;
 
@@ -75,7 +90,7 @@ function ShelfView({
             return (
               <div
                 key={rowIndex}
-                className={`shelf-row-empty ${isAppendHovered ? 'drag-over' : ''}`}
+                className={`shelf-row-empty ${isAppendHovered ? 'drag-over' : ''} ${isPicking ? 'pick-target' : ''}`}
                 onDragOver={(e) => {
                   e.preventDefault();
                   onDragOverAt(rowIndex, null);
@@ -84,6 +99,7 @@ function ShelfView({
                   e.preventDefault();
                   onDropAt(rowIndex, null);
                 }}
+                onClick={() => { if (isPicking) onPlaceBook(rowIndex, null); }}
               >
                 <span>{isLibraryEmpty ? t('shelf.emptyLibraryHint') : t('shelf.emptyRowHint')}</span>
               </div>
@@ -107,10 +123,12 @@ function ShelfView({
                     const spineFilter = getSpineFilter(book.id);
                     const emblem = getCategoryEmblem(book.category, i18n.language);
 
+                    const isPicked = pickedBookId === book.id;
+
                     return (
                       <div
                         key={book.id}
-                        className={`shelf-book ${colorClass} ${draggedBookId === book.id ? 'dragging' : ''} ${isHovered ? 'drag-over' : ''}`}
+                        className={`shelf-book ${colorClass} ${draggedBookId === book.id ? 'dragging' : ''} ${isHovered ? 'drag-over' : ''} ${isPicked ? 'picked' : ''} ${isPicking && !isPicked ? 'pick-target' : ''}`}
                         draggable
                         onDragStart={(e) => onDragStart(e, book.id)}
                         onDragEnd={onDragEnd}
@@ -122,7 +140,14 @@ function ShelfView({
                           e.preventDefault();
                           onDropAt(rowIndex, book.id);
                         }}
-                        onClick={() => onOpenBook(book)}
+                        onClick={() => {
+                          if (isPicking) {
+                            if (isPicked) onCancelPick();
+                            else onPlaceBook(rowIndex, book.id);
+                            return;
+                          }
+                          onOpenBook(book);
+                        }}
                         title={`${book.title} (${t(`categories.${book.category}`, book.category)}) - ${t('shelf.dragHint')}`}
                         style={{ width: `${width}px`, height: `${height}px`, filter: spineFilter }}
                       >
@@ -131,13 +156,22 @@ function ShelfView({
                         <span className="shelf-book-highlight"></span>
                         {emblem && <span className="shelf-book-emblem">{emblem}</span>}
                         <span className="shelf-book-title">{book.title}</span>
+                        <button
+                          type="button"
+                          className="shelf-book-move-handle"
+                          title={t('shelf.moveHandleTitle')}
+                          aria-label={t('shelf.moveHandleTitle')}
+                          onClick={(e) => { e.stopPropagation(); onPickBook(book.id); }}
+                        >
+                          <MoveHandleIcon />
+                        </button>
                       </div>
                     );
                   })}
 
                   {lineIndex === lines.length - 1 && (
                     <div
-                      className={`shelf-append-zone ${draggedBookId !== null ? 'active' : ''} ${isAppendHovered ? 'drag-over' : ''}`}
+                      className={`shelf-append-zone ${(draggedBookId !== null || isPicking) ? 'active' : ''} ${isAppendHovered ? 'drag-over' : ''}`}
                       onDragOver={(e) => {
                         e.preventDefault();
                         onDragOverAt(rowIndex, null);
@@ -146,6 +180,7 @@ function ShelfView({
                         e.preventDefault();
                         onDropAt(rowIndex, null);
                       }}
+                      onClick={() => { if (isPicking) onPlaceBook(rowIndex, null); }}
                     ></div>
                   )}
                 </div>
