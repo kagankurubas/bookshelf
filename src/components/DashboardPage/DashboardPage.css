@@ -141,7 +141,16 @@
   }
 }
 
-@media (max-width: 640px) {
+/* Ust seviyedeki .app-header/.toolbar/.book-list-container ile ayni
+   44px -> 20px -> 16px kenar bosluğu kademesini takip ediyor, aksi halde
+   860-480px arasinda bu sayfa digerlerinden daha ice cekilmis gorunuyordu. */
+@media (max-width: 860px) {
+  .dashboard-page {
+    padding: 20px 20px 40px;
+  }
+}
+
+@media (max-width: 480px) {
   .dashboard-page {
     padding: 16px 16px 32px;
   }

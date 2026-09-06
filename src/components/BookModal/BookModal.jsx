@@ -105,13 +105,32 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
     setStartPos(coverPosition);
   };
 
-  const handleMouseMove = (e) => {
-    if (!isDragging) return;
-    const deltaY = e.clientY - startY;
-    let newPos = startPos - (deltaY * 0.15); 
+  // Dokunmatik ekranlarda mouse eventleri hic tetiklenmedigi icin kapak
+  // konumlandirma suruklemesi mobilde tamamen calismiyordu - touch
+  // karsiliklari eklendi.
+  const handleTouchStart = (e) => {
+    setIsDragging(true);
+    setStartY(e.touches[0].clientY);
+    setStartPos(coverPosition);
+  };
+
+  const updateCoverPositionFromY = (clientY) => {
+    const deltaY = clientY - startY;
+    let newPos = startPos - (deltaY * 0.15);
     if (newPos < 0) newPos = 0;
     if (newPos > 100) newPos = 100;
     setCoverPosition(Math.round(newPos));
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    updateCoverPositionFromY(e.clientY);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    updateCoverPositionFromY(e.touches[0].clientY);
   };
 
   const handleMouseUp = () => {
@@ -176,6 +195,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
             transition: 'height 0.2s ease', cursor: coverImage ? (isDragging ? 'grabbing' : 'grab') : 'default'
           }}
           onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
+          onTouchMove={handleTouchMove} onTouchEnd={handleMouseUp}
         >
           <button 
             className="close-modal-btn" onClick={onClose} 
@@ -189,7 +209,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
           </button>
 
           {coverImage ? (
-            <div style={{ width: '100%', height: '100%', position: 'relative', userSelect: 'none' }} onMouseDown={handleMouseDown}>
+            <div style={{ width: '100%', height: '100%', position: 'relative', userSelect: 'none', touchAction: 'none' }} onMouseDown={handleMouseDown} onTouchStart={handleTouchStart}>
               <img src={coverImage} alt={t('bookModal.coverPreviewAlt')} draggable="false" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `center ${coverPosition}%`, pointerEvents: 'none' }} />
               <div style={{ position: 'absolute', bottom: '10px', left: '15px', background: 'rgba(0,0,0,0.6)', padding: '3px 8px', borderRadius: '4px', pointerEvents: 'none', zIndex: 10, display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2"><path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4" /></svg>

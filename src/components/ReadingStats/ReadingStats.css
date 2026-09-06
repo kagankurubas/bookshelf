@@ -54,9 +54,17 @@
   margin-top: 3px;
 }
 
+/* Ust seviyedeki .app-header/.toolbar/.book-list-container ile ayni
+   44px -> 20px -> 16px kenar bosluğu kademesini takip ediyor, aksi halde
+   860-480px arasinda bu kart digerlerinden daha ice cekilmis gorunuyordu. */
+@media (max-width: 860px) {
+  .reading-stats-card {
+    margin: 16px 20px 0;
+  }
+}
+
 @media (max-width: 640px) {
   .reading-stats-card {
-    margin: 16px 16px 0;
     padding: 16px;
     flex-wrap: wrap;
     gap: 14px;
@@ -72,5 +80,11 @@
 
   .reading-stats-value {
     font-size: 21px;
+  }
+}
+
+@media (max-width: 480px) {
+  .reading-stats-card {
+    margin: 16px 16px 0;
   }
 }
