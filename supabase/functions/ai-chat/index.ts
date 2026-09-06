@@ -117,9 +117,9 @@ Deno.serve(async (req) => {
     const bookContext = (books || [])
       .map((b) => {
         const parts = [`- ${b.title} (${b.author})`];
-        if (b.category) parts.push(`kategori: ${b.category}`);
-        parts.push(`durum: ${b.status}`);
-        if (b.rating) parts.push(`puan: ${b.rating}/5`);
+        if (b.category) parts.push(`category: ${b.category}`);
+        parts.push(`status: ${b.status}`);
+        if (b.rating) parts.push(`rating: ${b.rating}/5`);
         return parts.join(', ');
       })
       .join('\n');
@@ -130,17 +130,19 @@ Deno.serve(async (req) => {
       .insert({ conversation_id: convoId, role: 'user', content: message });
     if (insertUserMsgError) throw insertUserMsgError;
 
-    const SYSTEM_PROMPTS = {
-      tr: `Sen BookShelf uygulamasinda "Kitap Asistani" adinda yardimsever bir kitap asistanisin. Kullanicinin kitapligindaki kitaplara gore kisisellestirilmis kitap onerileri yap ve okudugu/okumak istedigi kitaplar hakkinda sohbet et. Kisa, samimi ve dogal bir dille (Turkce) yanit ver.
+    // Uygulama TR/EN iki dilli kullaniliyor ve kullanicilar arayuz dilinden
+    // bagimsiz olarak istedikleri dilde yazabiliyor - bu yuzden yanit dilini
+    // arayuzdeki secili dile (lang) SABITLEMIYORUZ, modelden kullanicinin o
+    // mesajda yazdigi dili kendisinin tespit edip onunla cevap vermesini
+    // istiyoruz. lang sadece dilin belirsiz oldugu (ör. tek kelimelik/emoji
+    // mesaj) nadir durumlar icin bir yedek/varsayilan olarak kullaniliyor.
+    const uiLanguageName = lang === 'en' ? 'English' : 'Turkish';
+    const systemPrompt = `You are "Kitap Asistanı" (Book Assistant), a helpful reading assistant inside the BookShelf app. Give personalized book recommendations based on the user's library below, and chat with them about books they've read or want to read. Reply briefly and warmly.
 
-Kullanicinin kitapligi:
-${bookContext || '(henuz kitap eklenmemis)'}`,
-      en: `You are "Book Assistant", a helpful reading assistant inside the BookShelf app. Give personalized book recommendations based on the user's library, and chat with them about books they've read or want to read. Reply briefly, warmly, and in natural English.
+IMPORTANT: Always reply in the same language the user's latest message is written in (Turkish, English, or otherwise), regardless of what language earlier messages used. Only if that message's language truly cannot be determined (e.g. it's empty, a single emoji, or an ambiguous word), default to ${uiLanguageName}.
 
 The user's library:
-${bookContext || '(no books added yet)'}`,
-    };
-    const systemPrompt = SYSTEM_PROMPTS[lang];
+${bookContext || '(no books added yet)'}`;
 
     const contents = [
       ...history.map((m) => ({
@@ -170,7 +172,7 @@ ${bookContext || '(no books added yet)'}`,
     const geminiData = await geminiRes.json();
     const replyText =
       geminiData?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ||
-      'Uzgunum, bir yanit olusturamadim.';
+      (lang === 'en' ? "Sorry, I couldn't generate a reply." : 'Üzgünüm, bir yanıt oluşturamadım.');
 
     const { error: insertAiMsgError } = await supabase
       .from('ai_messages')
