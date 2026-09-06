@@ -26,7 +26,7 @@
   <a href="https://github.com/kagankurubas/bookshelf/actions/workflows/ci.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status">
   </a>
-  <img src="https://img.shields.io/badge/tests-86_passing-3ECF8E?style=for-the-badge" alt="86 tests passing">
+  <img src="https://img.shields.io/badge/tests-96_passing-3ECF8E?style=for-the-badge" alt="96 tests passing">
 </p>
 
 <p align="center">
@@ -59,7 +59,8 @@ library and lets you chat about what you're reading.
   bookshelf.
 - **Dynamic shelves** — no fixed slot/capacity; each shelf row grows to
   exactly however many books you put on it, and you can drag books
-  between shelves and reorder them.
+  between shelves and reorder them (on touch devices, tap a book's
+  handle to pick it up, then tap where it should go).
 - **Multiple libraries** — organize books into separate libraries; the
   first one you create becomes a protected main library that always
   holds every book, so nothing gets orphaned if you delete another one.
@@ -218,12 +219,13 @@ Use **Sign Up** on the screen that opens to create your first account.
 
 ### Tests
 
-![86 tests passing](https://img.shields.io/badge/tests-86_passing-3ECF8E?style=flat-square)
+![96 tests passing](https://img.shields.io/badge/tests-96_passing-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
 A real Vitest + React Testing Library suite covering the app's core
 logic: the auth, books and libraries hooks and the AI chat hook (with
-Supabase mocked), shelf drag-and-drop reordering, the deterministic
+Supabase mocked), shelf drag-and-drop reordering including the
+tap-to-pick-and-place fallback used on touch devices, the deterministic
 shelf-spine sizing math, the dashboard's colorblind-safe category
 color mapping, the Open Library API wrapper (response mapping and
 caching, with `fetch` mocked), and a couple of presentational
@@ -283,7 +285,9 @@ dahil.
   rafı.
 - **Dinamik raf sistemi** — sabit slot/kapasite yok, her raf üzerine
   koyduğun kitap sayısı kadar uzuyor; kitapları sürükleyerek raflar
-  arasında taşıyabilir, sırasını değiştirebilirsin.
+  arasında taşıyabilir, sırasını değiştirebilirsin (dokunmatik
+  ekranlarda kitabın tutamacına dokunup seçtikten sonra hedefe
+  dokunarak da taşıyabilirsin).
 - **Birden fazla kitaplık** — kitaplarını ayrı kitaplıklara ayır; ilk
   oluşturduğun kitaplık, her kitabı her zaman barındıran korumalı bir
   ana kitaplık olur - başka bir kitaplığı silsen bile hiçbir kitap
@@ -447,13 +451,14 @@ Açılan sayfadan **Kayıt Ol** ile ilk hesabını oluştur.
 
 ### Testler
 
-![86 test geçiyor](https://img.shields.io/badge/testler-86_ge%C3%A7iyor-3ECF8E?style=flat-square)
+![96 test geçiyor](https://img.shields.io/badge/testler-96_ge%C3%A7iyor-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
 Uygulamanın temel mantığını kapsayan gerçek bir Vitest + React Testing
 Library paketi var: auth, kitaplar ve kitaplıklar hook'ları ile AI sohbet
 hook'u (Supabase mock'lanarak), raf üzerinde sürükle-bırak ile yeniden
-sıralama, deterministik kitap sırtı boyutlandırma matematiği,
+sıralama - dokunmatik ekranlarda kullanılan dokunarak-seç-ve-taşı
+alternatifi dahil - deterministik kitap sırtı boyutlandırma matematiği,
 dashboard'daki renk-körlüğü güvenli kategori renk eşlemesi, Open Library
 API sarmalayıcısı (yanıt eşleme ve önbellekleme, `fetch` mock'lanarak),
 ve birkaç sunum bileşeni (render, tıklama davranışı, çevrilen etiketler).
