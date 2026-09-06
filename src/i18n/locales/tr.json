@@ -24,6 +24,7 @@
     "inputPlaceholder": "Bir kitap hakkında soru sor...",
     "typing": "Yazıyor...",
     "error": "Bir şeyler ters gitti, tekrar dener misin?",
+    "dailyLimitReached": "Bugünkü Kitap Asistanı kullanım hakkın doldu, yarın tekrar deneyebilirsin.",
     "conversationSelectLabel": "Sohbet seç",
     "close": "Kapat",
     "sendLabel": "Gönder"

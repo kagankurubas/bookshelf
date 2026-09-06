@@ -24,6 +24,7 @@
     "inputPlaceholder": "Ask a question about a book...",
     "typing": "Typing...",
     "error": "Something went wrong, want to try again?",
+    "dailyLimitReached": "You've used up today's Book Assistant quota — please try again tomorrow.",
     "conversationSelectLabel": "Select conversation",
     "close": "Close",
     "sendLabel": "Send"

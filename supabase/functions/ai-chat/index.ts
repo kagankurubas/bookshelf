@@ -14,6 +14,14 @@ const GEMINI_MODEL = 'gemini-3.6-flash';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
 
+// Gemini ucretsiz katmaninda bu modelin gunluk istek kotasi (RPD) 20 - ve
+// bu, TUM kullanicilar arasinda PAYLASILAN tek bir sinir, kullanici basina
+// degil. O gercek sinira carpip Google'dan beklenmedik hatalar almamak
+// icin kendi ic kotamizi kasten daha dusuk tutuyoruz; asagida
+// try_consume_ai_quota RPC'siyle (bkz. migrations/012_ai_daily_quota.sql)
+// bu sayiya ulasilinca Gemini'yi hic cagirmadan nazik bir hata donuyoruz.
+const DAILY_QUOTA_LIMIT = 15;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -54,6 +62,29 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'message is required' }, 400);
     }
     const lang = language === 'en' ? 'en' : 'tr';
+
+    // Gunluk kota kontrolu - herhangi bir konusma/mesaj kaydi olusturmadan
+    // ONCE yapiliyor ki kota dolduğunda veritabaninda yarim kalan kayit
+    // birikmesin. Google'in kotasi Pasifik saatiyle gece yarisi
+    // sifirlandigi icin gun sinirini da ayni saat dilimine gore hesapliyoruz.
+    const usageDate = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Los_Angeles',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+
+    const { data: quotaOk, error: quotaError } = await supabase.rpc('try_consume_ai_quota', {
+      p_usage_date: usageDate,
+      p_max_requests: DAILY_QUOTA_LIMIT,
+    });
+    if (quotaError) throw quotaError;
+    if (!quotaOk) {
+      // 200 doneriz ki supabase-js data.error yolunu kullansin - boylece
+      // istemci bu makine-okunabilir kodu (DAILY_LIMIT_REACHED) guvenilir
+      // sekilde yakalayip kullaniciya cevirili, nazik bir mesaj gosterebilir.
+      return jsonResponse({ error: 'DAILY_LIMIT_REACHED' }, 200);
+    }
 
     // Sohbeti bul, yoksa olustur.
     let convoId = conversationId;

@@ -49,6 +49,11 @@ function AiChatDrawer({ userId, onClose }) {
   };
 
   const suggestions = [t('aiChat.suggestion1'), t('aiChat.suggestion2')];
+  // Edge Function, paylasilan gunluk Gemini kotasi dolduğunda bu
+  // makine-okunabilir kodu doner (bkz. supabase/functions/ai-chat) - genel
+  // hata mesaji yerine kullaniciya bunu nazikce acikliyoruz ve kompozer'i
+  // devre disi birakiyoruz (tekrar denemenin bir anlami yok).
+  const isDailyLimitReached = error?.message === 'DAILY_LIMIT_REACHED';
 
   return (
     <div className="ai-chat-overlay" onClick={onClose}>
@@ -98,19 +103,24 @@ function AiChatDrawer({ userId, onClose }) {
           )}
 
           {isSending && <div className="ai-chat-typing">{t('aiChat.typing')}</div>}
-          {error && <p className="ai-chat-error">{t('aiChat.error')}</p>}
+          {error && (
+            <p className="ai-chat-error">
+              {isDailyLimitReached ? t('aiChat.dailyLimitReached') : t('aiChat.error')}
+            </p>
+          )}
           <div ref={messagesEndRef} />
         </div>
 
         <form className="ai-chat-composer" onSubmit={handleSubmit}>
           <input
             className="ai-chat-composer-input"
-            placeholder={t('aiChat.inputPlaceholder')}
+            placeholder={isDailyLimitReached ? t('aiChat.dailyLimitReached') : t('aiChat.inputPlaceholder')}
             aria-label={t('aiChat.inputPlaceholder')}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            disabled={isDailyLimitReached}
           />
-          <button type="submit" className="ai-chat-send-btn" disabled={isSending || !input.trim()} aria-label={t('aiChat.sendLabel')}>
+          <button type="submit" className="ai-chat-send-btn" disabled={isSending || !input.trim() || isDailyLimitReached} aria-label={t('aiChat.sendLabel')}>
             <SendIcon />
           </button>
         </form>
