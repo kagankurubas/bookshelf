@@ -1,29 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PlusIcon, MoveHandleIcon } from '../icons/Icons';
-import { getSpineSize, getSpineFilter, getCategoryEmblem, chunkIntoLines } from '../../lib/shelfSpine';
+import { getSpineSize, getSpineFilter, getCategoryEmblem, getCategoryColorClass, chunkIntoLines } from '../../lib/shelfSpine';
 
-function ShelfView({
-  books,
-  shelfCount,
-  draggedBookId,
-  dragOverTarget,
-  pickedBookId,
-  onAddShelfRow,
-  onRemoveShelfRow,
-  onDragStart,
-  onDragEnd,
-  onDragOverAt,
-  onDropAt,
-  onPickBook,
-  onPlaceBook,
-  onCancelPick,
-  onOpenBook,
-  getCategoryColorClass,
-}) {
+function ShelfView({ books, shelfCount, shelfDnd, onOpenBook }) {
   const { t, i18n } = useTranslation();
   const containerRef = useRef(null);
   const [availableWidth, setAvailableWidth] = useState(0);
+  const { draggedBookId, dragOverTarget, pickedBookId, getSlotInteractionProps } = shelfDnd;
 
   useEffect(() => {
     const el = containerRef.current;
@@ -53,11 +37,11 @@ function ShelfView({
   const isPicking = pickedBookId !== null;
 
   return (
-    <main className="wooden-shelf-main-wrapper" onDragEnd={onDragEnd}>
+    <main className="wooden-shelf-main-wrapper" onDragEnd={shelfDnd.handleDragEnd}>
 
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '25px', gap: '8px' }}>
         <button
-          onClick={onAddShelfRow}
+          onClick={shelfDnd.handleAddShelfRow}
           className="chip-btn"
           title={t('shelf.addRowTitle')}
         >
@@ -66,7 +50,7 @@ function ShelfView({
 
         {shelfCount > 1 && (
           <button
-            onClick={onRemoveShelfRow}
+            onClick={shelfDnd.handleRemoveShelfRow}
             className="btn-danger-outline"
             title={t('shelf.removeRowTitle')}
           >
@@ -78,7 +62,7 @@ function ShelfView({
       {isPicking && (
         <div className="shelf-move-banner">
           <span>{t('shelf.movePickHint')}</span>
-          <button type="button" className="chip-btn" onClick={onCancelPick}>{t('toolbar.cancel')}</button>
+          <button type="button" className="chip-btn" onClick={shelfDnd.cancelPick}>{t('toolbar.cancel')}</button>
         </div>
       )}
 
@@ -91,15 +75,7 @@ function ShelfView({
               <div
                 key={rowIndex}
                 className={`shelf-row-empty ${isAppendHovered ? 'drag-over' : ''} ${isPicking ? 'pick-target' : ''}`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  onDragOverAt(rowIndex, null);
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  onDropAt(rowIndex, null);
-                }}
-                onClick={() => { if (isPicking) onPlaceBook(rowIndex, null); }}
+                {...getSlotInteractionProps(rowIndex, null)}
               >
                 <span>{isLibraryEmpty ? t('shelf.emptyLibraryHint') : t('shelf.emptyRowHint')}</span>
               </div>
@@ -129,25 +105,7 @@ function ShelfView({
                       <div
                         key={book.id}
                         className={`shelf-book ${colorClass} ${draggedBookId === book.id ? 'dragging' : ''} ${isHovered ? 'drag-over' : ''} ${isPicked ? 'picked' : ''} ${isPicking && !isPicked ? 'pick-target' : ''}`}
-                        draggable
-                        onDragStart={(e) => onDragStart(e, book.id)}
-                        onDragEnd={onDragEnd}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          onDragOverAt(rowIndex, book.id);
-                        }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          onDropAt(rowIndex, book.id);
-                        }}
-                        onClick={() => {
-                          if (isPicking) {
-                            if (isPicked) onCancelPick();
-                            else onPlaceBook(rowIndex, book.id);
-                            return;
-                          }
-                          onOpenBook(book);
-                        }}
+                        {...getSlotInteractionProps(rowIndex, book, onOpenBook)}
                         title={`${book.title} (${t(`categories.${book.category}`, book.category)}) - ${t('shelf.dragHint')}`}
                         style={{ width: `${width}px`, height: `${height}px`, filter: spineFilter }}
                       >
@@ -161,7 +119,7 @@ function ShelfView({
                           className="shelf-book-move-handle"
                           title={t('shelf.moveHandleTitle')}
                           aria-label={t('shelf.moveHandleTitle')}
-                          onClick={(e) => { e.stopPropagation(); onPickBook(book.id); }}
+                          onClick={(e) => { e.stopPropagation(); shelfDnd.handlePickBook(book.id); }}
                         >
                           <MoveHandleIcon />
                         </button>
@@ -172,15 +130,7 @@ function ShelfView({
                   {lineIndex === lines.length - 1 && (
                     <div
                       className={`shelf-append-zone ${(draggedBookId !== null || isPicking) ? 'active' : ''} ${isAppendHovered ? 'drag-over' : ''}`}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        onDragOverAt(rowIndex, null);
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        onDropAt(rowIndex, null);
-                      }}
-                      onClick={() => { if (isPicking) onPlaceBook(rowIndex, null); }}
+                      {...getSlotInteractionProps(rowIndex, null)}
                     ></div>
                   )}
                 </div>

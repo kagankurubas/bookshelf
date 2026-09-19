@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import BarcodeScanner from '../BarcodeScanner/BarcodeScanner';
 import { getBookByIsbn } from '../../lib/openLibrary';
+import { countBooksInRow } from '../../lib/shelfSpine';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import './BatchScanner.css';
 
@@ -63,9 +64,7 @@ function BatchScanner({ books, activeLibraryId, addBook, onBatchSaved, onClose, 
     setIsSaving(true);
     setSaveError(null);
 
-    let nextSlot = books.filter(
-      (b) => b.libraryIds.includes(activeLibraryId) && (b.shelfRow ?? 0) === 0
-    ).length;
+    let nextSlot = countBooksInRow(books, activeLibraryId, 0);
 
     let saved = 0;
     try {

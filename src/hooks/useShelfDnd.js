@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { countBooksInRow as countBooksInRowPure } from '../lib/shelfSpine';
 
 // Raf gorunumundeki surukle-birak yeniden siralama ve raf kati ekleme/silme
 // mantigini tasir. shelfCount disaridan geliyor cunku aktif kitapligin hangi
@@ -13,10 +14,7 @@ export function useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, u
 
   const currentLibraryBooks = books.filter((b) => b.libraryIds.includes(activeLibraryId));
 
-  // Bir kitaplığın belirli bir raf katında kaç kitap oldugunu sayar - yeni
-  // kitaplar bu katin sonuna eklenir (shelf_row: 0, sirali slot_index).
-  const countBooksInRow = (libraryId, shelfRow) =>
-    books.filter((b) => b.libraryIds.includes(libraryId) && (b.shelfRow ?? 0) === shelfRow).length;
+  const countBooksInRow = (libraryId, shelfRow) => countBooksInRowPure(books, libraryId, shelfRow);
 
   // Yeni Raf Katı Ekle
   const handleAddShelfRow = async () => {
@@ -134,11 +132,42 @@ export function useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, u
     setPickedBookId(null);
   };
 
+  // ShelfView'daki 3 hedef turu (bos sira, kitap sirti, ekleme alani) icin
+  // ayni "tiklama ne anlama gelir" (seciliyken iptal/tasi, degilse ac)
+  // dalini tek yerde topluyor - book === null bos bir alani temsil eder.
+  const getSlotInteractionProps = (shelfRow, book, onOpen) => {
+    const bookId = book?.id ?? null;
+    const onClick = () => {
+      if (pickedBookId !== null) {
+        if (book && pickedBookId === bookId) cancelPick();
+        else handlePlaceBook(shelfRow, bookId);
+        return;
+      }
+      if (book && onOpen) onOpen(book);
+    };
+    const onDragOver = (e) => {
+      e.preventDefault();
+      onDragOverAt(shelfRow, bookId);
+    };
+    const onDrop = (e) => {
+      e.preventDefault();
+      handleDropAt(shelfRow, bookId);
+    };
+    const props = { onClick, onDragOver, onDrop };
+    if (book) {
+      props.draggable = true;
+      props.onDragStart = (e) => handleDragStart(e, book.id);
+      props.onDragEnd = handleDragEnd;
+    }
+    return props;
+  };
+
   return {
     draggedBookId,
     dragOverTarget,
     pickedBookId,
     countBooksInRow,
+    getSlotInteractionProps,
     handleAddShelfRow,
     handleRemoveShelfRow,
     handleDragStart,

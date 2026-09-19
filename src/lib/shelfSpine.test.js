@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hashString, getSpineSize, getSpineFilter, getCategoryEmblem, chunkIntoLines } from './shelfSpine';
+import { hashString, getSpineSize, getSpineFilter, getCategoryEmblem, chunkIntoLines, countBooksInRow } from './shelfSpine';
 
 describe('hashString', () => {
   it('is deterministic for the same input', () => {
@@ -97,5 +97,22 @@ describe('chunkIntoLines', () => {
     const lines = chunkIntoLines(books, 120);
     const flattened = lines.flat();
     expect(flattened.map((b) => b.id)).toEqual(books.map((b) => b.id));
+  });
+});
+
+describe('countBooksInRow', () => {
+  it('counts only books in the given library and shelf row', () => {
+    const books = [
+      { id: 'a', libraryIds: ['lib-1'], shelfRow: 0 },
+      { id: 'b', libraryIds: ['lib-1'], shelfRow: 0 },
+      { id: 'c', libraryIds: ['lib-1'], shelfRow: 1 },
+      { id: 'd', libraryIds: ['lib-2'], shelfRow: 0 },
+    ];
+    expect(countBooksInRow(books, 'lib-1', 0)).toBe(2);
+  });
+
+  it('treats a missing shelfRow as row 0', () => {
+    const books = [{ id: 'a', libraryIds: ['lib-1'] }];
+    expect(countBooksInRow(books, 'lib-1', 0)).toBe(1);
   });
 });

@@ -23,7 +23,6 @@ import { useAddBookFlow } from './hooks/useAddBookFlow';
 import { useShelfDnd } from './hooks/useShelfDnd';
 import { useBookFilters } from './hooks/useBookFilters';
 import { useLibrary } from './hooks/useLibrary';
-import { getCategoryColorClass } from './lib/shelfSpine';
 import './App.css';
 
 // zxing-wasm barkod okuma motorunu tasiyan bu iki bilesen sadece kullanici
@@ -296,20 +295,8 @@ function App() {
         <ShelfView
           books={currentLibraryBooks}
           shelfCount={shelfCount}
-          draggedBookId={shelfDnd.draggedBookId}
-          dragOverTarget={shelfDnd.dragOverTarget}
-          pickedBookId={shelfDnd.pickedBookId}
-          onAddShelfRow={shelfDnd.handleAddShelfRow}
-          onRemoveShelfRow={shelfDnd.handleRemoveShelfRow}
-          onDragStart={shelfDnd.handleDragStart}
-          onDragEnd={shelfDnd.handleDragEnd}
-          onDragOverAt={shelfDnd.onDragOverAt}
-          onDropAt={shelfDnd.handleDropAt}
-          onPickBook={shelfDnd.handlePickBook}
-          onPlaceBook={shelfDnd.handlePlaceBook}
-          onCancelPick={shelfDnd.cancelPick}
+          shelfDnd={shelfDnd}
           onOpenBook={addFlow.openBookDetailModal}
-          getCategoryColorClass={getCategoryColorClass}
         />
       )}
 

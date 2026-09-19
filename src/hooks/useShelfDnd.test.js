@@ -156,4 +156,108 @@ describe('useShelfDnd', () => {
 
     expect(updateBookPosition).not.toHaveBeenCalled();
   });
+
+  // getSlotInteractionProps, ShelfView'da 3 farkli hedef turune (bos sira,
+  // kitap sirti, ekleme alani) kopyalanan "tiklama ne anlama gelir" dalini
+  // tek bir yerde toplar - bkz. ShelfView.jsx.
+  describe('getSlotInteractionProps', () => {
+    it('opens the book on click when nothing is being picked', () => {
+      const books = [book('A', 0, 0)];
+      const { result } = setup(books);
+      const onOpen = vi.fn();
+
+      const props = result.current.getSlotInteractionProps(0, books[0], onOpen);
+      act(() => props.onClick());
+
+      expect(onOpen).toHaveBeenCalledWith(books[0]);
+    });
+
+    it('does nothing on click for an empty slot when nothing is being picked', () => {
+      const { result } = setup([]);
+      const onOpen = vi.fn();
+
+      const props = result.current.getSlotInteractionProps(0, null, onOpen);
+      act(() => props.onClick());
+
+      expect(onOpen).not.toHaveBeenCalled();
+    });
+
+    it('cancels the pick on click when clicking the already-picked book, instead of opening it', () => {
+      const books = [book('A', 0, 0)];
+      const { result } = setup(books);
+      const onOpen = vi.fn();
+
+      act(() => result.current.handlePickBook('A'));
+      const props = result.current.getSlotInteractionProps(0, books[0], onOpen);
+      act(() => props.onClick());
+
+      expect(result.current.pickedBookId).toBeNull();
+      expect(onOpen).not.toHaveBeenCalled();
+    });
+
+    it('places the picked book on click at a different slot, instead of opening it', async () => {
+      const books = [book('A', 0, 0), book('B', 1, 0)];
+      const { result, updateBookPosition } = setup(books);
+      const onOpen = vi.fn();
+
+      act(() => result.current.handlePickBook('A'));
+      const props = result.current.getSlotInteractionProps(1, books[1], onOpen);
+      await act(async () => props.onClick());
+
+      expect(updateBookPosition).toHaveBeenCalledWith('A', 1, 0);
+      expect(result.current.pickedBookId).toBeNull();
+      expect(onOpen).not.toHaveBeenCalled();
+    });
+
+    it('places the picked book on click at an empty slot (book === null)', async () => {
+      const books = [book('A', 0, 0)];
+      const { result, updateBookPosition } = setup(books);
+
+      act(() => result.current.handlePickBook('A'));
+      const props = result.current.getSlotInteractionProps(1, null);
+      await act(async () => props.onClick());
+
+      expect(updateBookPosition).toHaveBeenCalledWith('A', 1, 0);
+      expect(result.current.pickedBookId).toBeNull();
+    });
+
+    it('sets the drag-over target and drops the currently dragged book there', async () => {
+      const books = [book('A', 0, 0), book('B', 1, 0)];
+      const { result, updateBookPosition } = setup(books);
+      const dragOverEvent = { preventDefault: vi.fn() };
+
+      act(() => result.current.handleDragStart(dragEvent(), 'A'));
+      const props = result.current.getSlotInteractionProps(1, books[1]);
+
+      act(() => props.onDragOver(dragOverEvent));
+      expect(dragOverEvent.preventDefault).toHaveBeenCalled();
+      expect(result.current.dragOverTarget).toEqual({ shelfRow: 1, bookId: 'B' });
+
+      await act(async () => props.onDrop({ preventDefault: vi.fn() }));
+      expect(updateBookPosition).toHaveBeenCalledWith('A', 1, 0);
+    });
+
+    it('makes a book slot draggable and wires drag-start/drag-end to the book', () => {
+      const books = [book('A', 0, 0)];
+      const { result } = setup(books);
+
+      const props = result.current.getSlotInteractionProps(0, books[0]);
+      expect(props.draggable).toBe(true);
+
+      act(() => props.onDragStart(dragEvent()));
+      expect(result.current.draggedBookId).toBe('A');
+
+      act(() => props.onDragEnd());
+      expect(result.current.draggedBookId).toBeNull();
+    });
+
+    it('does not make an empty slot draggable', () => {
+      const { result } = setup([]);
+      const props = result.current.getSlotInteractionProps(0, null);
+
+      expect(props.draggable).toBeFalsy();
+      expect(props.onDragStart).toBeUndefined();
+      expect(props.onDragEnd).toBeUndefined();
+    });
+  });
 });

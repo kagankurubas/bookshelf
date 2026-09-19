@@ -81,6 +81,13 @@ export function getCategoryColorClass(category) {
   }
 }
 
+// Bir kitaplığın belirli bir raf katında kaç kitap oldugunu sayar - yeni
+// kitaplar bu katin sonuna eklenir (shelf_row: 0, sirali slot_index).
+// useShelfDnd ve BatchScanner (toplu tarama) ayni hesabi paylasir.
+export function countBooksInRow(books, libraryId, shelfRow) {
+  return books.filter((b) => b.libraryIds.includes(libraryId) && (b.shelfRow ?? 0) === shelfRow).length;
+}
+
 const SPINE_GAP = 9; // .shelf-row'daki gap ile aynı olmalı
 
 // Bir raf katındaki kitapları, verilen genişliğe sığacak şekilde satırlara
