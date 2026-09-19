@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import BookModal from './components/BookModal/BookModal';
 import BookSearch from './components/BookSearch/BookSearch';
@@ -22,6 +22,7 @@ import { useReadingStats } from './hooks/useReadingStats';
 import { useAddBookFlow } from './hooks/useAddBookFlow';
 import { useShelfDnd } from './hooks/useShelfDnd';
 import { useBookFilters } from './hooks/useBookFilters';
+import { useLibrary } from './hooks/useLibrary';
 import { getCategoryColorClass } from './lib/shelfSpine';
 import './App.css';
 
@@ -55,13 +56,33 @@ function App() {
     error: librariesError,
     createLibrary,
     updateLibrary,
-    deleteLibrary,
+    deleteLibrary: deleteLibraryRow,
     refetchLibraries,
   } = useLibraries(user?.id);
-  const [explicitActiveLibraryId, setActiveLibraryId] = useState(null);
-  const defaultLibrary = libraries.find((lib) => lib.isDefault) || libraries[0] || null;
-  const activeLibraryId = explicitActiveLibraryId ?? defaultLibrary?.id ?? null;
+
+  // useLibrary'nin mutator'ları basari sonrasi okuma istatistiklerini
+  // tazelemek icin refreshStats'a ihtiyac duyuyor, ama refreshStats
+  // useReadingStats'tan geliyor ve o da useLibrary'nin urettigi
+  // activeLibraryId'ye ihtiyac duyuyor - dongusel bagimliligi bir ref ile
+  // kiriyoruz: useLibrary'ye verilen fonksiyon her zaman en son render'da
+  // atanmis readingStats'i okur, mutator'lar ise ancak bir kullanici
+  // etkilesiminde (render bittikten sonra) cagrilir.
+  const readingStatsRef = useRef(null);
+  const library = useLibrary({
+    libraries,
+    addBook,
+    editBook,
+    deleteBook,
+    refetchBooks,
+    deleteLibrary: deleteLibraryRow,
+    refreshStats: () => readingStatsRef.current?.refetchStats(),
+  });
+  const { activeLibraryId, activeLibrary } = library;
   const readingStats = useReadingStats(activeLibraryId);
+  useEffect(() => {
+    readingStatsRef.current = readingStats;
+  });
+
   const [newLibraryName, setNewLibraryName] = useState('');
   const [isAddingLibrary, setIsAddingLibrary] = useState(false);
   const [libraryNameError, setLibraryNameError] = useState(null);
@@ -71,8 +92,7 @@ function App() {
   const bookFilters = useBookFilters(books, activeLibraryId);
 
   // Aktif kitaplığın raf kat sayısını alalım (artık sabit kapasite yok)
-  const activeLibrary = libraries.find(l => l.id === activeLibraryId) || libraries[0] || { shelfCount: 2 };
-  const shelfCount = activeLibrary.shelfCount || 2;
+  const shelfCount = activeLibrary?.shelfCount || 2;
 
   const shelfDnd = useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, updateBookPosition);
   const addFlow = useAddBookFlow(shelfDnd.draggedBookId);
@@ -85,35 +105,14 @@ function App() {
 
   const currentLibraryBooks = books.filter(book => book.libraryIds.includes(activeLibraryId));
 
-  // Ana kitaplık silinemez ve her kitap her zaman ona bağlı kalır - bu sayede
-  // başka bir kitaplık silinse bile kitaplar veritabanında "sahipsiz" kalıp
-  // hem gorunmez olmuyor hem de tekrar eklenmeye calisilinca cakismiyor.
-  // Tum ekleme yollarindan (BookModal, BatchScanner) gecen tek ortak nokta
-  // burasi oldugu icin garanti burada uygulaniyor.
-  const withDefaultLibrary = (libraryIds) => {
-    const ids = new Set(libraryIds || []);
-    if (defaultLibrary?.id) ids.add(defaultLibrary.id);
-    return Array.from(ids);
-  };
-
-  const addBookToLibrary = async (bookFields) => {
-    const result = await addBook({ ...bookFields, libraryIds: withDefaultLibrary(bookFields.libraryIds) });
-    // Kitap sayısı/sayfa/puan gibi okuma istatistikleri kitaplardan ayrı bir
-    // RPC ile hesaplanıyor, books state'i değişince otomatik güncellenmiyor -
-    // her ekleme/düzenleme/silmeden sonra elle tazeleniyor.
-    readingStats.refetchStats();
-    return result;
-  };
-
   const handleSaveBook = async (bookData) => {
     try {
       if (bookData.id) {
-        await editBook(bookData.id, { ...bookData, libraryIds: withDefaultLibrary(bookData.libraryIds) });
-        readingStats.refetchStats();
+        await library.editBook(bookData.id, bookData);
       } else {
         const libraryIds = bookData.libraryIds && bookData.libraryIds.length ? bookData.libraryIds : [activeLibraryId];
 
-        await addBookToLibrary({
+        await library.addBook({
           ...bookData,
           libraryIds,
           shelfRow: 0,
@@ -132,8 +131,7 @@ function App() {
   const handleDeleteBook = async (e, id) => {
     e.stopPropagation();
     try {
-      await deleteBook(id);
-      readingStats.refetchStats();
+      await library.deleteBook(id);
     } catch (err) {
       console.error(err);
       alert(t('alerts.deleteBookError'));
@@ -154,7 +152,7 @@ function App() {
         // olur - boylece her zaman en az bir silinmez kitaplik garanti edilir.
         isDefault: libraries.length === 0
       });
-      setActiveLibraryId(newLib.id);
+      library.setActiveLibraryId(newLib.id);
       setNewLibraryName('');
       setIsAddingLibrary(false);
       setLibraryNameError(null);
@@ -166,9 +164,7 @@ function App() {
 
   const handleDeleteLibrary = async (libId) => {
     try {
-      await deleteLibrary(libId);
-      setActiveLibraryId(null);
-      await refetchBooks();
+      await library.deleteLibrary(libId);
     } catch (err) {
       console.error(err);
       alert(t('alerts.deleteLibraryError'));
@@ -241,7 +237,7 @@ function App() {
       <LibraryToolbar
         libraries={libraries}
         activeLibraryId={activeLibraryId}
-        onChangeActiveLibrary={setActiveLibraryId}
+        onChangeActiveLibrary={library.setActiveLibraryId}
         isAddingLibrary={isAddingLibrary}
         onStartAddingLibrary={() => { setIsAddingLibrary(true); setLibraryNameError(null); }}
         onCancelAddingLibrary={() => { setIsAddingLibrary(false); setLibraryNameError(null); }}
@@ -318,7 +314,7 @@ function App() {
       )}
 
       {activeView === 'dashboard' && (
-        <DashboardPage libraryId={activeLibraryId} libraryName={activeLibrary.name} books={currentLibraryBooks} />
+        <DashboardPage libraryId={activeLibraryId} libraryName={activeLibrary?.name} books={currentLibraryBooks} />
       )}
 
       {addFlow.isAddChoiceOpen && (
@@ -356,7 +352,8 @@ function App() {
               <BatchScanner
                 books={books}
                 activeLibraryId={activeLibraryId}
-                addBook={addBookToLibrary}
+                addBook={library.addBookWithoutStatsRefresh}
+                onBatchSaved={library.refreshStats}
                 onClose={addFlow.closeBatchScan}
                 onManualAddIsbn={addFlow.handleManualAddFromIsbn}
               />

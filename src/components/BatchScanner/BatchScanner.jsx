@@ -15,7 +15,7 @@ const CelebrateIcon = () => (<svg width="30" height="30" viewBox="0 0 24 24" fil
 // dururken) yeniden islenmesin diye bekleme suresi.
 const REPROCESS_COOLDOWN_MS = 4000;
 
-function BatchScanner({ books, activeLibraryId, addBook, onClose, onManualAddIsbn }) {
+function BatchScanner({ books, activeLibraryId, addBook, onBatchSaved, onClose, onManualAddIsbn }) {
   const { t } = useTranslation();
   useEscapeKey(onClose);
   const [phase, setPhase] = useState('scanning'); // 'scanning' | 'review' | 'done'
@@ -92,6 +92,10 @@ function BatchScanner({ books, activeLibraryId, addBook, onClose, onManualAddIsb
       setSavedCount(saved);
       setSaveError(t('batchScanner.saveError'));
     } finally {
+      // addBook her cagrida stats'i ayrica tazelemiyor (N kitaplik bir
+      // partide N gereksiz refetch olmasin diye) - kismi basari da dahil,
+      // dongu bitince bir kez tazeliyoruz.
+      if (saved > 0) onBatchSaved();
       setIsSaving(false);
     }
   };
