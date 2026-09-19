@@ -61,7 +61,27 @@
     "noCategoryData": "No books completed yet.",
     "loadError": "Couldn't load your stats. Check your connection and try again.",
     "monthsShort": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-    "monthsLong": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    "monthsLong": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    "shareRecap": "Share"
+  },
+  "readingRecap": {
+    "title": "Reading Recap",
+    "close": "Close",
+    "modeMonth": "Month",
+    "modeYear": "Year",
+    "monthSelectLabel": "Select month",
+    "yearSelectLabel": "Select year",
+    "bookCount_one": "{{count}} book",
+    "bookCount_other": "{{count}} books",
+    "overflowBadge": "+{{count}} more",
+    "empty": "No books finished in this period yet.",
+    "share": "Share",
+    "download": "Download",
+    "generating": "Preparing image...",
+    "shareTitle": "My Reading Recap",
+    "shareText": "{{period}}: I read {{count}} books!",
+    "shareError": "Something went wrong generating the image. Please try again.",
+    "filenamePrefix": "reading-recap"
   },
   "cards": {
     "empty": "No books in this library yet.",

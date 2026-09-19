@@ -10,7 +10,8 @@ import ReadingStats from '../ReadingStats/ReadingStats';
 import TrendChart from '../charts/TrendChart';
 import CategoryPieChart from '../charts/CategoryPieChart';
 import CustomSelect from '../CustomSelect/CustomSelect';
-import { ChevronDownIcon } from '../icons/Icons';
+import ReadingRecap from '../ReadingRecap/ReadingRecap';
+import { ChevronDownIcon, ShareIcon } from '../icons/Icons';
 import './DashboardPage.css';
 
 const CalendarIcon = () => (
@@ -32,11 +33,12 @@ function MetricToggle({ value, onChange, t }) {
   );
 }
 
-function DashboardPage({ libraryId, libraryName }) {
+function DashboardPage({ libraryId, libraryName, books }) {
   const { t } = useTranslation();
   const [selectedYear, setSelectedYear] = useState(null); // null = tüm zamanlar
   const [trendMetric, setTrendMetric] = useState('books'); // 'books' | 'pages' - aylık + yıllık grafikler için
   const [categoryMetric, setCategoryMetric] = useState('books'); // kategori grafiği için ayrı
+  const [isRecapOpen, setIsRecapOpen] = useState(false);
 
   const readingYears = useReadingYears(libraryId);
   const { years } = readingYears;
@@ -104,21 +106,29 @@ function DashboardPage({ libraryId, libraryName }) {
           <p className="dashboard-subtitle">{libraryName}</p>
         </div>
 
-        <div className="dashboard-year-select-wrap">
-          <CalendarIcon />
-          <CustomSelect
-            className="dashboard-year-select"
-            ariaLabel={t('dashboard.yearSelectLabel')}
-            value={selectedYear}
-            onChange={setSelectedYear}
-            options={[
-              { value: null, label: t('dashboard.allTime') },
-              ...years.map((year) => ({ value: year, label: String(year) })),
-            ]}
-          />
-          <ChevronDownIcon />
+        <div className="dashboard-header-actions">
+          <div className="dashboard-year-select-wrap">
+            <CalendarIcon />
+            <CustomSelect
+              className="dashboard-year-select"
+              ariaLabel={t('dashboard.yearSelectLabel')}
+              value={selectedYear}
+              onChange={setSelectedYear}
+              options={[
+                { value: null, label: t('dashboard.allTime') },
+                ...years.map((year) => ({ value: year, label: String(year) })),
+              ]}
+            />
+            <ChevronDownIcon />
+          </div>
+
+          <button type="button" className="chip-btn" onClick={() => setIsRecapOpen(true)}>
+            <ShareIcon /> {t('dashboard.shareRecap')}
+          </button>
         </div>
       </div>
+
+      {isRecapOpen && <ReadingRecap books={books} onClose={() => setIsRecapOpen(false)} />}
 
       {hasLoadError && (
         <div className="dashboard-error-banner">

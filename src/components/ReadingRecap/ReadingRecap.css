@@ -1,0 +1,153 @@
+.recap-modal {
+  max-width: 560px;
+  width: 92%;
+}
+
+.recap-modal-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.recap-modal-body {
+  padding: 4px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recap-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.recap-select {
+  padding: 8px 13px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+/* Paylaşılabilir kart: 1:1 kare, dışa aktarılan görselin ta kendisi -
+   html-to-image bu düğümü doğrudan PNG'ye çeviriyor. */
+.recap-card {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(165deg, oklch(30% 0.03 60) 0%, oklch(18% 0.02 40) 100%);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  box-sizing: border-box;
+}
+
+.recap-card-watermark {
+  align-self: flex-start;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.recap-card-period {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 22px;
+  color: #fff;
+  margin-top: 8px;
+}
+
+.recap-card-shelf {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  align-content: flex-end;
+  gap: 9px;
+  padding-top: 12px;
+}
+
+/* Her sırt, ölçeklenmiş (RECAP_SPINE_SCALE) gerçek boyutu kadar yer kaplayan
+   bir "yuva" içinde render ediliyor - içerideki .shelf-book kendi tam
+   boyutunda kalıp CSS transform: scale ile küçültülüyor (bkz.
+   ReadingRecap.jsx), taşan kısmı burada kırpıyoruz. */
+.recap-spine-slot {
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Rafta (ShelfView) sürüklenebilir/hover davranışı burada istenmiyor -
+   kart statik, sadece görüntülenip dışa aktarılıyor. */
+.recap-card-shelf .shelf-book {
+  cursor: default;
+  margin-bottom: 0;
+}
+
+/* App.css'teki .shelf-book:hover kaldırma efekti (translateY) burada aynı
+   transform özelliğini kullandığı için ölçeklemeyi ezip sırtı birden tam
+   boyuta sıçratırdı - hover'da da aynı ölçekte kalsın diye eziyoruz. */
+.recap-card-shelf .shelf-book:hover {
+  transform: scale(0.55);
+}
+
+.recap-overflow-badge {
+  align-self: flex-end;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.recap-card-count {
+  align-self: center;
+  margin-top: 14px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.recap-card-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: var(--font-body);
+  font-size: 13px;
+  margin: 0;
+  padding: 0 20px;
+}
+
+.recap-error {
+  color: var(--danger);
+  font-size: 12.5px;
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+}
+
+.recap-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  align-self: center;
+  min-width: 180px;
+}

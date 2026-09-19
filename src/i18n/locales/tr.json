@@ -61,7 +61,27 @@
     "noCategoryData": "Henüz tamamlanmış kitap yok.",
     "loadError": "İstatistikler yüklenemedi. Bağlantını kontrol edip tekrar dene.",
     "monthsShort": ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"],
-    "monthsLong": ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
+    "monthsLong": ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"],
+    "shareRecap": "Paylaş"
+  },
+  "readingRecap": {
+    "title": "Okuma Özeti",
+    "close": "Kapat",
+    "modeMonth": "Ay",
+    "modeYear": "Yıl",
+    "monthSelectLabel": "Ay seç",
+    "yearSelectLabel": "Yıl seç",
+    "bookCount_one": "{{count}} kitap",
+    "bookCount_other": "{{count}} kitap",
+    "overflowBadge": "+{{count}} kitap daha",
+    "empty": "Bu dönemde henüz bitirilmiş kitap yok.",
+    "share": "Paylaş",
+    "download": "İndir",
+    "generating": "Görsel hazırlanıyor...",
+    "shareTitle": "Okuma Özetim",
+    "shareText": "{{period}}: {{count}} kitap okudum!",
+    "shareError": "Görsel oluşturulurken bir hata oluştu. Lütfen tekrar dene.",
+    "filenamePrefix": "okuma-ozeti"
   },
   "cards": {
     "empty": "Bu kitaplıkta henüz kitap yok.",

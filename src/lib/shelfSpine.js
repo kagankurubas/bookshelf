@@ -64,6 +64,23 @@ export function getCategoryEmblem(category, language = 'tr') {
   return category ? category.slice(0, 3).toUpperCase() : '';
 }
 
+// Kategoriye göre sırt zemin rengini seçen CSS sınıfı - ShelfView ve Okuma
+// Özeti aynı ".shelf-book.category-*" kurallarını (App.css) paylaşır.
+export function getCategoryColorClass(category) {
+  switch (category) {
+    case 'Klasik Edebiyat': return 'category-klasik';
+    case 'Fantastik Kurgu': return 'category-fantastik';
+    case 'Bilim Kurgu': return 'category-bilimkurgu';
+    case 'Distopya': return 'category-distopya';
+    case 'Kurgu': return 'category-kurgu';
+    case 'Tarih': return 'category-tarih';
+    case 'Felsefe': return 'category-felsefe';
+    case 'Biyografi': return 'category-biyografi';
+    case 'Bilim': return 'category-bilim';
+    default: return 'category-default';
+  }
+}
+
 const SPINE_GAP = 9; // .shelf-row'daki gap ile aynı olmalı
 
 // Bir raf katındaki kitapları, verilen genişliğe sığacak şekilde satırlara

@@ -22,6 +22,7 @@ import { useReadingStats } from './hooks/useReadingStats';
 import { useAddBookFlow } from './hooks/useAddBookFlow';
 import { useShelfDnd } from './hooks/useShelfDnd';
 import { useBookFilters } from './hooks/useBookFilters';
+import { getCategoryColorClass } from './lib/shelfSpine';
 import './App.css';
 
 // zxing-wasm barkod okuma motorunu tasiyan bu iki bilesen sadece kullanici
@@ -75,21 +76,6 @@ function App() {
 
   const shelfDnd = useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, updateBookPosition);
   const addFlow = useAddBookFlow(shelfDnd.draggedBookId);
-
-  const getCategoryColorClass = (category) => {
-    switch (category) {
-      case 'Klasik Edebiyat': return 'category-klasik';
-      case 'Fantastik Kurgu': return 'category-fantastik';
-      case 'Bilim Kurgu': return 'category-bilimkurgu';
-      case 'Distopya': return 'category-distopya';
-      case 'Kurgu': return 'category-kurgu';
-      case 'Tarih': return 'category-tarih';
-      case 'Felsefe': return 'category-felsefe';
-      case 'Biyografi': return 'category-biyografi';
-      case 'Bilim': return 'category-bilim';
-      default: return 'category-default';
-    }
-  };
 
   const renderStars = (rating) => (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
@@ -332,7 +318,7 @@ function App() {
       )}
 
       {activeView === 'dashboard' && (
-        <DashboardPage libraryId={activeLibraryId} libraryName={activeLibrary.name} />
+        <DashboardPage libraryId={activeLibraryId} libraryName={activeLibrary.name} books={currentLibraryBooks} />
       )}
 
       {addFlow.isAddChoiceOpen && (

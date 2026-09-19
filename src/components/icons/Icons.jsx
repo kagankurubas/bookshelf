@@ -96,3 +96,16 @@ export const MoveHandleIcon = () => (
 export const SparkleIcon = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 5.6L19 9l-5.2 1.9L12 16l-1.8-5.1L5 9l5.2-1.4z" /></svg>
 );
+
+export const ShareIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+    <path d="M8.6 10.5l6.8-3.9M8.6 13.5l6.8 3.9" />
+  </svg>
+);
+
+export const DownloadIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M12 3v13m0 0l-4.5-4.5M12 16l4.5-4.5" /><path d="M4 19h16" />
+  </svg>
+);
