@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAiChat } from '../../hooks/useAiChat';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { AI_CHAT_ERROR_CODES } from '../../lib/aiChatErrors';
 import './AiChatDrawer.css';
 
 const SparkleIcon = () => (
@@ -49,11 +50,11 @@ function AiChatDrawer({ userId, onClose }) {
   };
 
   const suggestions = [t('aiChat.suggestion1'), t('aiChat.suggestion2')];
-  // Edge Function, paylasilan gunluk Gemini kotasi dolduğunda bu
-  // makine-okunabilir kodu doner (bkz. supabase/functions/ai-chat) - genel
-  // hata mesaji yerine kullaniciya bunu nazikce acikliyoruz ve kompozer'i
-  // devre disi birakiyoruz (tekrar denemenin bir anlami yok).
-  const isDailyLimitReached = error?.message === 'DAILY_LIMIT_REACHED';
+  // useAiChat, paylasilan gunluk Gemini kotasi dolduğunda bu hatayi
+  // AI_CHAT_ERROR_CODES.DAILY_LIMIT koduyla isaretler (bkz. lib/aiChatErrors) -
+  // genel hata mesaji yerine kullaniciya bunu nazikce acikliyoruz ve
+  // kompozer'i devre disi birakiyoruz (tekrar denemenin bir anlami yok).
+  const isDailyLimitReached = error?.code === AI_CHAT_ERROR_CODES.DAILY_LIMIT;
 
   return (
     <div className="ai-chat-overlay" onClick={onClose}>

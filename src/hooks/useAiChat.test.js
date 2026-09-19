@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useAiChat } from './useAiChat';
 import { supabase } from '../lib/supabaseClient';
+import { AI_CHAT_WIRE_ERRORS } from '../lib/aiChatErrors';
 
 vi.mock('../lib/supabaseClient', () => ({
   supabase: {
@@ -74,7 +75,7 @@ describe('useAiChat', () => {
 
     await act(async () => result.current.sendMessage('Merhaba'));
 
-    expect(result.current.error).toBeTruthy();
+    expect(result.current.error).toEqual({ code: 'unknown', message: 'Unauthorized' });
     expect(result.current.isSending).toBe(false);
     // Optimistic user mesaji kalir, ama asistan yaniti eklenmez.
     expect(result.current.messages).toHaveLength(1);
@@ -93,9 +94,23 @@ describe('useAiChat', () => {
 
     await act(async () => result.current.sendMessage('Merhaba'));
 
-    expect(result.current.error).toBeTruthy();
-    expect(result.current.error.message).toBe('Gemini API error: 500 internal error');
+    expect(result.current.error).toEqual({ code: 'unknown', message: 'Gemini API error: 500 internal error' });
     expect(result.current.messages).toHaveLength(1);
     expect(result.current.activeConversationId).toBeNull();
+  });
+
+  it('sets a daily_limit coded error when the shared Gemini quota is exhausted', async () => {
+    supabase.from.mockReturnValue(queryResult({ data: [], error: null }));
+    supabase.functions.invoke.mockResolvedValueOnce({
+      data: { error: AI_CHAT_WIRE_ERRORS.DAILY_LIMIT_REACHED },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useAiChat('user-1'));
+    await waitFor(() => expect(result.current.conversations).toEqual([]));
+
+    await act(async () => result.current.sendMessage('Merhaba'));
+
+    expect(result.current.error).toEqual({ code: 'daily_limit', message: AI_CHAT_WIRE_ERRORS.DAILY_LIMIT_REACHED });
   });
 });

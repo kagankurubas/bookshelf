@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabaseClient';
+import { parseAiChatError } from '../lib/aiChatErrors';
 
 export function useAiChat(userId) {
   const { i18n } = useTranslation();
@@ -76,7 +77,7 @@ export function useAiChat(userId) {
         setMessages((prev) => [...prev, { id: `reply-${Date.now()}`, role: 'assistant', content: data.reply }]);
       } catch (err) {
         console.error(err);
-        setError(err);
+        setError(parseAiChatError(err));
       } finally {
         setIsSending(false);
       }

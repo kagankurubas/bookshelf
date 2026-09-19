@@ -83,6 +83,10 @@ Deno.serve(async (req) => {
       // 200 doneriz ki supabase-js data.error yolunu kullansin - boylece
       // istemci bu makine-okunabilir kodu (DAILY_LIMIT_REACHED) guvenilir
       // sekilde yakalayip kullaniciya cevirili, nazik bir mesaj gosterebilir.
+      // Bu fonksiyon Supabase Dashboard'a manuel yapistirilarak deploy
+      // ediliyor (repo icinden import edemiyor), bu yuzden asagidaki string
+      // src/lib/aiChatErrors.js'teki AI_CHAT_WIRE_ERRORS.DAILY_LIMIT_REACHED
+      // ile elle senkron tutulmali - biri degisirse digeri de degismeli.
       return jsonResponse({ error: 'DAILY_LIMIT_REACHED' }, 200);
     }
 
