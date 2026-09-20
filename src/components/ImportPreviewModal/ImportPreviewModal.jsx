@@ -114,6 +114,7 @@ function ImportPreviewModal({ books, addBook, libraries, onClose }) {
     setSummary({
       addedCount,
       missingTitleCount: parseSkippedRows.filter((row) => row.reason === 'missing-title').length,
+      malformedRowCount: parseSkippedRows.filter((row) => row.reason === 'malformed-row').length,
       duplicateSkippedCount,
       deselectedCount,
       addFailedCount,
@@ -194,9 +195,18 @@ function ImportPreviewModal({ books, addBook, libraries, onClose }) {
                 ))}
               </ul>
 
-              {parseSkippedRows.length > 0 && (
+              {parseSkippedRows.filter((row) => row.reason === 'missing-title').length > 0 && (
                 <p className="import-status-text">
-                  {t('import.missingTitleSkipped', { count: parseSkippedRows.length })}
+                  {t('import.missingTitleSkipped', {
+                    count: parseSkippedRows.filter((row) => row.reason === 'missing-title').length,
+                  })}
+                </p>
+              )}
+              {parseSkippedRows.filter((row) => row.reason === 'malformed-row').length > 0 && (
+                <p className="import-status-text">
+                  {t('import.summaryMalformedRows', {
+                    count: parseSkippedRows.filter((row) => row.reason === 'malformed-row').length,
+                  })}
                 </p>
               )}
 
@@ -229,6 +239,11 @@ function ImportPreviewModal({ books, addBook, libraries, onClose }) {
               {summary.missingTitleCount > 0 && (
                 <p className="import-summary-line">
                   {t('import.missingTitleSkipped', { count: summary.missingTitleCount })}
+                </p>
+              )}
+              {summary.malformedRowCount > 0 && (
+                <p className="import-summary-line">
+                  {t('import.summaryMalformedRows', { count: summary.malformedRowCount })}
                 </p>
               )}
               {summary.duplicateSkippedCount > 0 && (

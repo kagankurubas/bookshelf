@@ -298,6 +298,7 @@
     "possibleDuplicate": "Muhtemel çift kayıt",
     "previewSummary": "{{count}} kitap bulundu, {{selected}} tanesi seçili.",
     "missingTitleSkipped": "{{count}} satır başlık eksik olduğu için atlandı.",
+    "summaryMalformedRows": "{{count}} kitap bozuk formatlı olduğu için atlandı.",
     "summaryAdded": "{{count}} kitap eklendi.",
     "summaryLibraryNote": "İçe aktarılan tüm kitaplar varsayılan kitaplığına ({{library}}) eklendi — kaynak platformdaki kitaplık/shelf gruplamanız aktarılmadı.",
     "summaryDuplicateSkipped": "{{count}} satır, mevcut kitaplarınızla eşleştiği için (muhtemel çift kayıt) atlandı.",

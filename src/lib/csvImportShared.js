@@ -26,7 +26,17 @@ export const COMPLETED_STATUS = 'Tamamlandı';
 //
 // Donus degeri iki sekilden biri:
 //  - { error: 'malformed' | 'wrong-format' }
-//  - { rows: [...], fields: [...] }
+//  - { rows: [...], fields: [...], malformedRowIndices: Set<number> }
+//
+// malformedRowIndices: Papa.parse'in kendi result.errors dizisinden turetilen,
+// satir-bazli hatasi olan (ör. baslikla uyusmayan alan sayisi - TooManyFields/
+// TooFewFields, veya kapanmamis tirnak - MissingQuotes) satirlarin indeksleri.
+// Bu indeksler `rows` (yani parsed.data) ile AYNI indekslemeyi kullanir -
+// Papa.parse'in error.row alani, header satiri disarida tutulmus veri
+// satirinin parsed.data'daki konumuna esittir (bkz. csvImportShared.test.js -
+// empirik olarak dogrulandi). Caller'lar (goodreadsImport.js/storygraphImport.js)
+// bu seti kullanarak, satiri eslemeye hic baslamadan once atlayabilir - bkz.
+// skipIfMalformedRow.
 export function parseCsvRows(csvText, hasExpectedColumns) {
   if (!csvText || !csvText.trim()) {
     return { error: 'malformed' };
@@ -46,7 +56,28 @@ export function parseCsvRows(csvText, hasExpectedColumns) {
     return { error: 'wrong-format' };
   }
 
-  return { rows: parsed.data, fields };
+  const malformedRowIndices = new Set(
+    (parsed.errors || [])
+      .filter((err) => typeof err.row === 'number')
+      .map((err) => err.row)
+  );
+
+  return { rows: parsed.data, fields, malformedRowIndices };
+}
+
+// Papa.parse'in row-bazli hatasina yakalanmis (bkz. parseCsvRows'un
+// malformedRowIndices'i) bir satiri atlamak icin ortak kontrol -
+// getTitleOrSkip ile ayni desen: satir bozuksa skippedRows'a 'malformed-row'
+// nedeniyle eklenir ve true doner (caller bu satiri eslemeyi durdurmali).
+// Caller'lar bunu getTitleOrSkip'ten ONCE cagirmali - bozuk bir satirin
+// kaymis/eksik alanlari, "baslik eksik" gibi yanlis bir sebeple de
+// atlanabilir, oysa gercek sebep satirin kendisinin bozuk olmasidir.
+export function skipIfMalformedRow(index, malformedRowIndices, skippedRows) {
+  if (malformedRowIndices && malformedRowIndices.has(index)) {
+    skippedRows.push({ index, reason: 'malformed-row' });
+    return true;
+  }
+  return false;
 }
 
 // Baslik bos olan bir satiri atlamak icin ortak kontrol - hem Goodreads hem

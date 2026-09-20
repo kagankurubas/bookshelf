@@ -15,8 +15,8 @@ const HEADER =
 // (1984 / George Orwell) olarak kuruyoruz.
 const CSV_TEXT = [
   HEADER,
-  '1,Fahrenheit 451,Ray Bradbury,"Bradbury, Ray",,,="9781451673319",5,4.0,Simon & Schuster,Paperback,256,1953,1953,2023/06/01,2023/05/01,,,read,,,,,1,,,0,,,,,',
-  '2,1984,George Orwell,"Orwell, George",,,="9780451524935",4,4.2,Signet Classic,Paperback,328,1949,1949,2023/07/01,2023/05/01,,,read,,,,,1,,,0,,,,,',
+  '1,Fahrenheit 451,Ray Bradbury,"Bradbury, Ray",,,="9781451673319",5,4.0,Simon & Schuster,Paperback,256,1953,1953,2023/06/01,2023/05/01,,,read,,,,,1,,,0,,,,',
+  '2,1984,George Orwell,"Orwell, George",,,="9780451524935",4,4.2,Signet Classic,Paperback,328,1949,1949,2023/07/01,2023/05/01,,,read,,,,,1,,,0,,,,',
 ].join('\n');
 
 function buildFile(text = CSV_TEXT) {
@@ -163,7 +163,7 @@ describe('ImportPreviewModal', () => {
     const missingTitleCsv = [
       HEADER,
       ',,George Orwell,,,,,,,,,,,,,,,,,read,,,,,,,,,,,',
-      '2,1984,George Orwell,"Orwell, George",,,="9780451524935",4,4.2,Signet Classic,Paperback,328,1949,1949,2023/07/01,2023/05/01,,,read,,,,,1,,,0,,,,,',
+      '2,1984,George Orwell,"Orwell, George",,,="9780451524935",4,4.2,Signet Classic,Paperback,328,1949,1949,2023/07/01,2023/05/01,,,read,,,,,1,,,0,,,,',
     ].join('\n');
 
     renderModal();
@@ -171,5 +171,30 @@ describe('ImportPreviewModal', () => {
 
     await waitFor(() => expect(screen.getByText('1984')).toBeInTheDocument());
     expect(screen.getByText('1 satır başlık eksik olduğu için atlandı.')).toBeInTheDocument();
+  });
+
+  it('skips a row with a malformed field count and reports it in the preview and summary', async () => {
+    // Ikinci satira fazladan kacissiz bir virgul eklenerek, 31 sutunluk
+    // baslikla uyusmayan (32 alanli) bir satir olusturuluyor - bu Papa.parse
+    // tarafindan gercek bir "TooManyFields" hatasi olarak isaretleniyor
+    // (bkz. csvImportShared.test.js).
+    const malformedCsv = [
+      HEADER,
+      '1,Fahrenheit 451,Ray Bradbury,"Bradbury, Ray",,,="9781451673319",5,4.0,Simon & Schuster,Paperback,256,1953,1953,2023/06/01,2023/05/01,,,read,,,,,1,,,0,,,,,extra-field',
+      '2,1984,George Orwell,"Orwell, George",,,="9780451524935",4,4.2,Signet Classic,Paperback,328,1949,1949,2023/07/01,2023/05/01,,,read,,,,,1,,,0,,,,',
+    ].join('\n');
+
+    renderModal({ books: [] });
+    await uploadFile(buildFile(malformedCsv));
+
+    await waitFor(() => expect(screen.getByText('1984')).toBeInTheDocument());
+    // Bozuk satir (Fahrenheit 451) onizleme listesinde hic gorunmemeli.
+    expect(screen.queryByText('Fahrenheit 451')).not.toBeInTheDocument();
+    expect(screen.getByText('1 kitap bozuk formatlı olduğu için atlandı.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /1 kitabı içe aktar/ }));
+
+    await waitFor(() => expect(screen.getByText('1 kitap eklendi.')).toBeInTheDocument());
+    expect(screen.getByText('1 kitap bozuk formatlı olduğu için atlandı.')).toBeInTheDocument();
   });
 });
