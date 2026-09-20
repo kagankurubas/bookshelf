@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { setupRlsFixture, insertOwnRow } from './fixtures.js';
+import {
+  setupRlsFixture,
+  insertRow,
+  insertOwnRow,
+  expectSelectEmpty,
+  expectWriteDenied,
+  expectInsertRejected,
+} from './fixtures.js';
 
 // `libraries` ve `books` ikisi de dogrudan bir `user_id` kolonuna sahip, bu
 // yuzden pozitif kontrol (kendi satirini olusturma) icin `insertOwnRow`
@@ -56,8 +63,18 @@ describe('RLS entegrasyon: libraries + books izolasyonu', () => {
         .select('*')
         .eq('id', inserted.id);
 
-      expect(error).toBeNull();
-      expect(data).toEqual([]);
+      expectSelectEmpty({ data, error });
+    });
+
+    it("rejects User A's libraries INSERT when she spoofs User B's user_id", async () => {
+      const { userA, userB } = fixture;
+
+      const { data, error } = await insertRow(userA.client, 'libraries', {
+        name: 'Sahte Sahiplik Kitapligi',
+        user_id: userB.id,
+      });
+
+      expectInsertRejected({ data, error });
     });
 
     it("leaves User A's libraries row unchanged when User B tries to update it", async () => {
@@ -74,8 +91,7 @@ describe('RLS entegrasyon: libraries + books izolasyonu', () => {
         .eq('id', inserted.id)
         .select();
 
-      expect(updateError).toBeNull();
-      expect(updateData).toEqual([]);
+      expectWriteDenied({ data: updateData, error: updateError });
 
       const { data: refetched, error: refetchError } = await userA.client
         .from('libraries')
@@ -101,8 +117,7 @@ describe('RLS entegrasyon: libraries + books izolasyonu', () => {
         .eq('id', inserted.id)
         .select();
 
-      expect(deleteError).toBeNull();
-      expect(deleteData).toEqual([]);
+      expectWriteDenied({ data: deleteData, error: deleteError });
 
       const { data: stillThere, error: refetchError } = await userA.client
         .from('libraries')
@@ -151,8 +166,19 @@ describe('RLS entegrasyon: libraries + books izolasyonu', () => {
 
       const { data, error } = await userB.client.from('books').select('*').eq('id', inserted.id);
 
-      expect(error).toBeNull();
-      expect(data).toEqual([]);
+      expectSelectEmpty({ data, error });
+    });
+
+    it("rejects User A's books INSERT when she spoofs User B's user_id", async () => {
+      const { userA, userB } = fixture;
+
+      const { data, error } = await insertRow(userA.client, 'books', {
+        title: 'Sahte Sahiplik Kitabi',
+        author: 'Test Yazar',
+        user_id: userB.id,
+      });
+
+      expectInsertRejected({ data, error });
     });
 
     it("leaves User A's books row unchanged when User B tries to update/delete it", async () => {
@@ -170,8 +196,7 @@ describe('RLS entegrasyon: libraries + books izolasyonu', () => {
         .eq('id', inserted.id)
         .select();
 
-      expect(updateError).toBeNull();
-      expect(updateData).toEqual([]);
+      expectWriteDenied({ data: updateData, error: updateError });
 
       const { data: deleteData, error: deleteError } = await userB.client
         .from('books')
@@ -179,8 +204,7 @@ describe('RLS entegrasyon: libraries + books izolasyonu', () => {
         .eq('id', inserted.id)
         .select();
 
-      expect(deleteError).toBeNull();
-      expect(deleteData).toEqual([]);
+      expectWriteDenied({ data: deleteData, error: deleteError });
 
       const { data: stillThere, error: refetchError } = await userA.client
         .from('books')
@@ -200,12 +224,10 @@ describe('RLS entegrasyon: libraries + books izolasyonu', () => {
       const { data: librariesData, error: librariesError } = await anonClient
         .from('libraries')
         .select('*');
-      expect(librariesError).toBeNull();
-      expect(librariesData).toEqual([]);
+      expectSelectEmpty({ data: librariesData, error: librariesError });
 
       const { data: booksData, error: booksError } = await anonClient.from('books').select('*');
-      expect(booksError).toBeNull();
-      expect(booksData).toEqual([]);
+      expectSelectEmpty({ data: booksData, error: booksError });
     });
 
     it('cannot INSERT libraries or books rows', async () => {
@@ -215,15 +237,13 @@ describe('RLS entegrasyon: libraries + books izolasyonu', () => {
         .from('libraries')
         .insert({ name: 'Anon Kitaplik', user_id: userA.id })
         .select();
-      expect(libInsertError).not.toBeNull();
-      expect(libInsert).toBeNull();
+      expectInsertRejected({ data: libInsert, error: libInsertError });
 
       const { data: bookInsert, error: bookInsertError } = await anonClient
         .from('books')
         .insert({ title: 'Anon Kitap', author: 'Anon', user_id: userA.id })
         .select();
-      expect(bookInsertError).not.toBeNull();
-      expect(bookInsert).toBeNull();
+      expectInsertRejected({ data: bookInsert, error: bookInsertError });
     });
 
     it('cannot UPDATE or DELETE existing libraries or books rows', async () => {
@@ -247,32 +267,28 @@ describe('RLS entegrasyon: libraries + books izolasyonu', () => {
         .update({ name: 'Anon Ele Gecirdi' })
         .eq('id', library.id)
         .select();
-      expect(libUpdateError).toBeNull();
-      expect(libUpdateData).toEqual([]);
+      expectWriteDenied({ data: libUpdateData, error: libUpdateError });
 
       const { data: bookUpdateData, error: bookUpdateError } = await anonClient
         .from('books')
         .update({ title: 'Anon Ele Gecirdi' })
         .eq('id', book.id)
         .select();
-      expect(bookUpdateError).toBeNull();
-      expect(bookUpdateData).toEqual([]);
+      expectWriteDenied({ data: bookUpdateData, error: bookUpdateError });
 
       const { data: libDeleteData, error: libDeleteError } = await anonClient
         .from('libraries')
         .delete()
         .eq('id', library.id)
         .select();
-      expect(libDeleteError).toBeNull();
-      expect(libDeleteData).toEqual([]);
+      expectWriteDenied({ data: libDeleteData, error: libDeleteError });
 
       const { data: bookDeleteData, error: bookDeleteError } = await anonClient
         .from('books')
         .delete()
         .eq('id', book.id)
         .select();
-      expect(bookDeleteError).toBeNull();
-      expect(bookDeleteData).toEqual([]);
+      expectWriteDenied({ data: bookDeleteData, error: bookDeleteError });
 
       const { data: libraryStillThere, error: libraryRefetchError } = await userA.client
         .from('libraries')

@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { setupRlsFixture, insertRow, insertOwnRow } from './fixtures.js';
+import {
+  setupRlsFixture,
+  insertRow,
+  insertOwnRow,
+  expectSelectEmpty,
+  expectWriteDenied,
+  expectInsertRejected,
+} from './fixtures.js';
 
 // notes'un kendi user_id kolonu YOK - sahiplik bagli books.user_id uzerinden
 // belirleniyor (bkz. supabase/migrations/001_initial_schema.sql "Users
@@ -61,8 +68,7 @@ describe('notes RLS izolasyonu', () => {
 
     const { data, error } = await userA.client.from('notes').select('*').eq('book_id', bookB.id);
 
-    expect(error).toBeNull();
-    expect(data).toEqual([]);
+    expectSelectEmpty({ data, error });
   });
 
   it("has no effect when User A updates User B's note", async () => {
@@ -74,8 +80,7 @@ describe('notes RLS izolasyonu', () => {
       .eq('id', noteB.id)
       .select();
 
-    expect(error).toBeNull();
-    expect(data).toEqual([]);
+    expectWriteDenied({ data, error });
 
     const { data: stillIntact, error: adminError } = await adminClient
       .from('notes')
@@ -92,8 +97,7 @@ describe('notes RLS izolasyonu', () => {
 
     const { data, error } = await userA.client.from('notes').delete().eq('id', noteB.id).select();
 
-    expect(error).toBeNull();
-    expect(data).toEqual([]);
+    expectWriteDenied({ data, error });
 
     const { data: stillExists, error: adminError } = await adminClient
       .from('notes')
@@ -109,30 +113,26 @@ describe('notes RLS izolasyonu', () => {
     const { anonClient } = fixture;
 
     const { data: selectData, error: selectError } = await anonClient.from('notes').select('*');
-    expect(selectError).toBeNull();
-    expect(selectData).toEqual([]);
+    expectSelectEmpty({ data: selectData, error: selectError });
 
     const { data: insertData, error: insertError } = await insertRow(anonClient, 'notes', {
       book_id: bookA.id,
       text: 'anon notu',
     });
-    expect(insertData).toBeNull();
-    expect(insertError).not.toBeNull();
+    expectInsertRejected({ data: insertData, error: insertError });
 
     const { data: updateData, error: updateError } = await anonClient
       .from('notes')
       .update({ text: 'anon guncellemesi' })
       .eq('id', noteA.id)
       .select();
-    expect(updateError).toBeNull();
-    expect(updateData).toEqual([]);
+    expectWriteDenied({ data: updateData, error: updateError });
 
     const { data: deleteData, error: deleteError } = await anonClient
       .from('notes')
       .delete()
       .eq('id', noteA.id)
       .select();
-    expect(deleteError).toBeNull();
-    expect(deleteData).toEqual([]);
+    expectWriteDenied({ data: deleteData, error: deleteError });
   });
 });
