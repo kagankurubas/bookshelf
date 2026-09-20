@@ -24,6 +24,7 @@ function ImportPreviewModal({ books, addBook, libraries, onClose }) {
   const [isReading, setIsReading] = useState(false);
   const [previewRows, setPreviewRows] = useState([]);
   const [parseSkippedRows, setParseSkippedRows] = useState([]);
+  const [roundedRatingsCount, setRoundedRatingsCount] = useState(0);
   const [isImporting, setIsImporting] = useState(false);
   const [summary, setSummary] = useState(null);
 
@@ -59,6 +60,10 @@ function ImportPreviewModal({ books, addBook, libraries, onClose }) {
 
       setPreviewRows(rowsWithFlags);
       setParseSkippedRows(result.skippedRows || []);
+      // Sadece bazi platform parserlari (ör. StoryGraph) kucuratli rating
+      // yuvarlar - Goodreads gibi bu alani hic donmeyen parserlar icin 0'a
+      // dusuyoruz, boylece ozet satiri gereksiz yere gorunmuyor.
+      setRoundedRatingsCount(result.roundedRatingsCount || 0);
       setStep('preview');
     } catch {
       // Dosya okunamadi (ör. bozuk/beklenmeyen encoding) - teknik olmayan
@@ -102,6 +107,7 @@ function ImportPreviewModal({ books, addBook, libraries, onClose }) {
       duplicateSkippedCount,
       deselectedCount,
       addFailedCount,
+      roundedRatingsCount,
       libraryName: defaultLibrary?.name || '',
     });
     setIsImporting(false);
@@ -223,6 +229,11 @@ function ImportPreviewModal({ books, addBook, libraries, onClose }) {
               {summary.deselectedCount > 0 && (
                 <p className="import-summary-line">
                   {t('import.summaryDeselectedSkipped', { count: summary.deselectedCount })}
+                </p>
+              )}
+              {summary.roundedRatingsCount > 0 && (
+                <p className="import-summary-line">
+                  {t('import.summaryRoundedRatings', { count: summary.roundedRatingsCount })}
                 </p>
               )}
               {summary.addFailedCount > 0 && (
