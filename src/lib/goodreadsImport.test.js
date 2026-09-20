@@ -152,6 +152,25 @@ describe('parseGoodreadsCsv', () => {
     expect(result.skippedRows).toEqual([{ index: 0, reason: 'missing-title' }]);
   });
 
+  // Papa.parse'in kendi hata listesini (result.errors) parseCsvRows'un
+  // yakalayip skippedRows'a 'malformed-row' olarak eklemesini dogruluyoruz.
+  // Fazladan kacissiz bir virgul, baslikla (31 sutun) uyusmayan bir alan
+  // sayisi (32) uretiyor - bu Papa.parse'de gercekten bir "TooManyFields"
+  // hatasi doguruyor (bkz. csvImportShared.test.js).
+  it('skips a row with a field-count mismatch (malformed row) and does not produce a garbage book entry', () => {
+    const goodRow1 = row({ title: 'Book One' });
+    const malformedRow = row({ title: 'Book Two' }) + ',extra-unescaped-field';
+    const goodRow2 = row({ title: 'Book Three' });
+    const csv = buildCsv([goodRow1, malformedRow, goodRow2]);
+
+    const result = parseGoodreadsCsv(csv);
+
+    expect(result.error).toBeUndefined();
+    expect(result.bookFields).toHaveLength(2);
+    expect(result.bookFields.map((b) => b.title)).toEqual(['Book One', 'Book Three']);
+    expect(result.skippedRows).toEqual([{ index: 1, reason: 'malformed-row' }]);
+  });
+
   it('treats an unparseable rating/page count as a safe default instead of throwing', () => {
     const csv = buildCsv([row({ myRating: '', numPages: '' })]);
     const result = parseGoodreadsCsv(csv);

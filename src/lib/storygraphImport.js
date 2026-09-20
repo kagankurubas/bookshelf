@@ -3,6 +3,7 @@ import {
   getTitleOrSkip,
   getDateFinishedIfCompleted,
   wrapNote,
+  skipIfMalformedRow,
   BASE_STATUS_MAP,
   DEFAULT_STATUS,
 } from './csvImportShared';
@@ -76,6 +77,8 @@ export function parseStoryGraphCsv(csvText) {
   let roundedRatingsCount = 0;
 
   parseResult.rows.forEach((row, index) => {
+    if (skipIfMalformedRow(index, parseResult.malformedRowIndices, skippedRows)) return;
+
     const title = getTitleOrSkip(row['Title'], index, skippedRows);
     if (title === null) return;
 

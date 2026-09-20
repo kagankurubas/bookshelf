@@ -3,6 +3,7 @@ import {
   getTitleOrSkip,
   getDateFinishedIfCompleted,
   wrapNote,
+  skipIfMalformedRow,
   BASE_STATUS_MAP,
   DEFAULT_STATUS,
 } from './csvImportShared';
@@ -62,6 +63,8 @@ export function parseGoodreadsCsv(csvText) {
   const skippedRows = [];
 
   parseResult.rows.forEach((row, index) => {
+    if (skipIfMalformedRow(index, parseResult.malformedRowIndices, skippedRows)) return;
+
     const title = getTitleOrSkip(row['Title'], index, skippedRows);
     if (title === null) return;
 

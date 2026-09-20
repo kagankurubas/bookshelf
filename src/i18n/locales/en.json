@@ -298,6 +298,7 @@
     "possibleDuplicate": "Possible duplicate",
     "previewSummary": "{{count}} book(s) found, {{selected}} selected.",
     "missingTitleSkipped": "{{count}} row(s) skipped because they had no title.",
+    "summaryMalformedRows": "{{count}} row(s) skipped because they were in a malformed format.",
     "summaryAdded": "{{count}} book(s) added.",
     "summaryLibraryNote": "All imported books were added to your default library ({{library}}) — shelf/library groupings from the source platform were not carried over.",
     "summaryDuplicateSkipped": "{{count}} row(s) skipped because they looked like duplicates of books you already have.",

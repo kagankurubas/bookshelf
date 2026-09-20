@@ -166,6 +166,23 @@ describe('parseStoryGraphCsv', () => {
     expect(result.skippedRows).toEqual([{ index: 0, reason: 'missing-title' }]);
   });
 
+  // Fazladan kacissiz bir virgul, baslikla (23 sutun) uyusmayan bir alan
+  // sayisi uretiyor - Papa.parse bunu "TooManyFields" hatasi olarak
+  // isaretliyor (bkz. csvImportShared.test.js icin empirik dogrulama).
+  it('skips a row with a field-count mismatch (malformed row) and does not produce a garbage book entry', () => {
+    const goodRow1 = row({ title: 'Book One' });
+    const malformedRow = row({ title: 'Book Two' }) + ',extra-unescaped-field';
+    const goodRow2 = row({ title: 'Book Three' });
+    const csv = buildCsv([goodRow1, malformedRow, goodRow2]);
+
+    const result = parseStoryGraphCsv(csv);
+
+    expect(result.error).toBeUndefined();
+    expect(result.bookFields).toHaveLength(2);
+    expect(result.bookFields.map((b) => b.title)).toEqual(['Book One', 'Book Three']);
+    expect(result.skippedRows).toEqual([{ index: 1, reason: 'malformed-row' }]);
+  });
+
   it('tolerates the "ReadStatus" (single-word) header variant in addition to "Read Status"', () => {
     const csv = buildCsv([row({ readStatus: 'did-not-finish' })], HEADER_READSTATUS_VARIANT);
     const result = parseStoryGraphCsv(csv);
