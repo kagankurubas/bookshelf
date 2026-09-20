@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { IMPORT_PARSERS } from '../../lib/importParsers';
-import { checkImportFileLimits } from '../../lib/importLimits';
+import { checkFileSizeLimit, checkRowCountLimit } from '../../lib/importLimits';
 import { markPossibleDuplicates } from '../../lib/importDedup';
 import './ImportPreviewModal.css';
 
@@ -36,12 +36,22 @@ function ImportPreviewModal({ books, addBook, libraries, onClose }) {
     if (!file) return;
 
     setFileError(null);
+
+    // Boyut kontrolu file.size uzerinden calisir - dosyanin tam metni HENUZ
+    // okunmadi, bu yuzden cok buyuk bir dosya asla file.text() ile tarayici
+    // bellegine okunmuyor (bkz. lib/importLimits.js).
+    const sizeCheck = checkFileSizeLimit(file.size);
+    if (!sizeCheck.ok) {
+      setFileError(sizeCheck.reason);
+      return;
+    }
+
     setIsReading(true);
     try {
       const csvText = await file.text();
-      const limitCheck = checkImportFileLimits(csvText, file.size);
-      if (!limitCheck.ok) {
-        setFileError(limitCheck.reason);
+      const rowCountCheck = checkRowCountLimit(csvText);
+      if (!rowCountCheck.ok) {
+        setFileError(rowCountCheck.reason);
         return;
       }
 

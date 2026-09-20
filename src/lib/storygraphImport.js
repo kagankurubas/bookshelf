@@ -1,4 +1,11 @@
-import Papa from 'papaparse';
+import {
+  parseCsvRows,
+  getTitleOrSkip,
+  getDateFinishedIfCompleted,
+  wrapNote,
+  BASE_STATUS_MAP,
+  DEFAULT_STATUS,
+} from './csvImportShared';
 
 // StoryGraph'in gercek export basligindaki, formati taniyip tanimadigimizi
 // anlamak icin kontrol ettigimiz sutunlar (Title, Authors her zaman gerekli).
@@ -16,15 +23,12 @@ const READ_STATUS_COLUMN_ALIASES = ['Read Status', 'ReadStatus'];
 
 // StoryGraph'in okuma durumu degerleri -> BookShelf'in Turkce durum adlarina
 // eslemesi. StoryGraph'in "did-not-finish" (DNF) kavrami Goodreads'ten farkli
-// olarak "Yarida Birakildi"ya tam karsilik buluyor.
+// olarak "Yarida Birakildi"ya tam karsilik buluyor. Ortak uc durum
+// csvImportShared'dan geliyor, DNF burada platforme ozgu olarak eklenir.
 const STATUS_TO_BOOKSHELF = {
-  read: 'Tamamlandı',
-  'currently-reading': 'Okunuyor',
-  'to-read': 'Başlanmadı',
+  ...BASE_STATUS_MAP,
   'did-not-finish': 'Yarıda Bırakıldı',
 };
-const DEFAULT_STATUS = 'Başlanmadı';
-const COMPLETED_STATUS = 'Tamamlandı';
 
 function findReadStatusColumn(fields) {
   return READ_STATUS_COLUMN_ALIASES.find((col) => fields.includes(col)) || null;
@@ -58,37 +62,22 @@ function roundAndClampRating(rawValue) {
 //  - { error: 'malformed' | 'wrong-format' }  -> hicbir satir islenmedi
 //  - { bookFields: [...], skippedRows: [...], roundedRatingsCount }
 export function parseStoryGraphCsv(csvText) {
-  if (!csvText || !csvText.trim()) {
-    return { error: 'malformed' };
+  const parseResult = parseCsvRows(
+    csvText,
+    (fields) => REQUIRED_COLUMNS.every((col) => fields.includes(col)) && Boolean(findReadStatusColumn(fields))
+  );
+  if (parseResult.error) {
+    return parseResult;
   }
 
-  const parsed = Papa.parse(csvText.trim(), {
-    header: true,
-    skipEmptyLines: true,
-  });
-
-  const fields = parsed.meta?.fields || [];
-  if (fields.length === 0) {
-    return { error: 'malformed' };
-  }
-
-  const readStatusColumn = findReadStatusColumn(fields);
-  const hasExpectedColumns =
-    REQUIRED_COLUMNS.every((col) => fields.includes(col)) && Boolean(readStatusColumn);
-  if (!hasExpectedColumns) {
-    return { error: 'wrong-format' };
-  }
-
+  const readStatusColumn = findReadStatusColumn(parseResult.fields);
   const bookFields = [];
   const skippedRows = [];
   let roundedRatingsCount = 0;
 
-  parsed.data.forEach((row, index) => {
-    const title = (row['Title'] || '').trim();
-    if (!title) {
-      skippedRows.push({ index, reason: 'missing-title' });
-      return;
-    }
+  parseResult.rows.forEach((row, index) => {
+    const title = getTitleOrSkip(row['Title'], index, skippedRows);
+    if (title === null) return;
 
     const author = (row['Authors'] || '').trim();
     const isbn = (row['ISBN/UID'] || '').trim();
@@ -96,7 +85,7 @@ export function parseStoryGraphCsv(csvText) {
     const statusRaw = (row[readStatusColumn] || '').trim();
     const status = STATUS_TO_BOOKSHELF[statusRaw] || DEFAULT_STATUS;
 
-    const dateFinished = status === COMPLETED_STATUS ? (row['Last Date Read'] || '').trim() : '';
+    const dateFinished = getDateFinishedIfCompleted(status, row['Last Date Read']);
 
     const { rating, wasRounded } = roundAndClampRating(row['Star Rating']);
     if (wasRounded) {
@@ -118,7 +107,7 @@ export function parseStoryGraphCsv(csvText) {
       status,
       dateStarted: '',
       dateFinished,
-      notesList: noteText ? [{ text: noteText }] : [],
+      notesList: wrapNote(noteText),
     });
   });
 
