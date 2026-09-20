@@ -1,13 +1,42 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { buildBooksCsv, buildBooksJson, getExportFilename } from '../../lib/bookExport';
+import { DownloadIcon } from '../icons/Icons';
 import DeleteAccountModal from './DeleteAccountModal';
 import './SettingsModal.css';
 
-function SettingsModal({ userEmail, onClose, onAccountDeleted }) {
+function downloadTextFile(content, filename, mimeType) {
+  // ReadingRecap.jsx'teki indirme deseninin aynısı: Blob + createObjectURL +
+  // <a download> + revokeObjectURL - yeni bir indirme yöntemi icat edilmiyor.
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function SettingsModal({ userEmail, books = [], libraries = [], onClose, onAccountDeleted }) {
   const { t } = useTranslation();
   useEscapeKey(onClose);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
+  const libraryNameById = useMemo(
+    () => Object.fromEntries(libraries.map((lib) => [lib.id, lib.name])),
+    [libraries]
+  );
+
+  const handleExportCsv = () => {
+    const csv = buildBooksCsv(books, libraryNameById);
+    downloadTextFile(csv, getExportFilename('csv'), 'text/csv;charset=utf-8;');
+  };
+
+  const handleExportJson = () => {
+    const json = buildBooksJson(books, libraryNameById);
+    downloadTextFile(json, getExportFilename('json'), 'application/json;charset=utf-8;');
+  };
 
   return (
     <>
@@ -22,6 +51,21 @@ function SettingsModal({ userEmail, onClose, onAccountDeleted }) {
             <div className="settings-account-row">
               <span className="settings-account-label">{t('settings.emailLabel')}</span>
               <span className="settings-account-value">{userEmail}</span>
+            </div>
+
+            <div className="settings-data-section">
+              <h4 className="settings-data-title">{t('settings.dataSectionTitle')}</h4>
+              <p className="settings-data-description">{t('settings.dataSectionDescription')}</p>
+              <div className="settings-data-actions">
+                <button type="button" className="settings-data-btn" onClick={handleExportCsv}>
+                  <DownloadIcon />
+                  {t('settings.exportCsvButton')}
+                </button>
+                <button type="button" className="settings-data-btn" onClick={handleExportJson}>
+                  <DownloadIcon />
+                  {t('settings.exportJsonButton')}
+                </button>
+              </div>
             </div>
 
             <div className="settings-danger-zone">

@@ -256,7 +256,11 @@
     "emailLabel": "Email",
     "dangerZoneTitle": "Danger Zone",
     "deleteAccountDescription": "Deleting your account permanently deletes all your libraries, books, and Book Assistant chat history. This can't be undone.",
-    "deleteAccountButton": "Delete My Account"
+    "deleteAccountButton": "Delete My Account",
+    "dataSectionTitle": "Data",
+    "dataSectionDescription": "Download a copy of all your books as a CSV or JSON file.",
+    "exportCsvButton": "Download as CSV",
+    "exportJsonButton": "Download as JSON"
   },
   "deleteAccount": {
     "title": "Delete Your Account",

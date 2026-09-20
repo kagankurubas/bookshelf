@@ -256,7 +256,11 @@
     "emailLabel": "E-posta",
     "dangerZoneTitle": "Tehlikeli Bölge",
     "deleteAccountDescription": "Hesabını sildiğinde tüm kitaplıkların, kitapların ve Kitap Asistanı sohbet geçmişin kalıcı olarak silinir. Bu işlem geri alınamaz.",
-    "deleteAccountButton": "Hesabımı Sil"
+    "deleteAccountButton": "Hesabımı Sil",
+    "dataSectionTitle": "Veri",
+    "dataSectionDescription": "Tüm kitaplarının bir kopyasını CSV veya JSON dosyası olarak indir.",
+    "exportCsvButton": "CSV olarak indir",
+    "exportJsonButton": "JSON olarak indir"
   },
   "deleteAccount": {
     "title": "Hesabını Sil",
