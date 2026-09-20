@@ -53,6 +53,7 @@ function mapBookRow(row) {
     slotIndex: row.slot_index ?? 0,
     isbn: row.isbn || '',
     pageCount: row.page_count ?? null,
+    createdAt: row.created_at || '',
     libraryIds: (row.book_libraries || []).map((bl) => bl.library_id),
     notesList: (row.notes || [])
       .slice()

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import SettingsModal from './SettingsModal';
 
@@ -40,5 +40,74 @@ describe('SettingsModal', () => {
     const handlers = renderModal();
     fireEvent.click(screen.getByRole('button', { name: 'Kapat' }));
     expect(handlers.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the import modal from the Veri section', () => {
+    renderModal({ books: [], addBook: vi.fn(), libraries: [] });
+    expect(screen.queryByText('Kitap İçe Aktar')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'İçe Aktar' }));
+
+    expect(screen.getByText('Kitap İçe Aktar')).toBeInTheDocument();
+  });
+});
+
+describe('SettingsModal veri (export) section', () => {
+  const books = [
+    {
+      id: 'book-1',
+      title: 'Dune',
+      author: 'Frank Herbert',
+      status: 'Tamamlandı',
+      rating: 5,
+      libraryIds: ['lib-1'],
+      notesList: [],
+    },
+  ];
+  const libraries = [{ id: 'lib-1', name: 'Ana Kitaplık' }];
+
+  let createObjectURLSpy;
+  let revokeObjectURLSpy;
+  let clickSpy;
+
+  beforeEach(() => {
+    createObjectURLSpy = vi.fn(() => 'blob:mock-url');
+    revokeObjectURLSpy = vi.fn();
+    URL.createObjectURL = createObjectURLSpy;
+    URL.revokeObjectURL = revokeObjectURLSpy;
+    clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    clickSpy.mockRestore();
+  });
+
+  it('shows the data section with CSV and JSON download buttons', () => {
+    renderModal({ books, libraries });
+    expect(screen.getByText('Veri')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /CSV olarak indir/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /JSON olarak indir/ })).toBeInTheDocument();
+  });
+
+  it('triggers a CSV download when the CSV button is clicked', () => {
+    renderModal({ books, libraries });
+    fireEvent.click(screen.getByRole('button', { name: /CSV olarak indir/ }));
+
+    expect(createObjectURLSpy).toHaveBeenCalledTimes(1);
+    const blobArg = createObjectURLSpy.mock.calls[0][0];
+    expect(blobArg.type).toContain('text/csv');
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:mock-url');
+  });
+
+  it('triggers a JSON download when the JSON button is clicked', () => {
+    renderModal({ books, libraries });
+    fireEvent.click(screen.getByRole('button', { name: /JSON olarak indir/ }));
+
+    expect(createObjectURLSpy).toHaveBeenCalledTimes(1);
+    const blobArg = createObjectURLSpy.mock.calls[0][0];
+    expect(blobArg.type).toContain('application/json');
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:mock-url');
   });
 });

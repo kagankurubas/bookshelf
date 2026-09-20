@@ -218,6 +218,9 @@ function App() {
       {isSettingsOpen && (
         <SettingsModal
           userEmail={user.email}
+          books={books}
+          addBook={addBook}
+          libraries={libraries}
           onClose={() => setIsSettingsOpen(false)}
           onAccountDeleted={() => {
             setIsSettingsOpen(false);
