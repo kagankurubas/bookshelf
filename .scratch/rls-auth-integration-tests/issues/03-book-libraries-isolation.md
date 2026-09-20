@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**Not:** `book_libraries`'in kendi `user_id` kolonu YOK (sahiplik `book_id`→`books.user_id` ve `library_id`→`libraries.user_id` join'i üzerinden). `tests/integration/rls/fixtures.js`'teki `insertOwnRow` bu tabloda **kullanılamaz** — tüm senaryolarda çıplak `insertRow(client, 'book_libraries', { book_id, library_id })`'i, ilgili `book_id`/`library_id` değerlerini elle vererek kullan (fixture kitap/kitaplıkları `insertOwnRow` ile `books`/`libraries`'te önceden oluşturulmuş olmalı).
+
 - [ ] User A, kendi `book_id`'si + kendi `library_id`'siyle bir `book_libraries` satırı ekleyebiliyor (pozitif kontrol)
 - [ ] User A, kendi `book_id`'si + User B'nin `library_id`'siyle INSERT denediğinde işlem reddediliyor (migration-011 regresyon senaryosu, yön 1)
 - [ ] User A, User B'nin `book_id`'si + kendi `library_id`'siyle INSERT denediğinde işlem reddediliyor (migration-011 regresyon senaryosu, yön 2)

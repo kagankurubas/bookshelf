@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**Not:** `notes`'un kendi `user_id` kolonu YOK (sahiplik bağlı `books.user_id` üzerinden). `tests/integration/rls/fixtures.js`'teki `insertOwnRow` bu tabloda **kullanılamaz** — çıplak `insertRow(client, 'notes', { book_id, text })`'i, sahibi olunan (veya negatif senaryoda başkasına ait) `book_id` ile kullan.
+
 - [ ] User A, kendi kitabına bağlı `notes` satırlarını SELECT ile görebiliyor (pozitif kontrol)
 - [ ] User A, User B'nin kitabına bağlı `notes` satırlarını SELECT ettiğinde sonuç boş dönüyor
 - [ ] User A, User B'ye ait bir `notes` satırını UPDATE etmeye çalıştığında işlem etkisiz kalıyor

@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**Not:** `libraries` ve `books` ikisi de **doğrudan** `user_id` kolonuna sahip. Pozitif kontrol (kendi satırını oluşturma) için `tests/integration/rls/fixtures.js`'teki `insertOwnRow(user, table, fields)`'i kullan (otomatik `user_id` enjekte eder). Negatif kontrol (User A'nın User B'nin `user_id`'siyle INSERT denemesi) için çıplak `insertRow(client, table, fields)`'i kullan ve `user_id` alanını elle diğer kullanıcının id'siyle ver.
+
 - [ ] User A, kendi `libraries` satırlarını SELECT ile görebiliyor (pozitif kontrol)
 - [ ] User A, User B'nin `libraries` satırlarını SELECT ettiğinde sonuç boş dönüyor
 - [ ] User A, User B'ye ait bir `libraries` satırını UPDATE etmeye çalıştığında satır değişmiyor (0 satır etkilendi)
