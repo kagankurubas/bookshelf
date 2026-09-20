@@ -87,6 +87,31 @@ async function createSignedInFixtureUser(adminClient, label) {
   };
 }
 
+// Cikilmaz (raw) INSERT: verilen alanlari oldugu gibi gonderir, hicbir alani
+// otomatik doldurmaz. Negatif senaryolar icin kullanilir - orn. User A'nin
+// User B'nin user_id'siyle, ya da baskasinin book_id/library_id/
+// conversation_id'siyle INSERT denemesi (RLS'in reddetmesi beklenen
+// durumlar). Anon (oturumsuz) client ile de dogrudan bu fonksiyon kullanilir.
+export async function insertRow(client, table, fields) {
+  return client.from(table).insert(fields).select().single();
+}
+
+// SADECE dogrudan bir user_id kolonu olan tablolar icin (libraries, books,
+// ai_conversations): fixture kullanicinin (`user`, setupRlsFixture()'in
+// userA/userB'si) kendi user_id'sini otomatik enjekte eder. RLS'in
+// `with check (auth.uid() = user_id)` kismi satiri KENDI BASINA doldurmaz -
+// INSERT eden taraf user_id'yi acikca vermek zorunda; bu helper her pozitif
+// kontrol testinin bunu ayri ayri hatirlamasina gerek birakmaz.
+//
+// notes / book_libraries / ai_messages gibi DOLAYLI sahiplikli tablolarda
+// (kendi user_id kolonlari yok, sahiplik bagli satirin - books/libraries/
+// ai_conversations'in - user_id'si uzerinden RLS join'iyle belirleniyor) bu
+// helper KULLANILAMAZ - boyle tablolarda dogrudan insertRow()'u, ilgili
+// book_id/library_id/conversation_id alanlariyla cagir.
+export async function insertOwnRow(user, table, fields) {
+  return insertRow(user.client, table, { ...fields, user_id: user.id });
+}
+
 // Iki oturum acmis fixture kullanici (userA, userB), hic sign-in yapilmamis
 // bir anonClient ve ikisini de temizleyen bir cleanup() dondurur.
 export async function setupRlsFixture() {

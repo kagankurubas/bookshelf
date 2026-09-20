@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { setupRlsFixture } from './fixtures.js';
+import { setupRlsFixture, insertOwnRow } from './fixtures.js';
 
 // Bu dosya harness'in ucdan uca calistigini kanitlayan tek testtir: fixture
 // kullanici olusturma -> gercek Auth oturumu -> RLS'den gecen gercek bir
@@ -21,11 +21,10 @@ describe('RLS entegrasyon harness smoke testi', () => {
   it('lets User A create a books row with her own session and select it back', async () => {
     const { userA } = fixture;
 
-    const { data: inserted, error: insertError } = await userA.client
-      .from('books')
-      .insert({ title: 'Entegrasyon Test Kitabi', author: 'Test Yazar' })
-      .select()
-      .single();
+    const { data: inserted, error: insertError } = await insertOwnRow(userA, 'books', {
+      title: 'Entegrasyon Test Kitabi',
+      author: 'Test Yazar',
+    });
 
     expect(insertError).toBeNull();
     expect(inserted).toMatchObject({
