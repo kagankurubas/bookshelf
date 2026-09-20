@@ -26,7 +26,7 @@
   <a href="https://github.com/kagankurubas/bookshelf/actions/workflows/ci.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status">
   </a>
-  <img src="https://img.shields.io/badge/tests-132_passing-3ECF8E?style=for-the-badge" alt="132 tests passing">
+  <img src="https://img.shields.io/badge/tests-213_passing-3ECF8E?style=for-the-badge" alt="213 tests passing">
 </p>
 
 <p align="center">
@@ -79,6 +79,10 @@ library and lets you chat about what you're reading.
   of your data (libraries, books, Book Assistant chat history) from
   Settings, behind a confirmation step (type to confirm, or re-enter
   your password).
+- **Data export/import** — download all your books as CSV or JSON from
+  Settings, or import your library from a Goodreads or StoryGraph CSV
+  export, with a preview step that flags likely duplicates before
+  anything is added.
 
 ### Screenshots
 
@@ -219,7 +223,7 @@ Use **Sign Up** on the screen that opens to create your first account.
 
 ### Tests
 
-![132 tests passing](https://img.shields.io/badge/tests-132_passing-3ECF8E?style=flat-square)
+![213 tests passing](https://img.shields.io/badge/tests-213_passing-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
 A real Vitest + React Testing Library suite covering the app's core
@@ -228,9 +232,11 @@ Supabase mocked), shelf drag-and-drop reordering including the
 tap-to-pick-and-place fallback used on touch devices, the deterministic
 shelf-spine sizing math, the dashboard's colorblind-safe category
 color mapping, the Open Library API wrapper (response mapping and
-caching, with `fetch` mocked), and a couple of presentational
-components (rendering, click handlers, translated labels). Modest but
-real coverage, not exhaustive.
+caching, with `fetch` mocked), the CSV/JSON export builders and the
+Goodreads/StoryGraph CSV import parsers (column mapping, status
+mapping, duplicate detection, malformed-row handling), and a couple of
+presentational components (rendering, click handlers, translated
+labels). Modest but real coverage, not exhaustive.
 
 Every push to `main` also runs lint + test + build in
 [GitHub Actions](https://github.com/kagankurubas/bookshelf/actions).
@@ -342,6 +348,10 @@ dahil.
 - **Hesap silme** — Ayarlar'dan hesabını ve tüm verini (kitaplıklar,
   kitaplar, Kitap Asistanı sohbet geçmişi) bir onay adımının ardından
   (onay metni yaz ya da şifreni tekrar gir) kalıcı olarak silebilirsin.
+- **Veri dışa/içe aktarma** — Ayarlar'dan tüm kitaplarını CSV veya JSON
+  olarak indirebilir, ya da Goodreads/StoryGraph'tan aldığın bir CSV
+  dosyasıyla kitaplığını içe aktarabilirsin - hiçbir şey eklenmeden önce
+  olası çift kayıtları işaretleyen bir önizleme ekranıyla.
 
 ### Ekran görüntüleri
 
@@ -486,7 +496,7 @@ Açılan sayfadan **Kayıt Ol** ile ilk hesabını oluştur.
 
 ### Testler
 
-![132 test geçiyor](https://img.shields.io/badge/testler-132_ge%C3%A7iyor-3ECF8E?style=flat-square)
+![213 test geçiyor](https://img.shields.io/badge/testler-213_ge%C3%A7iyor-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
 Uygulamanın temel mantığını kapsayan gerçek bir Vitest + React Testing
@@ -496,8 +506,10 @@ sıralama - dokunmatik ekranlarda kullanılan dokunarak-seç-ve-taşı
 alternatifi dahil - deterministik kitap sırtı boyutlandırma matematiği,
 dashboard'daki renk-körlüğü güvenli kategori renk eşlemesi, Open Library
 API sarmalayıcısı (yanıt eşleme ve önbellekleme, `fetch` mock'lanarak),
-ve birkaç sunum bileşeni (render, tıklama davranışı, çevrilen etiketler).
-Mütevazı ama gerçek bir coverage, kapsamlı değil.
+CSV/JSON export üreticileri ve Goodreads/StoryGraph CSV import
+parser'ları (sütun eşleme, durum eşleme, çift kayıt tespiti, bozuk
+satır ele alımı), ve birkaç sunum bileşeni (render, tıklama davranışı,
+çevrilen etiketler). Mütevazı ama gerçek bir coverage, kapsamlı değil.
 
 `main`'e her push'ta ayrıca
 [GitHub Actions](https://github.com/kagankurubas/bookshelf/actions)
