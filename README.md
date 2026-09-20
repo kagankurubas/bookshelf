@@ -26,7 +26,7 @@
   <a href="https://github.com/kagankurubas/bookshelf/actions/workflows/ci.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status">
   </a>
-  <img src="https://img.shields.io/badge/tests-96_passing-3ECF8E?style=for-the-badge" alt="96 tests passing">
+  <img src="https://img.shields.io/badge/tests-98_passing-3ECF8E?style=for-the-badge" alt="98 tests passing">
 </p>
 
 <p align="center">
@@ -219,7 +219,7 @@ Use **Sign Up** on the screen that opens to create your first account.
 
 ### Tests
 
-![96 tests passing](https://img.shields.io/badge/tests-96_passing-3ECF8E?style=flat-square)
+![98 tests passing](https://img.shields.io/badge/tests-98_passing-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
 A real Vitest + React Testing Library suite covering the app's core
@@ -239,6 +239,39 @@ Every push to `main` also runs lint + test + build in
 npm run test
 ```
 
+### RLS integration tests
+
+A separate, opt-in suite under `tests/integration/rls/` runs against a real
+**local** Supabase instance (Postgres + Auth + PostgREST via the Supabase
+CLI) instead of mocks, to actually prove that Row Level Security isolates
+one user's books/libraries/notes/AI chats from another's.
+
+Prerequisites:
+
+- Docker must be running (the Supabase CLI's `supabase start` needs it).
+- Run `npx supabase start` once (first time per session; downloads images on
+  first run). It prints `API_URL`, `ANON_KEY`, and `SERVICE_ROLE_KEY`.
+- Create `.env.test.local` in the repo root (never committed -
+  `.gitignore`'s `*.local` pattern covers it, and it must never hold a real
+  project's service-role key) using **exactly the values `supabase start`
+  just printed** - the local demo JWT has changed between CLI versions, so
+  don't copy a fixed value from here or from an old note:
+
+  ```
+  SUPABASE_URL=<API_URL from supabase start>
+  SUPABASE_ANON_KEY=<ANON_KEY from supabase start>
+  SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY from supabase start>
+  ```
+
+```bash
+npm run test:integration
+```
+
+The suite has its own `vitest.integration.config.js` (Node environment) and
+refuses to run - failing fast, before any test - if `SUPABASE_URL` doesn't
+point at `localhost`/`127.0.0.1`, so it can never touch a real project. It
+is completely separate from `npm run test` above.
+
 ### Project structure
 
 ```
@@ -252,6 +285,8 @@ supabase/
   schema.sql          Target schema for a brand-new project
   migrations/         Ordered SQL files for upgrading an existing project
   functions/ai-chat/  Gemini proxy (pasted manually into the Supabase Dashboard)
+tests/
+  integration/rls/   RLS integration tests against local Supabase (see above)
 ```
 
 ### Roadmap
@@ -451,7 +486,7 @@ Açılan sayfadan **Kayıt Ol** ile ilk hesabını oluştur.
 
 ### Testler
 
-![96 test geçiyor](https://img.shields.io/badge/testler-96_ge%C3%A7iyor-3ECF8E?style=flat-square)
+![98 test geçiyor](https://img.shields.io/badge/testler-98_ge%C3%A7iyor-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
 Uygulamanın temel mantığını kapsayan gerçek bir Vitest + React Testing
@@ -472,6 +507,42 @@ lint + test + build'i otomatik çalıştırıyor.
 npm run test
 ```
 
+### RLS entegrasyon testleri
+
+`tests/integration/rls/` altında, mock yerine gerçek bir **local** Supabase
+örneğine (Supabase CLI ile ayağa kaldırılan Postgres + Auth + PostgREST)
+karşı çalışan, ayrı ve isteğe bağlı bir test paketi var. Amacı, Row Level
+Security'nin bir kullanıcının kitap/kitaplık/not/AI sohbetini gerçekten bir
+başka kullanıcıdan izole ettiğini kanıtlamak.
+
+Önkoşullar:
+
+- Docker çalışıyor olmalı (Supabase CLI'ın `supabase start` komutu için).
+- `npx supabase start`'ı bir kez çalıştır (oturum başına bir kez yeterli;
+  ilk seferinde imajları indirir). Çıktısında `API_URL`, `ANON_KEY` ve
+  `SERVICE_ROLE_KEY` yazar.
+- Repo kökünde `.env.test.local` dosyasını oluştur (asla commit'lenmez -
+  `.gitignore`'daki `*.local` deseni kapsıyor - ve gerçek bir projenin
+  service-role key'ini hiçbir zaman tutmamalı), `supabase start`'ın **az
+  önce yazdırdığı değerleri birebir kullanarak** - local demo JWT'si CLI
+  sürümleri arasında değişebiliyor, buradan veya eski bir nottan sabit bir
+  değer kopyalama:
+
+  ```
+  SUPABASE_URL=<supabase start çıktısındaki API_URL>
+  SUPABASE_ANON_KEY=<supabase start çıktısındaki ANON_KEY>
+  SUPABASE_SERVICE_ROLE_KEY=<supabase start çıktısındaki SERVICE_ROLE_KEY>
+  ```
+
+```bash
+npm run test:integration
+```
+
+Paket kendi `vitest.integration.config.js`'ine (Node ortamı) sahiptir ve
+`SUPABASE_URL` `localhost`/`127.0.0.1` dışında bir yeri gösteriyorsa hiçbir
+test çalışmadan önce açık bir hatayla durur - böylece gerçek bir projeye
+karşı asla çalışamaz. Yukarıdaki `npm run test`'ten tamamen bağımsızdır.
+
 ### Klasör yapısı
 
 ```
@@ -485,6 +556,8 @@ supabase/
   schema.sql        Yeni bir proje için sıfırdan hedef şema
   migrations/       Var olan bir projeyi güncellemek için sıralı SQL dosyaları
   functions/ai-chat/  Gemini proxy'si (Supabase Dashboard'a manuel yapıştırılır)
+tests/
+  integration/rls/  Local Supabase'e karşı RLS entegrasyon testleri (yukarı bkz.)
 ```
 
 ### Yol haritası
