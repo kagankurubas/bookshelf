@@ -4,6 +4,7 @@ import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { buildBooksCsv, buildBooksJson, getExportFilename } from '../../lib/bookExport';
 import { DownloadIcon } from '../icons/Icons';
 import DeleteAccountModal from './DeleteAccountModal';
+import ImportPreviewModal from '../ImportPreviewModal/ImportPreviewModal';
 import './SettingsModal.css';
 
 function downloadTextFile(content, filename, mimeType) {
@@ -18,10 +19,11 @@ function downloadTextFile(content, filename, mimeType) {
   URL.revokeObjectURL(url);
 }
 
-function SettingsModal({ userEmail, books = [], libraries = [], onClose, onAccountDeleted }) {
+function SettingsModal({ userEmail, books = [], addBook, libraries = [], onClose, onAccountDeleted }) {
   const { t } = useTranslation();
   useEscapeKey(onClose);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const libraryNameById = useMemo(
     () => Object.fromEntries(libraries.map((lib) => [lib.id, lib.name])),
@@ -66,6 +68,14 @@ function SettingsModal({ userEmail, books = [], libraries = [], onClose, onAccou
                   {t('settings.exportJsonButton')}
                 </button>
               </div>
+              <p className="settings-data-description">{t('settings.importDescription')}</p>
+              <button
+                type="button"
+                className="chip-btn"
+                onClick={() => setIsImportOpen(true)}
+              >
+                {t('settings.importButton')}
+              </button>
             </div>
 
             <div className="settings-danger-zone">
@@ -91,6 +101,15 @@ function SettingsModal({ userEmail, books = [], libraries = [], onClose, onAccou
             setIsConfirmOpen(false);
             onAccountDeleted();
           }}
+        />
+      )}
+
+      {isImportOpen && (
+        <ImportPreviewModal
+          books={books}
+          addBook={addBook}
+          libraries={libraries}
+          onClose={() => setIsImportOpen(false)}
         />
       )}
     </>

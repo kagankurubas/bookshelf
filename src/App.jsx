@@ -219,6 +219,7 @@ function App() {
         <SettingsModal
           userEmail={user.email}
           books={books}
+          addBook={addBook}
           libraries={libraries}
           onClose={() => setIsSettingsOpen(false)}
           onAccountDeleted={() => {
