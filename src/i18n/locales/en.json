@@ -261,7 +261,7 @@
     "dataSectionDescription": "Download a copy of all your books as a CSV or JSON file.",
     "exportCsvButton": "Download as CSV",
     "exportJsonButton": "Download as JSON",
-    "importDescription": "Import your library from Goodreads as a CSV file.",
+    "importDescription": "Import your library from Goodreads or StoryGraph as a CSV file.",
     "importButton": "Import"
   },
   "deleteAccount": {
@@ -286,7 +286,8 @@
     "title": "Import Books",
     "platformLabel": "Platform",
     "platform": {
-      "goodreads": "Goodreads"
+      "goodreads": "Goodreads",
+      "storygraph": "StoryGraph"
     },
     "chooseFile": "Choose CSV file",
     "reading": "Reading file...",
@@ -301,6 +302,7 @@
     "summaryLibraryNote": "All imported books were added to your default library ({{library}}) — shelf/library groupings from the source platform were not carried over.",
     "summaryDuplicateSkipped": "{{count}} row(s) skipped because they looked like duplicates of books you already have.",
     "summaryDeselectedSkipped": "{{count}} row(s) skipped because they were unchecked.",
+    "summaryRoundedRatings": "{{count}} book(s) had their rating rounded to the nearest whole number.",
     "summaryAddFailed": "{{count}} row(s) could not be added due to an error.",
     "error": {
       "malformed": "This file couldn't be read. Make sure it's a valid CSV file and try again.",

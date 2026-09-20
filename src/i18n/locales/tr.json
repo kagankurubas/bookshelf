@@ -261,7 +261,7 @@
     "dataSectionDescription": "Tüm kitaplarının bir kopyasını CSV veya JSON dosyası olarak indir.",
     "exportCsvButton": "CSV olarak indir",
     "exportJsonButton": "JSON olarak indir",
-    "importDescription": "Goodreads'ten indirdiğin CSV dosyasıyla kitaplığını içe aktar.",
+    "importDescription": "Goodreads veya StoryGraph'tan indirdiğin CSV dosyasıyla kitaplığını içe aktar.",
     "importButton": "İçe Aktar"
   },
   "deleteAccount": {
@@ -286,7 +286,8 @@
     "title": "Kitap İçe Aktar",
     "platformLabel": "Platform",
     "platform": {
-      "goodreads": "Goodreads"
+      "goodreads": "Goodreads",
+      "storygraph": "StoryGraph"
     },
     "chooseFile": "CSV dosyası seç",
     "reading": "Dosya okunuyor...",
@@ -301,6 +302,7 @@
     "summaryLibraryNote": "İçe aktarılan tüm kitaplar varsayılan kitaplığına ({{library}}) eklendi — kaynak platformdaki kitaplık/shelf gruplamanız aktarılmadı.",
     "summaryDuplicateSkipped": "{{count}} satır, mevcut kitaplarınızla eşleştiği için (muhtemel çift kayıt) atlandı.",
     "summaryDeselectedSkipped": "{{count}} satır, seçimi kaldırıldığı için atlandı.",
+    "summaryRoundedRatings": "{{count}} kitabın puanı en yakın tam sayıya yuvarlandı.",
     "summaryAddFailed": "{{count}} satır bir hata nedeniyle eklenemedi.",
     "error": {
       "malformed": "Bu dosya okunamadı. Geçerli bir CSV dosyası olduğundan emin olup tekrar dene.",

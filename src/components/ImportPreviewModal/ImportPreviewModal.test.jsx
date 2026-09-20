@@ -52,6 +52,15 @@ describe('ImportPreviewModal', () => {
     expect(document.querySelector('input[type="file"]')).toBeInTheDocument();
   });
 
+  it('lets the user select StoryGraph as the import platform (ticket 04)', () => {
+    renderModal();
+    expect(screen.getByRole('button', { name: 'StoryGraph' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'StoryGraph' }));
+    expect(screen.getByRole('button', { name: 'StoryGraph' })).toHaveClass('active');
+    expect(screen.getByRole('button', { name: 'Goodreads' })).not.toHaveClass('active');
+  });
+
   it('parses the uploaded file and shows a preview with the duplicate row unchecked by default', async () => {
     renderModal();
     await uploadFile();
@@ -122,6 +131,32 @@ describe('ImportPreviewModal', () => {
         screen.getByText('Bu dosya içe aktarmak için çok büyük (en fazla 5 MB veya 5000 satır). Lütfen daha küçük dosyalara böl.')
       ).toBeInTheDocument()
     );
+  });
+
+  it('imports a StoryGraph file and reports the rounded-rating count in the summary', async () => {
+    const storygraphHeader =
+      'Title,Authors,Contributors,ISBN/UID,Format,Read Status,Date Added,' +
+      'Last Date Read,Dates Read,Read Count,Moods,Pace,' +
+      'Character- or Plot-Driven?,Strong Character Development?,Loveable Characters?,' +
+      'Diverse Characters?,Flawed Characters?,Star Rating,Review,Content Warnings,' +
+      'Content Warning Description,Tags,Owned?';
+    const storygraphRow = [
+      'The Fifth Season', 'N.K. Jemisin', '', '9780316229296', 'Physical Book', 'read',
+      '2023/01/01', '2023/02/01', '2023/01/15-2023/02/01', '1', '', '', '', '', '', '', '',
+      '4.25', '', '', '', '', '',
+    ].join(',');
+    const storygraphCsv = [storygraphHeader, storygraphRow].join('\n');
+
+    renderModal({ books: [] });
+    fireEvent.click(screen.getByRole('button', { name: 'StoryGraph' }));
+    await uploadFile(buildFile(storygraphCsv));
+
+    await waitFor(() => expect(screen.getByText('The Fifth Season')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /1 kitabı içe aktar/ }));
+
+    await waitFor(() => expect(screen.getByText('1 kitap eklendi.')).toBeInTheDocument());
+    expect(screen.getByText('1 kitabın puanı en yakın tam sayıya yuvarlandı.')).toBeInTheDocument();
   });
 
   it('skips a row with a missing title and reports it in the preview and summary', async () => {
