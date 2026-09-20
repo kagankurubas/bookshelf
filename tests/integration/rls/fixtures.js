@@ -1,3 +1,4 @@
+import { expect } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 
 // RLS entegrasyon testleri icin paylasilan fixture yardimcisi.
@@ -110,6 +111,39 @@ export async function insertRow(client, table, fields) {
 // book_id/library_id/conversation_id alanlariyla cagir.
 export async function insertOwnRow(user, table, fields) {
   return insertRow(user.client, table, { ...fields, user_id: user.id });
+}
+
+// Asagidaki uc yardimci, 5 test dosyasinda tekrar tekrar yazilan ayni
+// "baskasi/anon SELECT/UPDATE/DELETE/INSERT denedi -> reddedildi/bos donuyor"
+// assertion sekillerini tek satira indirir. Ikisi (SELECT-bos ve yazma-
+// etkisiz) PostgREST tarafinda ayni gozlemlenebilir sekle sahip (`error`
+// null, `data` bos dizi) - `using` filtresi satiri hic dondurmuyor/hic
+// eslesmiyor, hata firlatmiyor - ama cagiri yerinde HANGI islemin
+// (okuma mi yazma mi) reddedildigini belgeleyebilmek icin ayri isimlerle
+// export edilirler.
+function expectEmptyResult({ data, error }) {
+  expect(error).toBeNull();
+  expect(data).toEqual([]);
+}
+
+// Baskasinin/anonun bir SELECT ile sahibi olmadigi satiri goremedigini
+// dogrular: hata donmez, sadece bos dizi doner (RLS `using` filtresi).
+export function expectSelectEmpty(result) {
+  expectEmptyResult(result);
+}
+
+// Baskasinin/anonun UPDATE/DELETE denemesinin hicbir satiri etkilemedigini
+// dogrular: PostgREST bunu hata olarak degil, `using` filtresiyle eslesen 0
+// satir - yani bos `data` - olarak doner.
+export function expectWriteDenied(result) {
+  expectEmptyResult(result);
+}
+
+// `with check` ihlalini dogrular (UPDATE/DELETE'ten farkli olarak INSERT
+// gercekten bir hata dondurur): `error` dolu, `data` null olmali.
+export function expectInsertRejected({ data, error }) {
+  expect(error).not.toBeNull();
+  expect(data).toBeNull();
 }
 
 // Iki oturum acmis fixture kullanici (userA, userB), hic sign-in yapilmamis

@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { setupRlsFixture, insertRow, insertOwnRow } from './fixtures.js';
+import {
+  setupRlsFixture,
+  insertRow,
+  insertOwnRow,
+  expectSelectEmpty,
+  expectWriteDenied,
+  expectInsertRejected,
+} from './fixtures.js';
 
 // book_libraries junction tablosunun RLS izolasyonu + migration 011
 // regresyon senaryolari.
@@ -86,8 +93,7 @@ describe('RLS: book_libraries izolasyonu (migration 011 regresyon testleri)', ()
       library_id: libraryB.id,
     });
 
-    expect(data).toBeNull();
-    expect(error).not.toBeNull();
+    expectInsertRejected({ data, error });
   });
 
   it('User A, User B nin book_id + kendi library_id ile INSERT denedigende reddediliyor (yon 2)', async () => {
@@ -98,8 +104,7 @@ describe('RLS: book_libraries izolasyonu (migration 011 regresyon testleri)', ()
       library_id: libraryA.id,
     });
 
-    expect(data).toBeNull();
-    expect(error).not.toBeNull();
+    expectInsertRejected({ data, error });
   });
 
   it('User A, User B ye ait book_libraries satirini SELECT ettiginde bos donuyor', async () => {
@@ -111,8 +116,7 @@ describe('RLS: book_libraries izolasyonu (migration 011 regresyon testleri)', ()
       .eq('book_id', bookB.id)
       .eq('library_id', libraryB.id);
 
-    expect(error).toBeNull();
-    expect(data).toEqual([]);
+    expectSelectEmpty({ data, error });
   });
 
   it('User A, User B ye ait book_libraries satirini DELETE etmeye calistiginda satir silinmiyor', async () => {
@@ -125,8 +129,7 @@ describe('RLS: book_libraries izolasyonu (migration 011 regresyon testleri)', ()
       .eq('library_id', libraryB.id)
       .select();
 
-    expect(deleteError).toBeNull();
-    expect(deleted).toEqual([]);
+    expectWriteDenied({ data: deleted, error: deleteError });
 
     const { data: stillThere, error: verifyError } = await userB.client
       .from('book_libraries')
@@ -150,15 +153,13 @@ describe('RLS: book_libraries izolasyonu (migration 011 regresyon testleri)', ()
       .select('*')
       .eq('book_id', bookB.id)
       .eq('library_id', libraryB.id);
-    expect(selectError).toBeNull();
-    expect(selectData).toEqual([]);
+    expectSelectEmpty({ data: selectData, error: selectError });
 
     const { data: insertData, error: insertError } = await insertRow(anonClient, 'book_libraries', {
       book_id: bookA.id,
       library_id: libraryA.id,
     });
-    expect(insertData).toBeNull();
-    expect(insertError).not.toBeNull();
+    expectInsertRejected({ data: insertData, error: insertError });
 
     const { data: deleteData, error: deleteError } = await anonClient
       .from('book_libraries')
@@ -166,7 +167,6 @@ describe('RLS: book_libraries izolasyonu (migration 011 regresyon testleri)', ()
       .eq('book_id', bookB.id)
       .eq('library_id', libraryB.id)
       .select();
-    expect(deleteError).toBeNull();
-    expect(deleteData).toEqual([]);
+    expectWriteDenied({ data: deleteData, error: deleteError });
   });
 });

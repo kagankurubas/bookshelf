@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { setupRlsFixture, insertRow, insertOwnRow } from './fixtures.js';
+import {
+  setupRlsFixture,
+  insertRow,
+  insertOwnRow,
+  expectSelectEmpty,
+  expectWriteDenied,
+  expectInsertRejected,
+} from './fixtures.js';
 
 // ai_conversations + ai_messages RLS izolasyon testleri (ticket 05).
 //
@@ -56,8 +63,7 @@ describe('RLS: ai_conversations + ai_messages izolasyonu', () => {
         .select('*')
         .eq('id', bConversation.id);
 
-      expect(error).toBeNull();
-      expect(data).toEqual([]);
+      expectSelectEmpty({ data, error });
     });
 
     it("User A, User B'ye ait ai_conversations satirini UPDATE/DELETE etmeye calistiginda etkisiz kaliyor", async () => {
@@ -74,8 +80,7 @@ describe('RLS: ai_conversations + ai_messages izolasyonu', () => {
         .eq('id', bConversation.id)
         .select();
 
-      expect(updateError).toBeNull();
-      expect(updateData).toEqual([]);
+      expectWriteDenied({ data: updateData, error: updateError });
 
       const { data: deleteData, error: deleteError } = await userA.client
         .from('ai_conversations')
@@ -83,8 +88,7 @@ describe('RLS: ai_conversations + ai_messages izolasyonu', () => {
         .eq('id', bConversation.id)
         .select();
 
-      expect(deleteError).toBeNull();
-      expect(deleteData).toEqual([]);
+      expectWriteDenied({ data: deleteData, error: deleteError });
 
       // Satirin gercekten hala var oldugunu (silinmedigini) sahibinin
       // gozunden dogrula.
@@ -155,8 +159,7 @@ describe('RLS: ai_conversations + ai_messages izolasyonu', () => {
         .select('*')
         .eq('conversation_id', bConversation.id);
 
-      expect(selectError).toBeNull();
-      expect(selectData).toEqual([]);
+      expectSelectEmpty({ data: selectData, error: selectError });
 
       const { data: insertData, error: insertError } = await insertRow(userA.client, 'ai_messages', {
         conversation_id: bConversation.id,
@@ -164,8 +167,7 @@ describe('RLS: ai_conversations + ai_messages izolasyonu', () => {
         content: "User A'nin izinsiz INSERT denemesi.",
       });
 
-      expect(insertData).toBeNull();
-      expect(insertError).not.toBeNull();
+      expectInsertRejected({ data: insertData, error: insertError });
 
       // Mesajin gercekten sizmadigini/degismedigini sahibinin gozunden
       // dogrula: sadece User B'nin kendi mesaji orada.
@@ -193,31 +195,27 @@ describe('RLS: ai_conversations + ai_messages izolasyonu', () => {
         .from('ai_conversations')
         .select('*')
         .eq('id', aConversation.id);
-      expect(selectError).toBeNull();
-      expect(selectData).toEqual([]);
+      expectSelectEmpty({ data: selectData, error: selectError });
 
       const { data: insertData, error: insertError } = await insertRow(anonClient, 'ai_conversations', {
         title: 'Anon Sohbeti',
         user_id: userA.id,
       });
-      expect(insertData).toBeNull();
-      expect(insertError).not.toBeNull();
+      expectInsertRejected({ data: insertData, error: insertError });
 
       const { data: updateData, error: updateError } = await anonClient
         .from('ai_conversations')
         .update({ title: 'Anon Degistirdi' })
         .eq('id', aConversation.id)
         .select();
-      expect(updateError).toBeNull();
-      expect(updateData).toEqual([]);
+      expectWriteDenied({ data: updateData, error: updateError });
 
       const { data: deleteData, error: deleteError } = await anonClient
         .from('ai_conversations')
         .delete()
         .eq('id', aConversation.id)
         .select();
-      expect(deleteError).toBeNull();
-      expect(deleteData).toEqual([]);
+      expectWriteDenied({ data: deleteData, error: deleteError });
     });
 
     it('ai_messages tablosunda SELECT/INSERT/UPDATE/DELETE hepsi reddediliyor/bos donuyor', async () => {
@@ -241,32 +239,28 @@ describe('RLS: ai_conversations + ai_messages izolasyonu', () => {
         .from('ai_messages')
         .select('*')
         .eq('conversation_id', aConversation.id);
-      expect(selectError).toBeNull();
-      expect(selectData).toEqual([]);
+      expectSelectEmpty({ data: selectData, error: selectError });
 
       const { data: insertData, error: insertError } = await insertRow(anonClient, 'ai_messages', {
         conversation_id: aConversation.id,
         role: 'user',
         content: 'Anon INSERT denemesi.',
       });
-      expect(insertData).toBeNull();
-      expect(insertError).not.toBeNull();
+      expectInsertRejected({ data: insertData, error: insertError });
 
       const { data: updateData, error: updateError } = await anonClient
         .from('ai_messages')
         .update({ content: 'Anon degistirdi' })
         .eq('id', aMessage.id)
         .select();
-      expect(updateError).toBeNull();
-      expect(updateData).toEqual([]);
+      expectWriteDenied({ data: updateData, error: updateError });
 
       const { data: deleteData, error: deleteError } = await anonClient
         .from('ai_messages')
         .delete()
         .eq('id', aMessage.id)
         .select();
-      expect(deleteError).toBeNull();
-      expect(deleteData).toEqual([]);
+      expectWriteDenied({ data: deleteData, error: deleteError });
     });
   });
 });
