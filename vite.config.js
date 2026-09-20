@@ -13,5 +13,11 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: './src/test/setup.js',
+    // RLS entegrasyon testleri (tests/integration/**, kendi
+    // vitest.integration.config.js'iyle "npm run test:integration"
+    // uzerinden calisir) bu suite'in disinda kalsin diye include'i
+    // src/ agaciyla sinirliyoruz - aksi halde Vitest'in varsayilan
+    // include deseni ikisini de tek komutta calistirmaya calisirdi.
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
   },
 })

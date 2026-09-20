@@ -239,6 +239,38 @@ Every push to `main` also runs lint + test + build in
 npm run test
 ```
 
+### RLS integration tests
+
+A separate, opt-in suite under `tests/integration/rls/` runs against a real
+**local** Supabase instance (Postgres + Auth + PostgREST via the Supabase
+CLI) instead of mocks, to actually prove that Row Level Security isolates
+one user's books/libraries/notes/AI chats from another's.
+
+Prerequisites:
+
+- Docker must be running (the Supabase CLI's `supabase start` needs it).
+- Create `.env.test.local` in the repo root (never committed -
+  `.gitignore`'s `*.local` pattern covers it, and it must never hold a real
+  project's service-role key). `supabase start`'s own fixed local anon/
+  service-role demo keys work here since this file only ever points at
+  `localhost`:
+
+  ```
+  SUPABASE_URL=http://127.0.0.1:54321
+  SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlLWRlbW8iLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTc5OTUzNTIwMH0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
+  SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UtZGVtbyIsImlhdCI6MTY0MTc2OTIwMCwiZXhwIjoxNzk5NTM1MjAwfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q
+  ```
+
+```bash
+npx supabase start      # first time only per session; needs Docker
+npm run test:integration
+```
+
+The suite has its own `vitest.integration.config.js` (Node environment) and
+refuses to run - failing fast, before any test - if `SUPABASE_URL` doesn't
+point at `localhost`/`127.0.0.1`, so it can never touch a real project. It
+is completely separate from `npm run test` above.
+
 ### Project structure
 
 ```
@@ -252,6 +284,8 @@ supabase/
   schema.sql          Target schema for a brand-new project
   migrations/         Ordered SQL files for upgrading an existing project
   functions/ai-chat/  Gemini proxy (pasted manually into the Supabase Dashboard)
+tests/
+  integration/rls/   RLS integration tests against local Supabase (see above)
 ```
 
 ### Roadmap
@@ -472,6 +506,39 @@ lint + test + build'i otomatik çalıştırıyor.
 npm run test
 ```
 
+### RLS entegrasyon testleri
+
+`tests/integration/rls/` altında, mock yerine gerçek bir **local** Supabase
+örneğine (Supabase CLI ile ayağa kaldırılan Postgres + Auth + PostgREST)
+karşı çalışan, ayrı ve isteğe bağlı bir test paketi var. Amacı, Row Level
+Security'nin bir kullanıcının kitap/kitaplık/not/AI sohbetini gerçekten bir
+başka kullanıcıdan izole ettiğini kanıtlamak.
+
+Önkoşullar:
+
+- Docker çalışıyor olmalı (Supabase CLI'ın `supabase start` komutu için).
+- Repo kökünde `.env.test.local` dosyasını oluştur (asla commit'lenmez -
+  `.gitignore`'daki `*.local` deseni kapsıyor - ve gerçek bir projenin
+  service-role key'ini hiçbir zaman tutmamalı). `supabase start`'ın kendi
+  sabit local anon/service-role demo key'leri burada kullanılabilir, çünkü
+  bu dosya sadece `localhost`'a bağlanır:
+
+  ```
+  SUPABASE_URL=http://127.0.0.1:54321
+  SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlLWRlbW8iLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTc5OTUzNTIwMH0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
+  SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UtZGVtbyIsImlhdCI6MTY0MTc2OTIwMCwiZXhwIjoxNzk5NTM1MjAwfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q
+  ```
+
+```bash
+npx supabase start      # oturum başına bir kez yeterli; Docker gerektirir
+npm run test:integration
+```
+
+Paket kendi `vitest.integration.config.js`'ine (Node ortamı) sahiptir ve
+`SUPABASE_URL` `localhost`/`127.0.0.1` dışında bir yeri gösteriyorsa hiçbir
+test çalışmadan önce açık bir hatayla durur - böylece gerçek bir projeye
+karşı asla çalışamaz. Yukarıdaki `npm run test`'ten tamamen bağımsızdır.
+
 ### Klasör yapısı
 
 ```
@@ -485,6 +552,8 @@ supabase/
   schema.sql        Yeni bir proje için sıfırdan hedef şema
   migrations/       Var olan bir projeyi güncellemek için sıralı SQL dosyaları
   functions/ai-chat/  Gemini proxy'si (Supabase Dashboard'a manuel yapıştırılır)
+tests/
+  integration/rls/  Local Supabase'e karşı RLS entegrasyon testleri (yukarı bkz.)
 ```
 
 ### Yol haritası
