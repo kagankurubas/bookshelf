@@ -1,4 +1,11 @@
-import Papa from 'papaparse';
+import {
+  parseCsvRows,
+  getTitleOrSkip,
+  getDateFinishedIfCompleted,
+  wrapNote,
+  BASE_STATUS_MAP,
+  DEFAULT_STATUS,
+} from './csvImportShared';
 
 // Goodreads'in gercek export basligindaki, formati taniyip tanimadigimizi
 // anlamak icin kontrol ettigimiz sutunlar - hepsi bulunmali. Kaynak: bkz.
@@ -8,14 +15,8 @@ const EXPECTED_GOODREADS_COLUMNS = ['Title', 'Author', 'Exclusive Shelf'];
 
 // Goodreads'in "Exclusive Shelf" degerleri -> BookShelf'in Turkce durum
 // adlarina eslemesi. Goodreads'in "yarida birakildi" kavramі yok - tanimayan/
-// bos deger Baslanmadi'ya duser.
-const SHELF_TO_STATUS = {
-  read: 'Tamamlandı',
-  'currently-reading': 'Okunuyor',
-  'to-read': 'Başlanmadı',
-};
-const DEFAULT_STATUS = 'Başlanmadı';
-const COMPLETED_STATUS = 'Tamamlandı';
+// bos deger Baslanmadi'ya duser. Ortak uc durum csvImportShared'dan geliyor.
+const SHELF_TO_STATUS = { ...BASE_STATUS_MAP };
 
 // Goodreads, ISBN/ISBN13 sutunlarini Excel'in basindaki sifirlari/uzun sayiyi
 // bozmamasi icin ="1234567890123" seklinde bir Excel formulu olarak
@@ -50,34 +51,19 @@ function firstNonEmpty(...values) {
 //  - { error: 'malformed' | 'wrong-format' }  -> hicbir satir islenmedi
 //  - { bookFields: [...], skippedRows: [...] } -> basarili (kismen atlanmis olabilir)
 export function parseGoodreadsCsv(csvText) {
-  if (!csvText || !csvText.trim()) {
-    return { error: 'malformed' };
-  }
-
-  const parsed = Papa.parse(csvText.trim(), {
-    header: true,
-    skipEmptyLines: true,
-  });
-
-  const fields = parsed.meta?.fields || [];
-  if (fields.length === 0) {
-    return { error: 'malformed' };
-  }
-
-  const hasExpectedColumns = EXPECTED_GOODREADS_COLUMNS.every((col) => fields.includes(col));
-  if (!hasExpectedColumns) {
-    return { error: 'wrong-format' };
+  const parseResult = parseCsvRows(csvText, (fields) =>
+    EXPECTED_GOODREADS_COLUMNS.every((col) => fields.includes(col))
+  );
+  if (parseResult.error) {
+    return parseResult;
   }
 
   const bookFields = [];
   const skippedRows = [];
 
-  parsed.data.forEach((row, index) => {
-    const title = (row['Title'] || '').trim();
-    if (!title) {
-      skippedRows.push({ index, reason: 'missing-title' });
-      return;
-    }
+  parseResult.rows.forEach((row, index) => {
+    const title = getTitleOrSkip(row['Title'], index, skippedRows);
+    if (title === null) return;
 
     const author = [row['Author'], row['Additional Authors']]
       .filter((a) => a && a.trim())
@@ -88,7 +74,7 @@ export function parseGoodreadsCsv(csvText) {
     const shelf = (row['Exclusive Shelf'] || '').trim();
     const status = SHELF_TO_STATUS[shelf] || DEFAULT_STATUS;
 
-    const dateFinished = status === COMPLETED_STATUS ? (row['Date Read'] || '').trim() : '';
+    const dateFinished = getDateFinishedIfCompleted(status, row['Date Read']);
 
     const noteText = firstNonEmpty(row['My Review'], row['Private Notes']);
 
@@ -103,7 +89,7 @@ export function parseGoodreadsCsv(csvText) {
       status,
       dateStarted: '',
       dateFinished,
-      notesList: noteText ? [{ text: noteText.trim() }] : [],
+      notesList: wrapNote(noteText),
     });
   });
 
