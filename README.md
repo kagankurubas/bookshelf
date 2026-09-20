@@ -249,20 +249,21 @@ one user's books/libraries/notes/AI chats from another's.
 Prerequisites:
 
 - Docker must be running (the Supabase CLI's `supabase start` needs it).
+- Run `npx supabase start` once (first time per session; downloads images on
+  first run). It prints `API_URL`, `ANON_KEY`, and `SERVICE_ROLE_KEY`.
 - Create `.env.test.local` in the repo root (never committed -
   `.gitignore`'s `*.local` pattern covers it, and it must never hold a real
-  project's service-role key). `supabase start`'s own fixed local anon/
-  service-role demo keys work here since this file only ever points at
-  `localhost`:
+  project's service-role key) using **exactly the values `supabase start`
+  just printed** - the local demo JWT has changed between CLI versions, so
+  don't copy a fixed value from here or from an old note:
 
   ```
-  SUPABASE_URL=http://127.0.0.1:54321
-  SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlLWRlbW8iLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTc5OTUzNTIwMH0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
-  SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UtZGVtbyIsImlhdCI6MTY0MTc2OTIwMCwiZXhwIjoxNzk5NTM1MjAwfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q
+  SUPABASE_URL=<API_URL from supabase start>
+  SUPABASE_ANON_KEY=<ANON_KEY from supabase start>
+  SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY from supabase start>
   ```
 
 ```bash
-npx supabase start      # first time only per session; needs Docker
 npm run test:integration
 ```
 
@@ -517,20 +518,23 @@ başka kullanıcıdan izole ettiğini kanıtlamak.
 Önkoşullar:
 
 - Docker çalışıyor olmalı (Supabase CLI'ın `supabase start` komutu için).
+- `npx supabase start`'ı bir kez çalıştır (oturum başına bir kez yeterli;
+  ilk seferinde imajları indirir). Çıktısında `API_URL`, `ANON_KEY` ve
+  `SERVICE_ROLE_KEY` yazar.
 - Repo kökünde `.env.test.local` dosyasını oluştur (asla commit'lenmez -
   `.gitignore`'daki `*.local` deseni kapsıyor - ve gerçek bir projenin
-  service-role key'ini hiçbir zaman tutmamalı). `supabase start`'ın kendi
-  sabit local anon/service-role demo key'leri burada kullanılabilir, çünkü
-  bu dosya sadece `localhost`'a bağlanır:
+  service-role key'ini hiçbir zaman tutmamalı), `supabase start`'ın **az
+  önce yazdırdığı değerleri birebir kullanarak** - local demo JWT'si CLI
+  sürümleri arasında değişebiliyor, buradan veya eski bir nottan sabit bir
+  değer kopyalama:
 
   ```
-  SUPABASE_URL=http://127.0.0.1:54321
-  SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlLWRlbW8iLCJpYXQiOjE2NDE3NjkyMDAsImV4cCI6MTc5OTUzNTIwMH0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
-  SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UtZGVtbyIsImlhdCI6MTY0MTc2OTIwMCwiZXhwIjoxNzk5NTM1MjAwfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q
+  SUPABASE_URL=<supabase start çıktısındaki API_URL>
+  SUPABASE_ANON_KEY=<supabase start çıktısındaki ANON_KEY>
+  SUPABASE_SERVICE_ROLE_KEY=<supabase start çıktısındaki SERVICE_ROLE_KEY>
   ```
 
 ```bash
-npx supabase start      # oturum başına bir kez yeterli; Docker gerektirir
 npm run test:integration
 ```
 
