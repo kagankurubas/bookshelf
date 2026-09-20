@@ -256,7 +256,10 @@
     "emailLabel": "E-posta",
     "dangerZoneTitle": "Tehlikeli Bölge",
     "deleteAccountDescription": "Hesabını sildiğinde tüm kitaplıkların, kitapların ve Kitap Asistanı sohbet geçmişin kalıcı olarak silinir. Bu işlem geri alınamaz.",
-    "deleteAccountButton": "Hesabımı Sil"
+    "deleteAccountButton": "Hesabımı Sil",
+    "dataSectionTitle": "Veri",
+    "importDescription": "Goodreads'ten indirdiğin CSV dosyasıyla kitaplığını içe aktar.",
+    "importButton": "İçe Aktar"
   },
   "deleteAccount": {
     "title": "Hesabını Sil",
@@ -275,5 +278,32 @@
     "confirmButton": "Hesabımı Kalıcı Olarak Sil",
     "deleting": "Siliniyor...",
     "notice": "Hesabın ve tüm verilerin kalıcı olarak silindi."
+  },
+  "import": {
+    "title": "Kitap İçe Aktar",
+    "platformLabel": "Platform",
+    "platform": {
+      "goodreads": "Goodreads"
+    },
+    "chooseFile": "CSV dosyası seç",
+    "reading": "Dosya okunuyor...",
+    "cancel": "Vazgeç",
+    "confirmButton": "{{count}} kitabı içe aktar",
+    "importing": "İçe aktarılıyor...",
+    "done": "Tamam",
+    "possibleDuplicate": "Muhtemel çift kayıt",
+    "previewSummary": "{{count}} kitap bulundu, {{selected}} tanesi seçili.",
+    "missingTitleSkipped": "{{count}} satır başlık eksik olduğu için atlandı.",
+    "summaryAdded": "{{count}} kitap eklendi.",
+    "summaryLibraryNote": "İçe aktarılan tüm kitaplar varsayılan kitaplığına ({{library}}) eklendi — kaynak platformdaki kitaplık/shelf gruplamanız aktarılmadı.",
+    "summaryDuplicateSkipped": "{{count}} satır, mevcut kitaplarınızla eşleştiği için (muhtemel çift kayıt) atlandı.",
+    "summaryDeselectedSkipped": "{{count}} satır, seçimi kaldırıldığı için atlandı.",
+    "summaryAddFailed": "{{count}} satır bir hata nedeniyle eklenemedi.",
+    "error": {
+      "malformed": "Bu dosya okunamadı. Geçerli bir CSV dosyası olduğundan emin olup tekrar dene.",
+      "wrong-format": "Bu dosya seçtiğin formatla eşleşmiyor. Lütfen platformu ve dosyayı kontrol edip tekrar dene.",
+      "file-too-large": "Bu dosya içe aktarmak için çok büyük (en fazla 5 MB veya 5000 satır). Lütfen daha küçük dosyalara böl.",
+      "too-many-rows": "Bu dosyada içe aktarmak için çok fazla satır var (en fazla 5000). Lütfen daha küçük dosyalara böl."
+    }
   }
 }

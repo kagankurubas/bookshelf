@@ -41,4 +41,13 @@ describe('SettingsModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Kapat' }));
     expect(handlers.onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('opens the import modal from the Veri section', () => {
+    renderModal({ books: [], addBook: vi.fn(), libraries: [] });
+    expect(screen.queryByText('Kitap İçe Aktar')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'İçe Aktar' }));
+
+    expect(screen.getByText('Kitap İçe Aktar')).toBeInTheDocument();
+  });
 });

@@ -256,7 +256,10 @@
     "emailLabel": "Email",
     "dangerZoneTitle": "Danger Zone",
     "deleteAccountDescription": "Deleting your account permanently deletes all your libraries, books, and Book Assistant chat history. This can't be undone.",
-    "deleteAccountButton": "Delete My Account"
+    "deleteAccountButton": "Delete My Account",
+    "dataSectionTitle": "Data",
+    "importDescription": "Import your library from Goodreads as a CSV file.",
+    "importButton": "Import"
   },
   "deleteAccount": {
     "title": "Delete Your Account",
@@ -275,5 +278,32 @@
     "confirmButton": "Permanently Delete My Account",
     "deleting": "Deleting...",
     "notice": "Your account and all your data have been permanently deleted."
+  },
+  "import": {
+    "title": "Import Books",
+    "platformLabel": "Platform",
+    "platform": {
+      "goodreads": "Goodreads"
+    },
+    "chooseFile": "Choose CSV file",
+    "reading": "Reading file...",
+    "cancel": "Cancel",
+    "confirmButton": "Import {{count}} book(s)",
+    "importing": "Importing...",
+    "done": "Done",
+    "possibleDuplicate": "Possible duplicate",
+    "previewSummary": "{{count}} book(s) found, {{selected}} selected.",
+    "missingTitleSkipped": "{{count}} row(s) skipped because they had no title.",
+    "summaryAdded": "{{count}} book(s) added.",
+    "summaryLibraryNote": "All imported books were added to your default library ({{library}}) — shelf/library groupings from the source platform were not carried over.",
+    "summaryDuplicateSkipped": "{{count}} row(s) skipped because they looked like duplicates of books you already have.",
+    "summaryDeselectedSkipped": "{{count}} row(s) skipped because they were unchecked.",
+    "summaryAddFailed": "{{count}} row(s) could not be added due to an error.",
+    "error": {
+      "malformed": "This file couldn't be read. Make sure it's a valid CSV file and try again.",
+      "wrong-format": "This file doesn't match the format you selected. Please check the platform and file, then try again.",
+      "file-too-large": "This file is too large to import (max 5 MB or 5000 rows). Please split it into smaller files.",
+      "too-many-rows": "This file has too many rows to import (max 5000). Please split it into smaller files."
+    }
   }
 }

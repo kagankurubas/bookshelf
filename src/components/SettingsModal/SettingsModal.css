@@ -38,6 +38,28 @@
   white-space: nowrap;
 }
 
+.settings-data-section {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.settings-data-title {
+  font-family: var(--font-body);
+  color: var(--text);
+  font-size: 14px;
+  margin: 0 0 6px;
+}
+
+.settings-data-description {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+
 .settings-danger-zone {
   border: 1px solid oklch(75% 0.14 25 / 0.4);
   border-radius: 12px;
