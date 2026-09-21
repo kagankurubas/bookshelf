@@ -1,0 +1,82 @@
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { useOnlineStatus } from './useOnlineStatus';
+
+function setNavigatorOnline(value) {
+  Object.defineProperty(window.navigator, 'onLine', { value, configurable: true });
+}
+
+afterEach(() => {
+  setNavigatorOnline(true);
+});
+
+describe('useOnlineStatus', () => {
+  it('reflects navigator.onLine at mount', () => {
+    setNavigatorOnline(false);
+    const { result } = renderHook(() => useOnlineStatus());
+    expect(result.current).toBe(false);
+  });
+
+  it('updates on online/offline events even without an onOnline callback (regression)', () => {
+    setNavigatorOnline(true);
+    const { result } = renderHook(() => useOnlineStatus());
+
+    act(() => window.dispatchEvent(new Event('offline')));
+    expect(result.current).toBe(false);
+
+    act(() => window.dispatchEvent(new Event('online')));
+    expect(result.current).toBe(true);
+  });
+
+  it('does not call onOnline at mount when already online (no transition happened)', () => {
+    setNavigatorOnline(true);
+    const onOnline = vi.fn();
+    renderHook(() => useOnlineStatus(onOnline));
+
+    expect(onOnline).not.toHaveBeenCalled();
+  });
+
+  it('calls onOnline exactly once on an offline->online transition', () => {
+    setNavigatorOnline(false);
+    const onOnline = vi.fn();
+    const { result } = renderHook(() => useOnlineStatus(onOnline));
+    expect(result.current).toBe(false);
+
+    act(() => window.dispatchEvent(new Event('online')));
+
+    expect(result.current).toBe(true);
+    expect(onOnline).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call onOnline again on subsequent offline events (only on the online transition)', () => {
+    setNavigatorOnline(false);
+    const onOnline = vi.fn();
+    renderHook(() => useOnlineStatus(onOnline));
+
+    act(() => window.dispatchEvent(new Event('offline')));
+
+    expect(onOnline).not.toHaveBeenCalled();
+  });
+
+  // Bayat closure regresyon testi: App.jsx her render'da yeni bir onOnline
+  // closure'i gecirir (o render'daki en guncel state/library'yi yakalayan).
+  // Hook, event listener'i mount'ta bir kez kaydettigi icin, bir ref
+  // uzerinden EN SON gecirilen callback'i cagirmalidir - ilk render'da
+  // kaydedilmis ilk (bayat) callback'i degil.
+  it('always invokes the latest onOnline passed on the most recent render, not a stale one from mount', () => {
+    setNavigatorOnline(false);
+    const firstOnOnline = vi.fn();
+    const secondOnOnline = vi.fn();
+
+    const { rerender } = renderHook(({ onOnline }) => useOnlineStatus(onOnline), {
+      initialProps: { onOnline: firstOnOnline },
+    });
+
+    rerender({ onOnline: secondOnOnline });
+
+    act(() => window.dispatchEvent(new Event('online')));
+
+    expect(firstOnOnline).not.toHaveBeenCalled();
+    expect(secondOnOnline).toHaveBeenCalledTimes(1);
+  });
+});

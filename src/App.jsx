@@ -24,6 +24,8 @@ import { useShelfDnd } from './hooks/useShelfDnd';
 import { useBookFilters } from './hooks/useBookFilters';
 import { useLibrary } from './hooks/useLibrary';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
+import { useAddOrQueueBook } from './hooks/useAddOrQueueBook';
+import { enqueueBook, getQueuedBooks, removeQueuedBook } from './lib/offlineBookQueue';
 import './App.css';
 
 // zxing-wasm barkod okuma motorunu tasiyan bu iki bilesen sadece kullanici
@@ -35,7 +37,6 @@ const BatchScanner = lazy(() => import('./components/BatchScanner/BatchScanner')
 function App() {
   const { t } = useTranslation();
   const { user, loading: authLoading, signIn, signUp, signOut } = useAuth();
-  const isOnline = useOnlineStatus();
   const [redirectError, clearRedirectError] = useAuthRedirectError();
   const [accountDeletedNotice, setAccountDeletedNotice] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -84,6 +85,96 @@ function App() {
     readingStatsRef.current = readingStats;
   });
 
+  // Offline kitap ekleme kuyrugu: kuyrukta bekleyen kayit sayisi (banner'da
+  // gosterilir) ve bu kayitlari sirayla (paralel degil) senkronize eden
+  // flush islemi. Her biri basarili olur olmaz HEMEN IndexedDB'den silinir
+  // (toplu silme degil) - senkronizasyon yarida kesilirse kalan kayitlar
+  // guvende kalir. Bir oge basarisiz olursa dongu durur, kalanlar kuyrukta
+  // kalip bir sonraki 'online' olayinda tekrar denenir.
+  const [queuedCount, setQueuedCount] = useState(0);
+
+  const refreshQueuedCount = () => {
+    getQueuedBooks()
+      .then((queued) => setQueuedCount(queued.length))
+      .catch((err) => console.error(err));
+  };
+
+  const flushQueuedBooks = async () => {
+    const queued = await getQueuedBooks();
+    let addedAny = false;
+    for (const queuedBook of queued) {
+      const { id, ...fields } = queuedBook;
+      try {
+        await library.addBookWithoutStatsRefresh(fields);
+        await removeQueuedBook(id);
+        addedAny = true;
+      } catch (err) {
+        console.error(err);
+        break;
+      }
+    }
+    if (addedAny) {
+      library.refreshStats();
+    }
+    refreshQueuedCount();
+  };
+
+  // useOnlineStatus, App her render'da yeni bir onOnline closure'i (bu
+  // render'daki guncel 'library'yi yakalayan flushQueuedBooks'u) gecirse de,
+  // gercek 'offline'->'online' gecisinde HER ZAMAN EN GUNCEL closure'i
+  // cagirir (bkz. useOnlineStatus.js - bir ref uzerinden). Bu sayede
+  // senkronizasyon bayat/yuklenmemis kitaplik verisiyle calismaz.
+  const isOnline = useOnlineStatus(() => {
+    flushQueuedBooks();
+  });
+
+  // Kuyruk-veya-ekle karari (isOnline bayragina bakarak, bir yazmayi
+  // deneyip hata tipini yorumlamak yerine) izole/test edilebilir bir
+  // yardimciya (useAddOrQueueBook) cikarilmis durumda - App.jsx'e gomulu
+  // test edilemeyen bir closure olarak birakilmadi.
+  const rawAddOrQueueBook = useAddOrQueueBook({
+    isOnline,
+    addBook: library.addBook,
+    enqueueBook,
+  });
+  const addOrQueueBook = async (fields) => {
+    const outcome = await rawAddOrQueueBook(fields);
+    if (outcome?.queued) {
+      refreshQueuedCount();
+    }
+    return outcome;
+  };
+
+  // Uygulama offline'ken kapatilip sonra ONLINE'ken tekrar acilirsa 'online'
+  // event'i hic ateslenmez (tarayici zaten online) - bu yuzden kullanici +
+  // kitaplik verisi ilk kez yuklendiginde ayrica bir kez kontrol ediyoruz.
+  // booksLoading/librariesLoading false OLMADAN calisirsa 'library' henuz
+  // bos 'libraries'e gore kurulmus olur (varsayilan kitaplik id'si eksik
+  // kalir), bu yuzden ikisi de bitene ve bir kullanici oturum acana kadar
+  // bekliyoruz. flushQueuedBooks'u bilincli olarak deps'e eklemedik - her
+  // render'da yeniden olusan bir closure (memoize edilmesi 'library'nin
+  // kendisi de her render'da yeni bir nesne oldugu icin bir sey kazandirmaz),
+  // ama biz zaten sadece hasFlushedOnLoadRef ile korunan TEK bir cagriyi
+  // (kitaplik verisi ilk hazir oldugu andaki en guncel closure'i) istiyoruz.
+  const hasFlushedOnLoadRef = useRef(false);
+  useEffect(() => {
+    if (!user || booksLoading || librariesLoading) return;
+    if (hasFlushedOnLoadRef.current) return;
+    hasFlushedOnLoadRef.current = true;
+    if (navigator.onLine) {
+      flushQueuedBooks();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, booksLoading, librariesLoading]);
+
+  // Kuyrukta onceki bir oturumdan kalan kayit varsa, banner'in dogru sayiyi
+  // ilk render'dan itibaren gosterebilmesi icin acilista bir kez okunur.
+  useEffect(() => {
+    getQueuedBooks()
+      .then((queued) => setQueuedCount(queued.length))
+      .catch((err) => console.error(err));
+  }, []);
+
   const [newLibraryName, setNewLibraryName] = useState('');
   const [isAddingLibrary, setIsAddingLibrary] = useState(false);
   const [libraryNameError, setLibraryNameError] = useState(null);
@@ -96,7 +187,7 @@ function App() {
   const shelfCount = activeLibrary?.shelfCount || 2;
 
   const shelfDnd = useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, updateBookPosition);
-  const addFlow = useAddBookFlow(shelfDnd.draggedBookId);
+  const addFlow = useAddBookFlow(shelfDnd.draggedBookId, isOnline);
 
   const renderStars = (rating) => (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
@@ -113,7 +204,7 @@ function App() {
       } else {
         const libraryIds = bookData.libraryIds && bookData.libraryIds.length ? bookData.libraryIds : [activeLibraryId];
 
-        await library.addBook({
+        await addOrQueueBook({
           ...bookData,
           libraryIds,
           shelfRow: 0,
@@ -181,6 +272,7 @@ function App() {
       {!isOnline && (
         <div className="offline-banner" role="status">
           {t('app.offlineBanner')}
+          {queuedCount > 0 && ' ' + t('app.offlineBannerQueued', { count: queuedCount })}
         </div>
       )}
       {authLoading ? (
@@ -347,7 +439,8 @@ function App() {
               <BatchScanner
                 books={books}
                 activeLibraryId={activeLibraryId}
-                addBook={library.addBookWithoutStatsRefresh}
+                addBook={addOrQueueBook}
+                isOnline={isOnline}
                 onBatchSaved={library.refreshStats}
                 onClose={addFlow.closeBatchScan}
                 onManualAddIsbn={addFlow.handleManualAddFromIsbn}

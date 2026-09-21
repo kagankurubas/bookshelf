@@ -4,7 +4,8 @@
     "loading": "Yükleniyor...",
     "loadError": "Kitaplığın yüklenemedi. Bağlantını kontrol edip tekrar dene.",
     "retry": "Tekrar Dene",
-    "offlineBanner": "İnternet bağlantın yok. Bazı özellikler çalışmayabilir."
+    "offlineBanner": "İnternet bağlantın yok. Bazı özellikler çalışmayabilir.",
+    "offlineBannerQueued": "{{count}} kitap bağlantı gelince eklenecek."
   },
   "nav": {
     "cards": "Kitaplar",
@@ -227,6 +228,7 @@
     "saveError": "Kitaplar kaydedilirken bir hata oluştu. Bir kısmı zaten kaydedilmiş olabilir.",
     "done": "Tamamlandı",
     "doneMessage": "{{count}} kitap kitaplığına eklendi.",
+    "doneMessageQueued": "{{count}} kitap bağlantı gelince eklenecek.",
     "close": "Kapat",
     "untitled": "Başlıksız",
     "unknownAuthorFallback": "Bilinmeyen Yazar"

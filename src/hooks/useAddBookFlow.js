@@ -7,7 +7,10 @@ import { getBookByIsbn } from '../lib/openLibrary';
 // bir yerde tutar. draggedBookId disaridan geliyor cunku raf suruklemesi
 // App.jsx'in kendi state'i - burasi sadece surukleme sirasinda detay
 // modalinin acilmasini engellemek icin okuyor.
-export function useAddBookFlow(draggedBookId) {
+// `isOnline` (useOnlineStatus'tan) barkod tarama akisinda Open Library'ye
+// offline oldugumuz icin ulasilamadigini gercek bir Open Library
+// hatasindan ayirt edebilmek icin kullanilir.
+export function useAddBookFlow(draggedBookId, isOnline) {
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
@@ -74,8 +77,18 @@ export function useAddBookFlow(draggedBookId) {
       }
     } catch (err) {
       console.error(err);
-      alert(t('isbnLookup.error'));
-      setIsAddChoiceOpen(true);
+      // isOnline === false ise Open Library'ye offline oldugumuz icin
+      // ulasamadik - gercek bir Open Library hatasi degil. Kullaniciya hata
+      // alert'i gostermek yerine dogrudan elle-giris formuna (ISBN
+      // onceden dolu) yonlendiriyoruz. isOnline === true iken hala hata
+      // olursa (Open Library gercekten coktu/500 dondu), davranis
+      // degismiyor: bugunku alert gosteriliyor.
+      if (isOnline === false) {
+        handleManualAddFromIsbn(isbn);
+      } else {
+        alert(t('isbnLookup.error'));
+        setIsAddChoiceOpen(true);
+      }
     } finally {
       setIsLookingUpIsbn(false);
     }
