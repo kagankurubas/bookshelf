@@ -4,7 +4,8 @@
     "loading": "Loading...",
     "loadError": "Couldn't load your library. Check your connection and try again.",
     "retry": "Retry",
-    "offlineBanner": "You're offline. Some features may not work."
+    "offlineBanner": "You're offline. Some features may not work.",
+    "offlineBannerQueued": "{{count}} book(s) will be added once you're back online."
   },
   "nav": {
     "cards": "Books",
@@ -227,6 +228,7 @@
     "saveError": "Something went wrong saving the books. Some may already be saved.",
     "done": "Done",
     "doneMessage": "{{count}} books added to your library.",
+    "doneMessageQueued": "{{count}} book(s) will be added once you're back online.",
     "close": "Close",
     "untitled": "Untitled",
     "unknownAuthorFallback": "Unknown Author"

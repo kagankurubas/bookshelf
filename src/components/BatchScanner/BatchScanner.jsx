@@ -16,7 +16,7 @@ const CelebrateIcon = () => (<svg width="30" height="30" viewBox="0 0 24 24" fil
 // dururken) yeniden islenmesin diye bekleme suresi.
 const REPROCESS_COOLDOWN_MS = 4000;
 
-function BatchScanner({ books, activeLibraryId, addBook, onBatchSaved, onClose, onManualAddIsbn }) {
+function BatchScanner({ books, activeLibraryId, addBook, isOnline, onBatchSaved, onClose, onManualAddIsbn }) {
   const { t } = useTranslation();
   useEscapeKey(onClose);
   const [phase, setPhase] = useState('scanning'); // 'scanning' | 'review' | 'done'
@@ -261,7 +261,11 @@ function BatchScanner({ books, activeLibraryId, addBook, onBatchSaved, onClose, 
           </div>
           <div className="batch-scanner-review-body batch-scanner-done-body">
             <CelebrateIcon />
-            <p>{t('batchScanner.doneMessage', { count: savedCount })}</p>
+            <p>
+              {isOnline
+                ? t('batchScanner.doneMessage', { count: savedCount })
+                : t('batchScanner.doneMessageQueued', { count: savedCount })}
+            </p>
           </div>
           <div className="batch-scanner-footer">
             <button type="button" className="batch-scanner-save-btn" onClick={onClose}>

@@ -23,7 +23,7 @@ import { useAddBookFlow } from './hooks/useAddBookFlow';
 import { useShelfDnd } from './hooks/useShelfDnd';
 import { useBookFilters } from './hooks/useBookFilters';
 import { useLibrary } from './hooks/useLibrary';
-import { useOnlineStatus } from './hooks/useOnlineStatus';
+import { useOfflineBookQueue } from './hooks/useOfflineBookQueue';
 import './App.css';
 
 // zxing-wasm barkod okuma motorunu tasiyan bu iki bilesen sadece kullanici
@@ -35,7 +35,6 @@ const BatchScanner = lazy(() => import('./components/BatchScanner/BatchScanner')
 function App() {
   const { t } = useTranslation();
   const { user, loading: authLoading, signIn, signUp, signOut } = useAuth();
-  const isOnline = useOnlineStatus();
   const [redirectError, clearRedirectError] = useAuthRedirectError();
   const [accountDeletedNotice, setAccountDeletedNotice] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -84,6 +83,18 @@ function App() {
     readingStatsRef.current = readingStats;
   });
 
+  // Offline kitap ekleme kuyrugunun tum orkestrasyonu (isOnline, kuyruk
+  // sayaci, flush, dogrudan-ekle-vs-kuyrukla karari) useOfflineBookQueue'de
+  // toplu - App.jsx sadece hangi addBook varyantinin (tekli/stats-siz) ve
+  // ne zaman "hazir" sayilacagini (kitaplik verisi yuklenmeden flush
+  // denenmesin diye) enjekte ediyor.
+  const { isOnline, queuedCount, addOrQueueBook } = useOfflineBookQueue({
+    addBook: library.addBook,
+    addBookForSync: library.addBookWithoutStatsRefresh,
+    refreshStats: library.refreshStats,
+    isReady: Boolean(user) && !booksLoading && !librariesLoading,
+  });
+
   const [newLibraryName, setNewLibraryName] = useState('');
   const [isAddingLibrary, setIsAddingLibrary] = useState(false);
   const [libraryNameError, setLibraryNameError] = useState(null);
@@ -96,7 +107,7 @@ function App() {
   const shelfCount = activeLibrary?.shelfCount || 2;
 
   const shelfDnd = useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, updateBookPosition);
-  const addFlow = useAddBookFlow(shelfDnd.draggedBookId);
+  const addFlow = useAddBookFlow(shelfDnd.draggedBookId, isOnline);
 
   const renderStars = (rating) => (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
@@ -113,7 +124,7 @@ function App() {
       } else {
         const libraryIds = bookData.libraryIds && bookData.libraryIds.length ? bookData.libraryIds : [activeLibraryId];
 
-        await library.addBook({
+        await addOrQueueBook({
           ...bookData,
           libraryIds,
           shelfRow: 0,
@@ -181,6 +192,7 @@ function App() {
       {!isOnline && (
         <div className="offline-banner" role="status">
           {t('app.offlineBanner')}
+          {queuedCount > 0 && ' ' + t('app.offlineBannerQueued', { count: queuedCount })}
         </div>
       )}
       {authLoading ? (
@@ -347,7 +359,8 @@ function App() {
               <BatchScanner
                 books={books}
                 activeLibraryId={activeLibraryId}
-                addBook={library.addBookWithoutStatsRefresh}
+                addBook={addOrQueueBook}
+                isOnline={isOnline}
                 onBatchSaved={library.refreshStats}
                 onClose={addFlow.closeBatchScan}
                 onManualAddIsbn={addFlow.handleManualAddFromIsbn}
