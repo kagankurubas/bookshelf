@@ -29,23 +29,29 @@ export async function getBookByIsbn(isbn) {
   const bibkey = `ISBN:${key}`;
   const url = `https://openlibrary.org/api/books?bibkeys=${encodeURIComponent(bibkey)}&format=json&jscmd=data`;
 
+  // Network hatasi/timeout ve HTTP hata kodlari (asagida) bilerek YUTULMUYOR,
+  // yeniden firlatiliyor - cagiran taraf bunu "bulunamadi"dan (basarili yanit
+  // ama veri yok) ayirt edebilsin diye. Basarisiz sonuc cache'e yazilmiyor ki
+  // kullanici tekrar denedigin de gercekten yeniden istek atilsin.
+  let response;
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.error(`OpenLibrary getBookByIsbn: HTTP ${response.status}`);
-      return null;
-    }
-
-    const data = await response.json();
-    const bookData = data[bibkey];
-    const normalized = normalizeBookData(key, bookData);
-
-    isbnCache.set(key, normalized);
-    return normalized;
+    response = await fetch(url);
   } catch (err) {
     console.error('OpenLibrary getBookByIsbn: istek başarısız oldu', err);
-    return null;
+    throw err;
   }
+
+  if (!response.ok) {
+    console.error(`OpenLibrary getBookByIsbn: HTTP ${response.status}`);
+    throw new Error(`OpenLibrary getBookByIsbn: HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  const bookData = data[bibkey];
+  const normalized = normalizeBookData(key, bookData);
+
+  isbnCache.set(key, normalized);
+  return normalized;
 }
 
 function normalizeSearchDoc(doc) {
@@ -69,20 +75,22 @@ export async function searchBooks(query) {
 
   const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(key)}&limit=15`;
 
+  let response;
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.error(`OpenLibrary searchBooks: HTTP ${response.status}`);
-      return [];
-    }
-
-    const data = await response.json();
-    const results = Array.isArray(data.docs) ? data.docs.map(normalizeSearchDoc) : [];
-
-    searchCache.set(key, results);
-    return results;
+    response = await fetch(url);
   } catch (err) {
     console.error('OpenLibrary searchBooks: istek başarısız oldu', err);
-    return [];
+    throw err;
   }
+
+  if (!response.ok) {
+    console.error(`OpenLibrary searchBooks: HTTP ${response.status}`);
+    throw new Error(`OpenLibrary searchBooks: HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  const results = Array.isArray(data.docs) ? data.docs.map(normalizeSearchDoc) : [];
+
+  searchCache.set(key, results);
+  return results;
 }

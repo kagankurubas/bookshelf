@@ -3,7 +3,8 @@
     "name": "BookShelf",
     "loading": "Loading...",
     "loadError": "Couldn't load your library. Check your connection and try again.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "offlineBanner": "You're offline. Some features may not work."
   },
   "nav": {
     "cards": "Books",
@@ -210,12 +211,14 @@
     "querying": "{{count}} looking up...",
     "scanEmpty": "No books scanned yet. Show barcodes to the camera one at a time.",
     "notFoundLabel": "ISBN: {{isbn}} — not found",
+    "connectionErrorLabel": "ISBN: {{isbn}} — connection error",
     "reviewTitle": "Scan Results ({{count}})",
     "foundSection": "Found ({{count}})",
     "notFoundSection": "Not Found ({{count}})",
     "nothingToSave": "No books to save.",
     "unknownAuthor": "Unknown author",
     "openLibraryNotFound": "Not found on Open Library",
+    "connectionError": "Connection error, try again",
     "manualAdd": "Add Manually",
     "removeFromList": "Remove from list",
     "scanMore": "+ Scan More",

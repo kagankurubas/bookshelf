@@ -94,6 +94,22 @@ html, body, #root {
   color: var(--danger);
 }
 
+/* Cihaz cevrimdisi oldugunda (navigator.onLine) ekranin en ustunde sabit
+   gorunen genel uyari - modallerin bile ustunde kalsin diye yuksek z-index. */
+.offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  padding: 8px 16px;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: white;
+  background: var(--danger);
+}
+
 /* Barkod tarama / kitap arama / toplu tarama modallarının overlay içindeki
    ortak sarmalayıcısı - genişlik/padding/box-sizing hepsinde aynıydı, sadece
    max-width farklıydı (bkz. --wide modifier'ı). */

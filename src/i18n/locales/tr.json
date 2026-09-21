@@ -3,7 +3,8 @@
     "name": "BookShelf",
     "loading": "Yükleniyor...",
     "loadError": "Kitaplığın yüklenemedi. Bağlantını kontrol edip tekrar dene.",
-    "retry": "Tekrar Dene"
+    "retry": "Tekrar Dene",
+    "offlineBanner": "İnternet bağlantın yok. Bazı özellikler çalışmayabilir."
   },
   "nav": {
     "cards": "Kitaplar",
@@ -210,12 +211,14 @@
     "querying": "{{count}} sorgulanıyor...",
     "scanEmpty": "Henüz kitap taranmadı. Barkodları sırayla kameraya göster.",
     "notFoundLabel": "ISBN: {{isbn}} — bulunamadı",
+    "connectionErrorLabel": "ISBN: {{isbn}} — bağlantı hatası",
     "reviewTitle": "Tarama Sonucu ({{count}})",
     "foundSection": "Bulunanlar ({{count}})",
     "notFoundSection": "Bulunamayanlar ({{count}})",
     "nothingToSave": "Kaydedilecek kitap yok.",
     "unknownAuthor": "Yazar bilinmiyor",
     "openLibraryNotFound": "Open Library'de bulunamadı",
+    "connectionError": "Bağlantı hatası, tekrar dene",
     "manualAdd": "Manuel Ekle",
     "removeFromList": "Listeden çıkar",
     "scanMore": "+ Daha Fazla Tara",

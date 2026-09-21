@@ -45,9 +45,21 @@ describe('getBookByIsbn', () => {
     });
   });
 
-  it('returns null when the HTTP response is not ok', async () => {
+  it('throws when the HTTP response is not ok (a failed request, not a missing book)', async () => {
     const isbn = 'not-ok-isbn-test';
     mockFetchOnce({}, false);
+    await expect(getBookByIsbn(isbn)).rejects.toThrow();
+  });
+
+  it('throws when fetch itself rejects (network error/timeout)', async () => {
+    const isbn = 'network-fail-isbn-test';
+    global.fetch = vi.fn().mockRejectedValue(new Error('network fail'));
+    await expect(getBookByIsbn(isbn)).rejects.toThrow('network fail');
+  });
+
+  it('still returns null (not a throw) when Open Library genuinely has no data for the ISBN', async () => {
+    const isbn = 'genuinely-missing-isbn-test';
+    mockFetchOnce({}); // basarili yanit ama bibkey icin veri yok
     const result = await getBookByIsbn(isbn);
     expect(result).toBeNull();
   });
@@ -62,6 +74,16 @@ describe('getBookByIsbn', () => {
     await getBookByIsbn(isbn);
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not cache a failed request, so a retry actually calls fetch again', async () => {
+    const isbn = 'no-cache-on-error-isbn-test';
+    global.fetch = vi.fn().mockRejectedValue(new Error('network fail'));
+
+    await expect(getBookByIsbn(isbn)).rejects.toThrow();
+    await expect(getBookByIsbn(isbn)).rejects.toThrow();
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -103,5 +125,31 @@ describe('searchBooks', () => {
         pageCount: 255,
       },
     ]);
+  });
+
+  it('still returns an empty array (not a throw) when the search genuinely has no results', async () => {
+    mockFetchOnce({ docs: [] });
+    const results = await searchBooks('a query with genuinely no matches');
+    expect(results).toEqual([]);
+  });
+
+  it('throws when the HTTP response is not ok (a failed request, not zero results)', async () => {
+    mockFetchOnce({}, false);
+    await expect(searchBooks('http-not-ok-query')).rejects.toThrow();
+  });
+
+  it('throws when fetch itself rejects (network error/timeout)', async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error('network fail'));
+    await expect(searchBooks('network-fail-query')).rejects.toThrow('network fail');
+  });
+
+  it('does not cache a failed request, so a retry actually calls fetch again', async () => {
+    const query = 'no-cache-on-error-query';
+    global.fetch = vi.fn().mockRejectedValue(new Error('network fail'));
+
+    await expect(searchBooks(query)).rejects.toThrow();
+    await expect(searchBooks(query)).rejects.toThrow();
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 });

@@ -23,6 +23,7 @@ import { useAddBookFlow } from './hooks/useAddBookFlow';
 import { useShelfDnd } from './hooks/useShelfDnd';
 import { useBookFilters } from './hooks/useBookFilters';
 import { useLibrary } from './hooks/useLibrary';
+import { useOnlineStatus } from './hooks/useOnlineStatus';
 import './App.css';
 
 // zxing-wasm barkod okuma motorunu tasiyan bu iki bilesen sadece kullanici
@@ -34,6 +35,7 @@ const BatchScanner = lazy(() => import('./components/BatchScanner/BatchScanner')
 function App() {
   const { t } = useTranslation();
   const { user, loading: authLoading, signIn, signUp, signOut } = useAuth();
+  const isOnline = useOnlineStatus();
   const [redirectError, clearRedirectError] = useAuthRedirectError();
   const [accountDeletedNotice, setAccountDeletedNotice] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -170,26 +172,29 @@ function App() {
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="main-container">
-        <p className="app-loading-text">{t('app.loading')}</p>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <AuthScreen
-        onSignIn={signIn}
-        onSignUp={signUp}
-        redirectError={redirectError}
-        accountDeletedNotice={accountDeletedNotice}
-      />
-    );
-  }
-
+  // Offline banner'in yukleniyor/giris/ana uygulama ekranlarinin ucunde de
+  // gorunebilmesi icin bu uc dal artik ayri early-return'ler yerine tek bir
+  // return icindeki ic ice ternary'ye cevrildi - her dalin kendi icerigi
+  // aynen korunuyor.
   return (
+    <>
+      {!isOnline && (
+        <div className="offline-banner" role="status">
+          {t('app.offlineBanner')}
+        </div>
+      )}
+      {authLoading ? (
+        <div className="main-container">
+          <p className="app-loading-text">{t('app.loading')}</p>
+        </div>
+      ) : !user ? (
+        <AuthScreen
+          onSignIn={signIn}
+          onSignUp={signUp}
+          redirectError={redirectError}
+          accountDeletedNotice={accountDeletedNotice}
+        />
+      ) : (
     <div className="main-container" onDragEnd={shelfDnd.handleDragEnd}>
 
       {booksLoading || librariesLoading ? (
@@ -375,6 +380,8 @@ function App() {
       )}
 
     </div>
+      )}
+    </>
   );
 }
 

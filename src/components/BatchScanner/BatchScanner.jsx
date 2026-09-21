@@ -44,8 +44,13 @@ function BatchScanner({ books, activeLibraryId, addBook, onBatchSaved, onClose, 
         );
       })
       .catch((err) => {
+        // getBookByIsbn burada network hatasi/timeout veya HTTP hata kodu
+        // icin throw ediyor - bu, gercek "Open Library'de yok" (not_found)
+        // durumundan ayri bir 'error' status'u olarak isaretleniyor ki
+        // kullanici baglanti sorununu kitabin gercekten bulunamamasiyla
+        // karistirmasin.
         console.error(err);
-        setEntries((prev) => prev.map((e) => (e.isbn === isbn ? { ...e, status: 'not_found', book: null } : e)));
+        setEntries((prev) => prev.map((e) => (e.isbn === isbn ? { ...e, status: 'error', book: null } : e)));
       });
   };
 
@@ -100,7 +105,10 @@ function BatchScanner({ books, activeLibraryId, addBook, onBatchSaved, onClose, 
   };
 
   const foundEntries = entries.filter((e) => e.status === 'found');
-  const notFoundEntries = entries.filter((e) => e.status === 'not_found');
+  // 'not_found' (Open Library'de gercekten yok) ve 'error' (baglanti/HTTP
+  // hatasi) ayni inceleme bolumunde birlikte gosteriliyor - ikisi de
+  // kaydedilemeyecek durumda, ama satir metni hangisi oldugunu belirtiyor.
+  const notFoundEntries = entries.filter((e) => e.status === 'not_found' || e.status === 'error');
   const pendingCount = entries.filter((e) => e.status === 'pending').length;
 
   return (
@@ -134,7 +142,7 @@ function BatchScanner({ books, activeLibraryId, addBook, onBatchSaved, onClose, 
                         <img src={entry.book.coverImage} alt={entry.book.title} className="batch-scanner-cover" />
                       ) : (
                         <div className="batch-scanner-cover batch-scanner-cover-placeholder">
-                          {entry.status === 'pending' ? <ClockIcon /> : entry.status === 'not_found' ? <QuestionIcon /> : <BookGlyphIcon />}
+                          {entry.status === 'pending' ? <ClockIcon /> : entry.status === 'not_found' || entry.status === 'error' ? <QuestionIcon /> : <BookGlyphIcon />}
                         </div>
                       )}
                       <div className="batch-scanner-row-info">
@@ -148,6 +156,11 @@ function BatchScanner({ books, activeLibraryId, addBook, onBatchSaved, onClose, 
                         {entry.status === 'not_found' && (
                           <span className="batch-scanner-row-title batch-scanner-row-not-found">
                             {t('batchScanner.notFoundLabel', { isbn: entry.isbn })}
+                          </span>
+                        )}
+                        {entry.status === 'error' && (
+                          <span className="batch-scanner-row-title batch-scanner-row-not-found">
+                            {t('batchScanner.connectionErrorLabel', { isbn: entry.isbn })}
                           </span>
                         )}
                       </div>
@@ -205,7 +218,9 @@ function BatchScanner({ books, activeLibraryId, addBook, onBatchSaved, onClose, 
                       <div className="batch-scanner-cover batch-scanner-cover-placeholder"><QuestionIcon /></div>
                       <div className="batch-scanner-row-info">
                         <span className="batch-scanner-row-title">ISBN: {entry.isbn}</span>
-                        <span className="batch-scanner-row-author">{t('batchScanner.openLibraryNotFound')}</span>
+                        <span className="batch-scanner-row-author">
+                          {entry.status === 'error' ? t('batchScanner.connectionError') : t('batchScanner.openLibraryNotFound')}
+                        </span>
                       </div>
                       <button
                         type="button"
