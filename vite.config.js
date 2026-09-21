@@ -17,12 +17,29 @@ export default defineConfig({
         // App.css'teki --bg / --accent marka renkleriyle tutarli (oklch -> hex).
         theme_color: '#008a5d',
         background_color: '#f7f5f1',
-        // Placeholder: gercek PNG ikon seti 02-pwa-icons ticket'inda uretilecek.
+        // @vite-pwa/assets-generator (pwa-assets.config.ts) ile public/favicon.svg
+        // kaynagindan uretildi - bkz. 02-pwa-icons ticket'i.
         icons: [
           {
-            src: '/favicon.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
+            src: '/pwa-64x64.png',
+            sizes: '64x64',
+            type: 'image/png',
+          },
+          {
+            src: '/pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+          },
+          {
+            src: '/maskable-icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
           },
         ],
       },
