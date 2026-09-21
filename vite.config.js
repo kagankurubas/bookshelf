@@ -9,6 +9,40 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       strategies: 'generateSW',
+      workbox: {
+        // Varsayilan globPatterns 'wasm' uzantisini icermiyor - barkod
+        // okuyucunun (zxing-wasm) motoru bu olmadan hic precache'e girmez
+        // ve ilk kez offline bir ortamda acilan biri icin tarama calismaz.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm}'],
+        runtimeCaching: [
+          {
+            // Supabase REST okumalari (.select() -> GET). Proje ref'i
+            // deploy'a gore degisebildigi icin sabit bir regex yerine
+            // import.meta.env.VITE_SUPABASE_URL'e gore dinamik eslenir.
+            // /auth/v1/* ve /functions/v1/* bu pattern'e hic girmiyor.
+            urlPattern: ({ url }) =>
+              url.href.startsWith(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`),
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'supabase-rest-cache',
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
+              cacheableResponse: { statuses: [0, 200] },
+              networkTimeoutSeconds: 5,
+            },
+          },
+          {
+            // Open Library ISBN/arama JSON'u + kapak gorselleri - pratikte
+            // hic degismeyen veri, agresifce (CacheFirst) cache'lenir.
+            urlPattern: /^https:\/\/(covers\.)?openlibrary\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'openlibrary-cache',
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+      },
       manifest: {
         name: 'BookShelf',
         short_name: 'BookShelf',
