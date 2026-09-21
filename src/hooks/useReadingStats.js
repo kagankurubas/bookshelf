@@ -34,8 +34,19 @@ export function useReadingStats(libraryId, year = null) {
       return;
     }
     setLoading(true);
+    // { get: true } cagriyi GET'e cevirir (fonksiyon migrations/009'da
+    // 'stable' isaretli, PostgREST bunu salt-okunur RPC'ler icin GET'e
+    // izin veriyor) - boylece vite.config.js'teki Supabase NetworkFirst
+    // runtime-caching kurali bu istegi de yakalayip offline'da son bilinen
+    // degeri dondurebiliyor (POST istekleri Workbox'in route'larina hic
+    // girmiyordu, bu yuzden bu istatistik offline'da hep 0/bos donuyordu).
+    // p_year null'ken query-string'e literal "null" string'i olarak
+    // gitmesin diye (Postgres int parametresi bunu kabul etmez) anahtar
+    // tamamen atlaniyor - fonksiyonun kendi `default null`'u devreye girer.
+    const args = { p_library_id: libraryId };
+    if (year != null) args.p_year = year;
     const { data, error: rpcError } = await supabase
-      .rpc('get_reading_stats', { p_library_id: libraryId, p_year: year })
+      .rpc('get_reading_stats', args, { get: true })
       .single();
 
     if (rpcError) {
