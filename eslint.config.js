@@ -26,8 +26,9 @@ export default defineConfig([
   },
   {
     // RLS entegrasyon test harness'i (Node ortaminda calisir, jsdom yok):
-    // fixture yardimcisi, globalSetup ve kendi Vitest config'i.
-    files: ['tests/integration/**/*.js', 'vitest.integration.config.js'],
+    // fixture yardimcisi, globalSetup ve kendi Vitest config'i. vite.config.js
+    // de ayni sekilde Node'da calisiyor (ör. loadEnv icin process.cwd()).
+    files: ['tests/integration/**/*.js', 'vitest.integration.config.js', 'vite.config.js'],
     languageOptions: {
       globals: globals.node,
     },
