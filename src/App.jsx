@@ -23,9 +23,7 @@ import { useAddBookFlow } from './hooks/useAddBookFlow';
 import { useShelfDnd } from './hooks/useShelfDnd';
 import { useBookFilters } from './hooks/useBookFilters';
 import { useLibrary } from './hooks/useLibrary';
-import { useOnlineStatus } from './hooks/useOnlineStatus';
-import { useAddOrQueueBook } from './hooks/useAddOrQueueBook';
-import { enqueueBook, getQueuedBooks, removeQueuedBook } from './lib/offlineBookQueue';
+import { useOfflineBookQueue } from './hooks/useOfflineBookQueue';
 import './App.css';
 
 // zxing-wasm barkod okuma motorunu tasiyan bu iki bilesen sadece kullanici
@@ -85,95 +83,17 @@ function App() {
     readingStatsRef.current = readingStats;
   });
 
-  // Offline kitap ekleme kuyrugu: kuyrukta bekleyen kayit sayisi (banner'da
-  // gosterilir) ve bu kayitlari sirayla (paralel degil) senkronize eden
-  // flush islemi. Her biri basarili olur olmaz HEMEN IndexedDB'den silinir
-  // (toplu silme degil) - senkronizasyon yarida kesilirse kalan kayitlar
-  // guvende kalir. Bir oge basarisiz olursa dongu durur, kalanlar kuyrukta
-  // kalip bir sonraki 'online' olayinda tekrar denenir.
-  const [queuedCount, setQueuedCount] = useState(0);
-
-  const refreshQueuedCount = () => {
-    getQueuedBooks()
-      .then((queued) => setQueuedCount(queued.length))
-      .catch((err) => console.error(err));
-  };
-
-  const flushQueuedBooks = async () => {
-    const queued = await getQueuedBooks();
-    let addedAny = false;
-    for (const queuedBook of queued) {
-      const { id, ...fields } = queuedBook;
-      try {
-        await library.addBookWithoutStatsRefresh(fields);
-        await removeQueuedBook(id);
-        addedAny = true;
-      } catch (err) {
-        console.error(err);
-        break;
-      }
-    }
-    if (addedAny) {
-      library.refreshStats();
-    }
-    refreshQueuedCount();
-  };
-
-  // useOnlineStatus, App her render'da yeni bir onOnline closure'i (bu
-  // render'daki guncel 'library'yi yakalayan flushQueuedBooks'u) gecirse de,
-  // gercek 'offline'->'online' gecisinde HER ZAMAN EN GUNCEL closure'i
-  // cagirir (bkz. useOnlineStatus.js - bir ref uzerinden). Bu sayede
-  // senkronizasyon bayat/yuklenmemis kitaplik verisiyle calismaz.
-  const isOnline = useOnlineStatus(() => {
-    flushQueuedBooks();
-  });
-
-  // Kuyruk-veya-ekle karari (isOnline bayragina bakarak, bir yazmayi
-  // deneyip hata tipini yorumlamak yerine) izole/test edilebilir bir
-  // yardimciya (useAddOrQueueBook) cikarilmis durumda - App.jsx'e gomulu
-  // test edilemeyen bir closure olarak birakilmadi.
-  const rawAddOrQueueBook = useAddOrQueueBook({
-    isOnline,
+  // Offline kitap ekleme kuyrugunun tum orkestrasyonu (isOnline, kuyruk
+  // sayaci, flush, dogrudan-ekle-vs-kuyrukla karari) useOfflineBookQueue'de
+  // toplu - App.jsx sadece hangi addBook varyantinin (tekli/stats-siz) ve
+  // ne zaman "hazir" sayilacagini (kitaplik verisi yuklenmeden flush
+  // denenmesin diye) enjekte ediyor.
+  const { isOnline, queuedCount, addOrQueueBook } = useOfflineBookQueue({
     addBook: library.addBook,
-    enqueueBook,
+    addBookForSync: library.addBookWithoutStatsRefresh,
+    refreshStats: library.refreshStats,
+    isReady: Boolean(user) && !booksLoading && !librariesLoading,
   });
-  const addOrQueueBook = async (fields) => {
-    const outcome = await rawAddOrQueueBook(fields);
-    if (outcome?.queued) {
-      refreshQueuedCount();
-    }
-    return outcome;
-  };
-
-  // Uygulama offline'ken kapatilip sonra ONLINE'ken tekrar acilirsa 'online'
-  // event'i hic ateslenmez (tarayici zaten online) - bu yuzden kullanici +
-  // kitaplik verisi ilk kez yuklendiginde ayrica bir kez kontrol ediyoruz.
-  // booksLoading/librariesLoading false OLMADAN calisirsa 'library' henuz
-  // bos 'libraries'e gore kurulmus olur (varsayilan kitaplik id'si eksik
-  // kalir), bu yuzden ikisi de bitene ve bir kullanici oturum acana kadar
-  // bekliyoruz. flushQueuedBooks'u bilincli olarak deps'e eklemedik - her
-  // render'da yeniden olusan bir closure (memoize edilmesi 'library'nin
-  // kendisi de her render'da yeni bir nesne oldugu icin bir sey kazandirmaz),
-  // ama biz zaten sadece hasFlushedOnLoadRef ile korunan TEK bir cagriyi
-  // (kitaplik verisi ilk hazir oldugu andaki en guncel closure'i) istiyoruz.
-  const hasFlushedOnLoadRef = useRef(false);
-  useEffect(() => {
-    if (!user || booksLoading || librariesLoading) return;
-    if (hasFlushedOnLoadRef.current) return;
-    hasFlushedOnLoadRef.current = true;
-    if (navigator.onLine) {
-      flushQueuedBooks();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, booksLoading, librariesLoading]);
-
-  // Kuyrukta onceki bir oturumdan kalan kayit varsa, banner'in dogru sayiyi
-  // ilk render'dan itibaren gosterebilmesi icin acilista bir kez okunur.
-  useEffect(() => {
-    getQueuedBooks()
-      .then((queued) => setQueuedCount(queued.length))
-      .catch((err) => console.error(err));
-  }, []);
 
   const [newLibraryName, setNewLibraryName] = useState('');
   const [isAddingLibrary, setIsAddingLibrary] = useState(false);
