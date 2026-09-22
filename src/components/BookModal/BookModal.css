@@ -96,6 +96,51 @@
   font-size: 14px;
 }
 
+/* Etiket girişi (serbest metin + chip listesi) */
+.tag-input-group {
+  align-items: flex-start;
+}
+
+.tag-input-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tag-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: var(--accent-2-soft);
+  color: oklch(42% 0.15 300);
+  font-family: var(--font-body);
+  font-size: 12px;
+  padding: 4px 6px 4px 10px;
+  border-radius: 100px;
+}
+
+.tag-chip button {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: 0.7;
+}
+
+.tag-chip button:hover {
+  opacity: 1;
+}
+
 /* Yıldızlı Puanlama */
 .rating-input {
   display: flex;
