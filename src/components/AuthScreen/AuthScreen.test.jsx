@@ -51,12 +51,12 @@ describe('AuthScreen', () => {
     expect(screen.getByText('Hesabın ve tüm verilerin kalıcı olarak silindi.')).toBeInTheDocument();
   });
 
-  // Bug repro: kullanici bu ekran zaten acikken (ör. cikis yaptiktan sonra)
-  // ayni sekmede eski bir dogrulama linkine tekrar tiklarsa, App yeniden
-  // mount olmadan sadece redirectError prop'unu gunceller. AuthScreen bu
-  // degisikligi bir lazy state kopyasi yerine dogrudan prop'tan tureterek
-  // yakalamali - onceki implementasyon mount anindaki (henuz hatasiz) degeri
-  // dondurdugunden mesaj hicbir zaman gorunmuyordu.
+  // Bug repro: if the user clicks an old verification link again in the same
+  // tab while this screen is already open (e.g. after signing out), App
+  // updates just the redirectError prop without remounting. AuthScreen must
+  // pick that up by deriving directly from the prop rather than a lazy state
+  // copy - the previous implementation returned the (still error-free) value
+  // from mount time, so the message never appeared.
   it('shows the redirect-error message when the prop arrives AFTER the component already mounted with no error', () => {
     const props = baseProps();
     const { rerender } = render(<AuthScreen {...props} />);
@@ -72,11 +72,10 @@ describe('AuthScreen', () => {
     expect(screen.getByText('Doğrulama linkinin süresi dolmuş. Giriş yapmayı dene ya da tekrar kayıt olup yeni bir doğrulama e-postası iste.')).toBeInTheDocument();
   });
 
-  // Bug repro: redirectError bu sekmenin tum omru boyunca App'in
-  // hafizasinda kalabiliyor (ör. kullanici gecersiz linkle inip sonra giris
-  // yapip hesabini sildiyse) - App bunu temizlemeyi unutursa bile AuthScreen
-  // TEK BASINA iki celisen mesaji (silme basarili + link suresi dolmus)
-  // ust uste gostermemeli; silme bildirimi kazanmali.
+  // Bug repro: redirectError can stay in App's memory for this tab's entire
+  // lifetime (e.g. user lands with an invalid link, then signs in and deletes
+  // their account) - even if App forgets to clear it, AuthScreen ALONE must
+  // not show two conflicting messages at once; the deletion notice should win.
   it('shows only the account-deleted notice, never the stale redirect-error message, when both are present', () => {
     renderScreen({
       accountDeletedNotice: true,

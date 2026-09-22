@@ -26,9 +26,9 @@ import { useLibrary } from './hooks/useLibrary';
 import { useOfflineBookQueue } from './hooks/useOfflineBookQueue';
 import './App.css';
 
-// zxing-wasm barkod okuma motorunu tasiyan bu iki bilesen sadece kullanici
-// tarama akisini actiginda gerekiyor - ilk sayfa yukunden ayirmak icin
-// dinamik import ile code-split ediliyor.
+// These two components carry the zxing-wasm barcode-reading engine and are
+// only needed once the user opens a scan flow - code-split via dynamic import
+// to keep them out of the initial page load.
 const BarcodeScanner = lazy(() => import('./components/BarcodeScanner/BarcodeScanner'));
 const BatchScanner = lazy(() => import('./components/BatchScanner/BatchScanner'));
 
@@ -60,13 +60,12 @@ function App() {
     refetchLibraries,
   } = useLibraries(user?.id);
 
-  // useLibrary'nin mutator'ları basari sonrasi okuma istatistiklerini
-  // tazelemek icin refreshStats'a ihtiyac duyuyor, ama refreshStats
-  // useReadingStats'tan geliyor ve o da useLibrary'nin urettigi
-  // activeLibraryId'ye ihtiyac duyuyor - dongusel bagimliligi bir ref ile
-  // kiriyoruz: useLibrary'ye verilen fonksiyon her zaman en son render'da
-  // atanmis readingStats'i okur, mutator'lar ise ancak bir kullanici
-  // etkilesiminde (render bittikten sonra) cagrilir.
+  // useLibrary's mutators need refreshStats to refresh reading stats after a
+  // success, but refreshStats comes from useReadingStats, which itself needs
+  // the activeLibraryId that useLibrary produces - we break the circular
+  // dependency with a ref: the function passed to useLibrary always reads the
+  // readingStats assigned on the latest render, and mutators are only ever
+  // called from a user interaction (after render has finished).
   const readingStatsRef = useRef(null);
   const library = useLibrary({
     libraries,
@@ -83,11 +82,11 @@ function App() {
     readingStatsRef.current = readingStats;
   });
 
-  // Offline kitap ekleme kuyrugunun tum orkestrasyonu (isOnline, kuyruk
-  // sayaci, flush, dogrudan-ekle-vs-kuyrukla karari) useOfflineBookQueue'de
-  // toplu - App.jsx sadece hangi addBook varyantinin (tekli/stats-siz) ve
-  // ne zaman "hazir" sayilacagini (kitaplik verisi yuklenmeden flush
-  // denenmesin diye) enjekte ediyor.
+  // The whole orchestration of the offline book-add queue (isOnline, queue
+  // count, flush, add-directly-vs-queue decision) lives in
+  // useOfflineBookQueue - App.jsx only injects which addBook variant
+  // (single/without stats) to use and when to consider things "ready" (so a
+  // flush isn't attempted before library data has loaded).
   const { isOnline, queuedCount, addOrQueueBook } = useOfflineBookQueue({
     addBook: library.addBook,
     addBookForSync: library.addBookWithoutStatsRefresh,
@@ -103,7 +102,7 @@ function App() {
 
   const bookFilters = useBookFilters(books, activeLibraryId);
 
-  // Aktif kitaplığın raf kat sayısını alalım (artık sabit kapasite yok)
+  // Get the active library's shelf row count (no more fixed capacity)
   const shelfCount = activeLibrary?.shelfCount || 2;
 
   const shelfDnd = useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, updateBookPosition);
@@ -134,8 +133,8 @@ function App() {
       addFlow.clearSelectedBook();
     } catch (err) {
       console.error(err);
-      // BookModal bu hatayi yakalayip kendi satir ici mesajini gosterip
-      // formu acik tutuyor - burada ayrica alert() gostermiyoruz.
+      // BookModal catches this error and shows its own inline message while
+      // keeping the form open - no separate alert() here.
       throw err;
     }
   };
@@ -160,8 +159,8 @@ function App() {
       const newLib = await createLibrary({
         name: newLibraryName.trim(),
         shelfCount: 2,
-        // Kullanicinin ilk kitapligi otomatik olarak ana (silinemez) kitaplik
-        // olur - boylece her zaman en az bir silinmez kitaplik garanti edilir.
+        // The user's first library automatically becomes the main
+        // (undeletable) one - guaranteeing at least one undeletable library at all times.
         isDefault: libraries.length === 0
       });
       library.setActiveLibraryId(newLib.id);
@@ -183,10 +182,10 @@ function App() {
     }
   };
 
-  // Offline banner'in yukleniyor/giris/ana uygulama ekranlarinin ucunde de
-  // gorunebilmesi icin bu uc dal artik ayri early-return'ler yerine tek bir
-  // return icindeki ic ice ternary'ye cevrildi - her dalin kendi icerigi
-  // aynen korunuyor.
+  // So the offline banner can also appear across the loading/auth/main-app
+  // screens, these three branches were converted from separate early-returns
+  // into one nested ternary inside a single return - each branch's own
+  // content is kept exactly as before.
   return (
     <>
       {!isOnline && (
@@ -241,12 +240,12 @@ function App() {
           onClose={() => setIsSettingsOpen(false)}
           onAccountDeleted={() => {
             setIsSettingsOpen(false);
-            // Hesap silme, doğrulama linki hatasıyla alakasız - ama
-            // redirectError bu sekmenin tüm ömrü boyunca hafızada kalabilir
-            // (ör. kullanıcı gecersiz linkle inip sonra giriş yapıp hesabını
-            // sildiyse). İkisi aynı anda anlamlı olmadığı için bilinçli
-            // olarak temizliyoruz, aksi halde AuthScreen'de iki mesaj üst
-            // üste görünür.
+            // Account deletion is unrelated to the verification-link error -
+            // but redirectError can stay in memory for this tab's whole
+            // lifetime (e.g. user landed with an invalid link, then signed in
+            // and deleted their account). Since the two aren't meaningful
+            // together, we clear it deliberately, otherwise AuthScreen would
+            // show two stacked messages.
             clearRedirectError();
             setAccountDeletedNotice(true);
           }}

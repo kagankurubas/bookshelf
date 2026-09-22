@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import './TrendChart.css';
 
-// Aylık ve yıllık okuma grafiklerinde ortak kullanılan tek serili
-// bar/line grafik bileşeni. data: [{ label, tooltipLabel?, value }].
-// type: 'bar' (varsayılan) | 'line'. Tek eksen - bir seferde tek metrik
-// gösterilir (kitap ya da sayfa), üst bileşen hangi metriği bastığını
-// data.value içinde seçer.
+// Single-series bar/line chart component shared by the monthly and yearly
+// reading charts. data: [{ label, tooltipLabel?, value }].
+// type: 'bar' (default) | 'line'. Single axis - only one metric is shown at a
+// time (books or pages); the parent component picks which one to feed into data.value.
 function TrendChart({ data, type = 'bar', color = 'var(--accent)', valueSuffix = '', height = 150 }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const values = data.map((d) => d.value);
@@ -18,7 +17,7 @@ function TrendChart({ data, type = 'bar', color = 'var(--accent)', valueSuffix =
   };
 
   if (type === 'line') {
-    const width = 100; // yüzde tabanlı viewBox, kap genişliğine göre ölçekleniyor
+    const width = 100; // percentage-based viewBox, scales with container width
     const stepX = data.length > 1 ? width / (data.length - 1) : 0;
     const points = data.map((d, i) => {
       const x = data.length > 1 ? i * stepX : width / 2;

@@ -5,18 +5,17 @@ import zxingReaderWasmUrl from 'zxing-wasm/reader/zxing_reader.wasm?url';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import './BarcodeScanner.css';
 
-// zxing-wasm varsayılan olarak .wasm dosyasını bir CDN'den çekiyor; bunun
-// yerine Vite'ın paketlediği yerel dosyayı kullanması için üzerine yazıyoruz.
-// Modül sadece ilk gerçek tarama çağrısında (readBarcodes) indirilip
-// başlatılıyor, bu yüzden barkod tarayıcıyı hiç açmayan kullanıcılar için
-// bir maliyeti yok.
+// zxing-wasm fetches its .wasm file from a CDN by default; override it to use
+// the local file Vite bundles instead. The module is only downloaded and
+// initialized on the first real scan call (readBarcodes), so users who never
+// open the barcode scanner pay no cost.
 setZXingModuleOverrides({
   locateFile: (path, prefix) => (path.endsWith('.wasm') ? zxingReaderWasmUrl : prefix + path),
 });
 
 const SUPPORTED_FORMATS = ['EAN13', 'EAN8', 'UPCA', 'UPCE'];
-// Kamera CPU/pil tüketimini makul tutmak için 1080p yerine bu genişliğe
-// indirgenmiş bir karede tarama yapılıyor - barkod çözümü için yeterli.
+// Decoding runs on a frame downscaled to this width instead of 1080p, to keep
+// camera CPU/battery use reasonable - still enough for barcode decoding.
 const DECODE_MAX_WIDTH = 1280;
 const DECODE_INTERVAL_MS = 250;
 
@@ -43,8 +42,8 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
   const canvasRef = useRef(document.createElement('canvas'));
   const hasScannedRef = useRef(false);
   const trackRef = useRef(null);
-  // onScan, ebeveyn her render olduğunda yeni bir referans olabilir; efektin
-  // sadece mount'ta bir kez çalışıp kamerayı yeniden başlatmaması için ref'te tutuyoruz.
+  // onScan may get a new reference on every parent render; kept in a ref so
+  // the effect only runs once on mount and doesn't restart the camera.
   const onScanRef = useRef(onScan);
   const [status, setStatus] = useState(() => (isCameraSupported() ? 'starting' : 'unsupported'));
   const [errorMessage, setErrorMessage] = useState(() =>
@@ -78,12 +77,11 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
     let intervalId = null;
 
     const idealConstraints = {
-      // Telefon kameraları genelde 1920x1080'in çok üzerinde çözünürlük
-      // destekliyor; düşük ideal değer istemek, sonradan zoom uygulanınca
-      // kırpılan bölgenin aynı boyuta büyütülüp (upscale) pikselleşmesine
-      // yol açıyordu. Yüksek bir ideal istemek tarayıcının desteklenen en
-      // yüksek çözünürlüğe yakınına çıkmasını sağlıyor - decode zaten
-      // DECODE_MAX_WIDTH'e küçültülüyor, bu yüzden CPU maliyeti sabit kalıyor.
+      // Phone cameras usually support far more than 1920x1080; requesting a
+      // low ideal value caused pixelation once zoom cropped and upscaled the
+      // frame back to size. Requesting a high ideal value gets the browser
+      // close to its max supported resolution - decode already downscales to
+      // DECODE_MAX_WIDTH, so CPU cost stays constant.
       width: { ideal: 3840 },
       height: { ideal: 2160 },
       advanced: [{ focusMode: 'continuous' }],
@@ -97,12 +95,12 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
           return;
         }
 
-        // "environment" facingMode telefonlarda ana lens yerine ikincil
-        // (ultra geniş/makro gibi, genelde düşük çözünürlüklü) bir lense
-        // denk gelebiliyor. Android'de kamera ID 0 neredeyse her zaman ana
-        // arka sensördür - izin alındıktan sonra (enumerateDevices artık
-        // gerçek label döndürür) arka kameraları etiketteki numaraya göre
-        // sıralayıp en düşüğünü deniyoruz.
+        // "environment" facingMode can land on a secondary lens on phones
+        // (ultra-wide/macro, usually lower resolution) instead of the main
+        // one. On Android, camera ID 0 is almost always the main back sensor -
+        // once permission is granted (enumerateDevices now returns real
+        // labels), sort back cameras by the number in their label and try the
+        // lowest one.
         try {
           const devices = await navigator.mediaDevices.enumerateDevices();
           const backCams = devices
@@ -117,11 +115,11 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
           const currentDeviceId = mediaStream.getVideoTracks()[0].getSettings().deviceId;
           const preferred = backCams[0];
           if (preferred && preferred.deviceId !== currentDeviceId) {
-            // Çoğu telefon aynı anda iki fiziksel arka kamerayı birden açmaya
-            // izin vermiyor (donanım kilidi) - yeni kamerayı açmadan önce
-            // eskisini bırakmak gerekiyor. Yeni kamera açılamazsa (ör. bu
-            // cihazda concurrent kısıtlama yoksa bile deviceId reddedilirse)
-            // orijinal facingMode isteğiyle tekrar bağlanılıyor.
+            // Most phones don't allow two physical back cameras open at once
+            // (hardware lock) - the old one must be released before opening
+            // the new one. If the new camera fails to open (e.g. deviceId
+            // rejected even without a concurrency limit on this device), fall
+            // back to the original facingMode request.
             mediaStream.getTracks().forEach((tr) => tr.stop());
             try {
               mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -138,7 +136,7 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
             }
           }
         } catch {
-          // Kamera listesi alınamazsa/değiştirilemezse varsayılan akışla devam edilir.
+          // If the camera list can't be read/switched, continue with the default stream.
         }
 
         stream = mediaStream;
@@ -149,18 +147,17 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
           if (capabilities?.torch) {
             setTorchSupported(true);
           }
-          // Telefonlarda kamera geniş bir alanı yakalıyor ve zoom=1 iken
-          // barkod karede küçük kalıp az piksel kaplayabiliyor - bu 1D
-          // barkod çözümünü zorlaştırıyor. Donanım destekli zoom varsa
-          // (crop sensörden alınır, sadece dijital büyütme değildir)
-          // barkodu daha fazla piksele yaymak için ölçülü şekilde devreye
-          // sokuyoruz.
+          // On phones the camera captures a wide area, and at zoom=1 the
+          // barcode can stay small in frame and cover too few pixels, making
+          // 1D decoding harder. If hardware zoom is available (cropped from
+          // the sensor, not just digital upscaling), apply a moderate amount
+          // to spread the barcode across more pixels.
           if (capabilities?.zoom) {
             const targetZoom = Math.min(2, capabilities.zoom.max);
             track.applyConstraints({ advanced: [{ zoom: targetZoom }] }).catch(() => {});
           }
         } catch {
-          // Yetenek bilgisi alınamazsa zoom/fener basitçe devre dışı kalır.
+          // If capability info can't be read, zoom/torch simply stay disabled.
         }
 
         const video = videoRef.current;
@@ -175,8 +172,8 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
           const hit = results.find((r) => r.isValid && r.text);
           if (!hit) return;
           if (continuous) {
-            // Toplu modda kamera kapanmaz; hangi ISBN'in tekrar islenip
-            // islenmeyecegine (kisa süreli tekrarlari eleme) ust bilesen karar verir.
+            // In batch mode the camera stays open; the parent component
+            // decides which ISBNs to reprocess (deduping short-lived repeats).
             onScanRef.current(hit.text);
             return;
           }
@@ -204,7 +201,7 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
           decodeFromSource(video, video.videoWidth, video.videoHeight)
             .then(handleResults)
             .catch(() => {
-              // Bir karede çözümleme başarısız olması normaldir, sessizce yoksay.
+              // Decode failing on a given frame is normal; ignore silently.
             });
         }, DECODE_INTERVAL_MS);
       })
@@ -227,11 +224,12 @@ function BarcodeScanner({ onScan, onClose, continuous = false, onFinish = null, 
       if (stream) stream.getTracks().forEach((tr) => tr.stop());
       trackRef.current = null;
     };
-    // Kamera sadece mount'ta bir kez başlatılır; onScan değişse bile efekt yeniden
-    // çalışmaz (güncel değer onScanRef üzerinden okunur). continuous ise bir
-    // bilesenin ömrü boyunca sabit kullanılır (parent hep ayni degeri geçer).
-    // t'yi bilinçli olarak disa biraktik: dil degisimi kamerayi yeniden
-    // baslatmamali, hata mesajlari zaten olay anindaki t() ile yaziliyor.
+    // The camera is only started once on mount; the effect doesn't re-run
+    // even if onScan changes (the current value is read via onScanRef).
+    // continuous is treated as fixed for the component's lifetime (the parent
+    // always passes the same value). t is deliberately left out: a language
+    // change shouldn't restart the camera, and error messages are already
+    // written with the t() from the moment of the event.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [continuous]);
 

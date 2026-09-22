@@ -56,8 +56,8 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
     const base = selectedBook
       ? selectedBook.libraryIds || []
       : (activeLibraryId ? [activeLibraryId] : []);
-    // Ana kitaplık her kitabı barındırır - seçimden hiç çıkarılamaz, bu
-    // yüzden başlangıç seçiminde her zaman dahil ediliyor.
+    // The main library holds every book - it can never be deselected, so it's
+    // always included in the initial selection.
     return defaultLibraryId && !base.includes(defaultLibraryId) ? [...base, defaultLibraryId] : base;
   });
 
@@ -99,9 +99,9 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
       setTagInput('');
       return;
     }
-    // Baska bir kitapta ayni etiket farkli case ile zaten kullanilmissa
-    // (ör. "Favori"), o casing'i kullan - ayni kavram tum kitaplarda ayni
-    // string olarak birikir, gecmise donuk bir normalize/migration gerekmez.
+    // If the same tag already exists with different casing on another book
+    // (e.g. "Favorite"), reuse that casing - so the same concept accumulates
+    // as the same string across all books, with no retroactive normalize/migration needed.
     const value = resolveTagCasing(trimmed, existingTags);
     const alreadyPresent = tags.some((tag) => tag.toLowerCase() === value.toLowerCase());
     if (!alreadyPresent) {
@@ -137,9 +137,8 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
     setStartPos(coverPosition);
   };
 
-  // Dokunmatik ekranlarda mouse eventleri hic tetiklenmedigi icin kapak
-  // konumlandirma suruklemesi mobilde tamamen calismiyordu - touch
-  // karsiliklari eklendi.
+  // Mouse events never fire on touch screens, so cover-position dragging
+  // didn't work on mobile at all - added touch counterparts.
   const handleTouchStart = (e) => {
     setIsDragging(true);
     setStartY(e.touches[0].clientY);
@@ -202,9 +201,9 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
       await onSave(bookData);
       onClose();
     } catch {
-      // Kaydetme basarisiz oldu - modal acik kalir, kullanicinin girdigi
-      // veriler kaybolmaz, tekrar denemesi icin satir ici hata gosterilir
-      // (App.jsx tarafindaki genel alert() bu senaryoda artik gosterilmiyor).
+      // Save failed - modal stays open, the user's input isn't lost, and an
+      // inline error is shown for retrying (App.jsx's generic alert() no
+      // longer shows in this case).
       setSaveError(t('bookModal.saveError'));
     } finally {
       setIsSaving(false);

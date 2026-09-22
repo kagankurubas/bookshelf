@@ -5,11 +5,11 @@ const RADIUS = 62;
 const STROKE = 26;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-// Kategoriye göre dağılımı gösteren donut grafik + lejant. data:
-// [{ category, value, color }] - zaten foldCategoriesForChart ile
-// renk-körlüğü güvenli 8 renk + "Diğer"e katlanmış olmalı. Dilim rengi
-// tek başına anlam taşımasın diye her dilimin yanında lejantta isim ve
-// sayı da yazıyor (identity never color-alone).
+// Donut chart + legend showing distribution by category. data:
+// [{ category, value, color }] - must already be folded by foldCategoriesForChart
+// into 8 colorblind-safe colors + "Other". Slice color never carries meaning
+// alone, so each slice's name and count are also shown in the legend
+// (identity never color-alone).
 function CategoryPieChart({ data, total, totalLabel, valueSuffix = '' }) {
   const [hovered, setHovered] = useState(null);
   const sum = data.reduce((acc, d) => acc + d.value, 0);

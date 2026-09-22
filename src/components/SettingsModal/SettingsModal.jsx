@@ -8,8 +8,8 @@ import ImportPreviewModal from '../ImportPreviewModal/ImportPreviewModal';
 import './SettingsModal.css';
 
 function downloadTextFile(content, filename, mimeType) {
-  // ReadingRecap.jsx'teki indirme deseninin aynısı: Blob + createObjectURL +
-  // <a download> + revokeObjectURL - yeni bir indirme yöntemi icat edilmiyor.
+  // Same download pattern as ReadingRecap.jsx: Blob + createObjectURL +
+  // <a download> + revokeObjectURL - no new download method invented.
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');

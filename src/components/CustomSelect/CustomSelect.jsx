@@ -2,15 +2,15 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import './CustomSelect.css';
 
-// Native <select> acildiginda tarayicinin/OS'un kendi popup'ini kullaniyor,
-// bu da uygulamanin tasarimiyla uyusmuyordu. Bu component WAI-ARIA
-// "Collapsible Dropdown Listbox" (select-only combobox) desenini uygulayan,
-// tasarima uyan, tam klavye-operasyonel paylasilan bir yerine kullanim -
-// LibraryToolbar ve DashboardPage'deki iki native select'in yerini alir.
+// A native <select> opens the browser's/OS's own popup, which clashed with
+// the app's design. This is a shared drop-in replacement that implements the
+// WAI-ARIA "Collapsible Dropdown Listbox" (select-only combobox) pattern,
+// matches the app's design, and is fully keyboard-operable - replaces the two
+// native selects in LibraryToolbar and DashboardPage.
 //
-// options: [{ value, label }] - value herhangi bir tipte olabilir (string,
-// number, null...), esitlik === ile karsilastirilir; caller kendi state
-// tipini korur (bkz. DashboardPage'deki null | number yil degeri).
+// options: [{ value, label }] - value can be any type (string, number,
+// null...), compared with ===; the caller keeps its own state type (see
+// DashboardPage's null | number year value).
 function CustomSelect({ value, onChange, options, ariaLabel, className = '' }) {
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);

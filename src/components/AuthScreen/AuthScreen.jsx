@@ -11,26 +11,25 @@ function AuthScreen({ onSignIn, onSignUp, redirectError, accountDeletedNotice })
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // Supabase dogrulama linki gecersizse (suresi dolmus, zaten kullanilmis vb.)
-  // kullaniciyi bos bir ekran yerine burada anlasilir bir mesajla karsilamak
-  // icin. Dogrudan prop'tan turetiliyor, bir lazy state kopyasina
-  // ALINMIYOR: kullanici bu ekran zaten acikken ayni sekmede eski bir
-  // dogrulama linkine tekrar tiklarsa (hash-only navigasyon, component
-  // yeniden mount olmaz) useAuthRedirectError redirectError prop'unu
-  // SONRADAN gunceller - bir lazy state kopyasi bu degisikligi hicbir
-  // zaman yakalayamazdi (bildirilen bug buydu). Yeni bir submit hatasi
-  // geldiginde `error` OR ile onune gecer, o yuzden ayrica "dismiss"
-  // durumu tutmaya gerek yok.
-  // accountDeletedNotice ile ayni anda gosterilmesi anlamsiz (App bu durumda
-  // redirectError'i zaten temizliyor, ama burada da savunma amacli
-  // geciyoruz - AuthScreen tek basina, App'in o temizlemeyi unuttugu bir
-  // durumda bile iki celisen mesaji asla ust uste gostermemeli).
+  // Shows a clear message here instead of a blank screen when the Supabase
+  // verification link is invalid (expired, already used, etc). Derived
+  // directly from the prop rather than a lazy state copy ON PURPOSE: if the
+  // user clicks an old verification link again in the same tab while this
+  // screen is already open (hash-only navigation, no remount), useAuthRedirectError
+  // updates the redirectError prop LATER - a lazy state copy would never pick
+  // that up (this was the reported bug). A new submit error takes precedence
+  // via the `error` OR, so no separate "dismiss" state is needed.
+  // Showing this together with accountDeletedNotice wouldn't make sense (App
+  // already clears redirectError in that case, but we guard here too - on its
+  // own, AuthScreen should never show two conflicting messages at once even
+  // if App forgot to clear it).
   const redirectErrorMessage = redirectError && !accountDeletedNotice
     ? (redirectError.errorCode === 'otp_expired' ? t('auth.verifyLinkExpired') : t('auth.verifyLinkError'))
     : '';
 
-  // Hesabini az once silmis bir kullanici signOut ile buraya donuyor - normal
-  // "onay mailini kontrol et" mesajiyla ayni alani kullanan bir bildirim.
+  // A user who just deleted their account lands back here via signOut - a
+  // notice sharing the same slot as the normal "check your confirmation
+  // email" message.
   const [showAccountDeletedNotice, setShowAccountDeletedNotice] = useState(() => Boolean(accountDeletedNotice));
   const accountDeletedMessage = showAccountDeletedNotice && accountDeletedNotice ? t('deleteAccount.notice') : '';
 
@@ -41,12 +40,11 @@ function AuthScreen({ onSignIn, onSignUp, redirectError, accountDeletedNotice })
     setShowAccountDeletedNotice(false);
     setIsSubmitting(true);
 
-    // Tarayici autofill'i (mobil Safari/Chrome, sifre yoneticileri) input'u
-    // gorsel olarak doldurup React'in onChange'ini hemen tetiklemeyebiliyor -
-    // kullanici forma hic dokunmadan direkt submit ederse email/password
-    // state'i hala bos kalip ilk denemede hatali giris denemesine yol
-    // aciyordu. Submit anindaki gercek DOM degerlerini okumak bu
-    // senkronizasyon farkini ortadan kaldiriyor.
+    // Browser autofill (mobile Safari/Chrome, password managers) can fill the
+    // input visually without firing React's onChange right away - if the user
+    // submits without touching the form, email/password state stayed empty
+    // and the first attempt failed. Reading the actual DOM values at submit
+    // time closes that sync gap.
     const formData = new FormData(e.target);
     const emailValue = formData.get('email') || email;
     const passwordValue = formData.get('password') || password;

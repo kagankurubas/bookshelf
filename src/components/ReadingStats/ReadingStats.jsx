@@ -25,8 +25,8 @@ function ReadingStats({ stats }) {
   const { t } = useTranslation();
   const { completedCount, totalPages, averageRating, loading } = stats;
 
-  // Kitaplık yokken (kullanıcı henüz hiç kitaplık oluşturmadan önceki an)
-  // gösterilecek bir şey yok.
+  // Nothing to show while there's no library yet (before the user has
+  // created one).
   if (loading && completedCount === 0 && totalPages === 0 && averageRating === null) {
     return null;
   }

@@ -14,12 +14,12 @@ const CURRENT_MONTH = now.getMonth() + 1;
 
 const supportsNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
-// ShelfView'daki sırt boyutları (46-62px x 138-172px) tam sayfa genişliğindeki
-// raf için tasarlanmış - kare paylaşım kartına aynı boyutta konsa 24 kitaplık
-// bir dönem kartın altından taşar. Boyutu küçültmek yerine görseli CSS
-// transform ile ölçekliyoruz, böylece dolgu/amblem/font oranları (ve
-// getSpineSize'ın deterministik genişlik/renk eşlemesi) ShelfView ile
-// birebir aynı kalıyor.
+// Spine sizes from ShelfView (46-62px x 138-172px) are designed for a
+// full-page-width shelf - placed at the same size on the square share card, a
+// 24-book period would overflow past the bottom of the card. Instead of
+// shrinking the sizes, we scale the rendered image via CSS transform, so
+// padding/badge/font ratios (and getSpineSize's deterministic width/color
+// mapping) stay identical to ShelfView.
 const RECAP_SPINE_SCALE = 0.55;
 
 function RecapSpine({ book, language }) {
@@ -81,11 +81,11 @@ function ReadingRecap({ books, onClose }) {
     setIsGenerating(true);
     setShareError(null);
     try {
-      // skipFonts: uzak Google Fonts stylesheet'ini @font-face olarak SVG'ye
-      // gömmeye çalışırken CORS yüzünden cssRules okunamıyor (SecurityError) -
-      // bu hem konsolu kirletiyor hem de navigator.share'in gerektirdiği
-      // "kullanıcı hareketi" penceresini süre olarak aşıp NotAllowedError'a
-      // yol açacak kadar yavaşlatıyordu. Kartta özel font zaten kritik değil.
+      // skipFonts: trying to embed the remote Google Fonts stylesheet as
+      // @font-face into the SVG fails to read cssRules due to CORS
+      // (SecurityError) - this both pollutes the console and is slow enough
+      // to blow past the "user gesture" window navigator.share requires,
+      // causing a NotAllowedError. The custom font isn't critical on the card anyway.
       const blob = await toBlob(cardRef.current, { pixelRatio: 2, cacheBust: true, skipFonts: true });
       if (!blob) throw new Error('toBlob returned null');
 
@@ -100,12 +100,12 @@ function ReadingRecap({ books, onClose }) {
             return;
           }
         } catch (shareErr) {
-          // Kullanıcı native paylaşım sayfasını iptal ettiyse (AbortError)
-          // bunu tekrar indirmeye zorlamak yanlış olur - sessizce bitir.
+          // If the user canceled the native share sheet (AbortError), forcing
+          // a download instead would be wrong - just stop silently.
           if (shareErr?.name === 'AbortError') return;
-          // Başka bir sebeple (ör. NotAllowedError - tarayıcı "kullanıcı
-          // hareketi" penceresini süresi geçmiş saydı) paylaşım başarısız
-          // olduysa indirmeye düşüyoruz, aşağıdaki fallback devreye girer.
+          // If sharing failed for another reason (e.g. NotAllowedError - the
+          // browser considered the "user gesture" window expired), fall
+          // through to download; the fallback below takes over.
         }
       }
 
