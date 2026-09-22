@@ -17,6 +17,8 @@ const FlagIcon = () => (<svg {...iconProps}><path d="M5 21V4h13l-3 4.5L18 13H5" 
 const CheckIcon = () => (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M4 12l6 6L20 6" /></svg>);
 const StarPlaceholderIcon = () => (<svg {...iconProps} strokeWidth="1.6"><path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.5 6.3L12 17l-5.7 3.1 1.5-6.3-4.8-4.3 6.4-.6z" /></svg>);
 const PlusMiniIcon = () => (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 5v14M5 12h14" /></svg>);
+const NoteIcon = () => (<svg {...iconProps}><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v4h4" /><path d="M9.5 12h5M9.5 16h5" /></svg>);
+const PencilIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>);
 
 function BookModal({ onClose, onSave, selectedBook, prefillData = null, existingAuthors = [], existingTags = [], libraries = [], activeLibraryId = null }) {
   const { t } = useTranslation();
@@ -47,7 +49,10 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
   const [startY, setStartY] = useState(0);
   const [startPos, setStartPos] = useState(50);
   
-  const [notesList] = useState(selectedBook ? selectedBook.notesList || [] : []);
+  const [notesList, setNotesList] = useState(selectedBook ? selectedBook.notesList || [] : []);
+  const [newNoteText, setNewNoteText] = useState('');
+  const [editingNoteIndex, setEditingNoteIndex] = useState(null);
+  const [editingNoteText, setEditingNoteText] = useState('');
 
   const [shelfId] = useState(selectedBook ? selectedBook.shelfId || 'default' : 'default');
   const [isFavorite] = useState(selectedBook ? selectedBook.isFavorite || false : false);
@@ -119,6 +124,39 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
 
   const handleRemoveTag = (tagToRemove) => {
     setTags(tags.filter((tag) => tag !== tagToRemove));
+  };
+
+  const commitNewNote = () => {
+    const trimmed = newNoteText.trim();
+    if (trimmed) {
+      // No `id` field on a fresh note - syncNotes() in useBooks.js treats
+      // its absence as "insert" once the book is saved.
+      setNotesList([...notesList, { text: trimmed }]);
+    }
+    setNewNoteText('');
+  };
+
+  const startNoteEdit = (index) => {
+    setEditingNoteIndex(index);
+    setEditingNoteText(notesList[index].text);
+  };
+
+  const cancelNoteEdit = () => {
+    setEditingNoteIndex(null);
+    setEditingNoteText('');
+  };
+
+  const commitNoteEdit = (index) => {
+    const trimmed = editingNoteText.trim();
+    if (trimmed) {
+      setNotesList(notesList.map((note, i) => (i === index ? { ...note, text: trimmed } : note)));
+    }
+    cancelNoteEdit();
+  };
+
+  const handleRemoveNote = (index) => {
+    setNotesList(notesList.filter((_, i) => i !== index));
+    if (editingNoteIndex === index) cancelNoteEdit();
   };
 
   const handleLibraryToggle = (libId) => {
@@ -389,6 +427,61 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+
+          <div className="form-group notes-group">
+            <span className="form-label"><NoteIcon /> {t('bookModal.notes')}</span>
+            <div className="notes-wrap">
+              {notesList.length === 0 ? (
+                <p className="notes-empty">{t('bookModal.notesEmpty')}</p>
+              ) : (
+                <ul className="notes-list">
+                  {notesList.map((note, index) => (
+                    <li key={note.id ?? `draft-${index}`} className="note-item">
+                      {editingNoteIndex === index ? (
+                        <div className="note-edit-row">
+                          <textarea
+                            className="form-input notes-textarea"
+                            value={editingNoteText}
+                            onChange={(e) => setEditingNoteText(e.target.value)}
+                            autoFocus
+                          />
+                          <div className="note-item-actions">
+                            <button type="button" className="chip-btn" onClick={() => commitNoteEdit(index)}>{t('bookModal.notesSaveEdit')}</button>
+                            <button type="button" className="chip-btn" onClick={cancelNoteEdit}>{t('bookModal.notesCancelEdit')}</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="note-item-body">
+                            <p className="note-text">{note.text}</p>
+                            <span className="note-date">{note.date || t('bookModal.notesDraftDate')}</span>
+                          </div>
+                          <div className="note-item-actions">
+                            <button type="button" className="note-action-btn" aria-label={t('bookModal.notesEdit')} onClick={() => startNoteEdit(index)}>
+                              <PencilIcon />
+                            </button>
+                            <button type="button" className="note-action-btn note-action-danger" aria-label={t('bookModal.notesDelete')} onClick={() => handleRemoveNote(index)}>
+                              ×
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="note-add-row">
+                <textarea
+                  className="form-input notes-textarea"
+                  placeholder={t('bookModal.notesAddPlaceholder')}
+                  aria-label={t('bookModal.notesAddPlaceholder')}
+                  value={newNoteText}
+                  onChange={(e) => setNewNoteText(e.target.value)}
+                />
+                <button type="button" className="chip-btn" onClick={commitNewNote}>{t('bookModal.notesAdd')}</button>
+              </div>
             </div>
           </div>
 
