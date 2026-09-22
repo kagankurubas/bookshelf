@@ -15,9 +15,9 @@ vi.mock('../lib/supabaseClient', () => ({
   },
 }));
 
-// onAuthStateChange'in gercek supabase davranisini taklit eder: callback'i saklar,
-// disardan (trigger) tetiklenebilir kilar. signIn/signOut kendileri state
-// guncellemez - gercek uygulamada session degisikligi bu callback'ten gelir.
+// Mimics Supabase's real onAuthStateChange behavior: stores the callback so
+// it can be triggered from outside. signIn/signOut don't update state
+// themselves - in the real app, session changes come through this callback.
 function mockAuthStateChange() {
   let capturedCallback;
   supabase.auth.onAuthStateChange.mockImplementation((cb) => {

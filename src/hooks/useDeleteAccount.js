@@ -1,14 +1,14 @@
 import { useCallback, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-// Sifreyle onaylama secildiginde signInWithPassword basarisiz olursa bu
-// hatayi firlatiyoruz - boylece cagiran taraf (DeleteAccountModal) "sifre
-// yanlis" mesajini genel hata mesajindan ayirt edebiliyor.
+// Thrown when signInWithPassword fails during password confirmation, so the
+// caller (DeleteAccountModal) can distinguish a "wrong password" message
+// from the generic error message.
 export class WrongPasswordError extends Error {}
 
-// Hesap silme, service-role anahtari gerektiren auth.admin.deleteUser
-// cagrisina ihtiyac duyar - bu yuzden client'tan direkt yapilamaz, ai-chat
-// hook'undaki gibi bir Edge Function'a (delete-account) delege edilir.
+// Account deletion needs auth.admin.deleteUser, which requires the
+// service-role key - it can't be done directly from the client, so it's
+// delegated to an Edge Function (delete-account), same as the ai-chat hook.
 export function useDeleteAccount() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState(null);
@@ -17,8 +17,8 @@ export function useDeleteAccount() {
     setIsDeleting(true);
     setError(null);
     try {
-      // Kullanici sifreyle onaylamayi sectiyse, hesabi silmeden once bunu
-      // gercekten dogru bildigini teyit ediyoruz.
+      // If the user chose to confirm with a password, verify they actually
+      // know it before deleting the account.
       if (password) {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw new WrongPasswordError('Incorrect password');
@@ -28,9 +28,9 @@ export function useDeleteAccount() {
       if (invokeError) throw invokeError;
       if (data?.error) throw new Error(data.error);
 
-      // Edge Function auth.users satirini siler; libraries/books/notes/
-      // ai_conversations/ai_messages tumu ON DELETE CASCADE ile buna bagli
-      // (bkz. supabase/schema.sql) - burada ayrica silme yapmaya gerek yok.
+      // The Edge Function deletes the auth.users row; libraries/books/notes/
+      // ai_conversations/ai_messages are all tied to it via ON DELETE
+      // CASCADE (see supabase/schema.sql) - no extra deletion needed here.
       await supabase.auth.signOut();
       return data;
     } catch (err) {

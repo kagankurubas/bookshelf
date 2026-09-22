@@ -9,9 +9,9 @@ function mapRow(row) {
   };
 }
 
-// Bir kitaplıktaki tamamlanmış kitapların kategoriye göre kırılımını
-// (get_category_reading_stats) döner, kitap sayısına göre azalan sırada.
-// year verilmezse tüm-zamanlar, verilirse sadece o yılda bitirilenler sayılır.
+// Returns a library's completed-book breakdown by category
+// (get_category_reading_stats), sorted by descending book count.
+// Without year: all-time; with year: only books finished that year.
 export function useCategoryReadingStats(libraryId, year = null) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);

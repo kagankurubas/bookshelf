@@ -2,14 +2,13 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getBookByIsbn } from '../lib/openLibrary';
 
-// Kitap ekleme/gorme akisinin tamamini (secim modali, barkod tarama, arama,
-// toplu tarama, ISBN sorgusu ve bunlarin hepsinin paylastigi BookModal) tek
-// bir yerde tutar. draggedBookId disaridan geliyor cunku raf suruklemesi
-// App.jsx'in kendi state'i - burasi sadece surukleme sirasinda detay
-// modalinin acilmasini engellemek icin okuyor.
-// `isOnline` (useOnlineStatus'tan) barkod tarama akisinda Open Library'ye
-// offline oldugumuz icin ulasilamadigini gercek bir Open Library
-// hatasindan ayirt edebilmek icin kullanilir.
+// Owns the whole add/view-book flow (choice modal, barcode scan, search,
+// batch scan, ISBN lookup, and the BookModal they all share) in one place.
+// draggedBookId comes from outside because shelf dragging is App.jsx's own
+// state - this hook only reads it to avoid opening the detail modal while
+// a drag is in progress.
+// `isOnline` (from useOnlineStatus) is used in the barcode flow to tell
+// "unreachable because we're offline" apart from a real Open Library error.
 export function useAddBookFlow(draggedBookId, isOnline) {
   const { t } = useTranslation();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -77,12 +76,11 @@ export function useAddBookFlow(draggedBookId, isOnline) {
       }
     } catch (err) {
       console.error(err);
-      // isOnline === false ise Open Library'ye offline oldugumuz icin
-      // ulasamadik - gercek bir Open Library hatasi degil. Kullaniciya hata
-      // alert'i gostermek yerine dogrudan elle-giris formuna (ISBN
-      // onceden dolu) yonlendiriyoruz. isOnline === true iken hala hata
-      // olursa (Open Library gercekten coktu/500 dondu), davranis
-      // degismiyor: bugunku alert gosteriliyor.
+      // If isOnline === false, we couldn't reach Open Library because we're
+      // offline, not a real Open Library error - go straight to the
+      // manual-entry form (ISBN pre-filled) instead of showing an error
+      // alert. If isOnline === true and it still errors (Open Library is
+      // actually down/500), behavior is unchanged: show today's alert.
       if (isOnline === false) {
         handleManualAddFromIsbn(isbn);
       } else {

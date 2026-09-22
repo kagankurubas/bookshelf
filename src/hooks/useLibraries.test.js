@@ -7,8 +7,8 @@ vi.mock('../lib/supabaseClient', () => ({
   supabase: { from: vi.fn() },
 }));
 
-// Supabase'in zincirlenebilir ve hem dogrudan hem de .single() ile
-// awaitlenebilen sorgu builder'ini taklit eder.
+// Mimics Supabase's chainable query builder, awaitable both directly and
+// via .single().
 function queryResult(result) {
   const builder = {};
   const self = () => builder;

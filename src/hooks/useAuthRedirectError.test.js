@@ -7,11 +7,11 @@ function setHash(hash) {
   window.history.replaceState(null, '', `/${hash}`);
 }
 
-// Tarayicida ayni sekmede hash-only navigasyonu simule eder (ör. kullanici
-// bu ekran zaten acikken Supabase'in dogrulama linkine tekrar tiklar) -
-// history.pushState/replaceState 'hashchange' fırlatmaz, bu yuzden gercek
-// bir navigasyonu taklit etmek icin hash'i elle degistirip olayi da elle
-// dispatch etmemiz gerekiyor.
+// Simulates same-tab, hash-only navigation in the browser (e.g. the user
+// clicks Supabase's verification link again while this screen is already
+// open) - history.pushState/replaceState don't fire 'hashchange', so we
+// change the hash and dispatch the event manually to mimic a real
+// navigation.
 function navigateHashInPlace(hash) {
   act(() => {
     window.location.hash = hash;
@@ -59,11 +59,11 @@ describe('useAuthRedirectError', () => {
     });
   });
 
-  // Bug repro: kullanici zaten bu ekrandayken (ör. cikis yaptiktan sonra)
-  // ayni sekmede eski/suresi dolmus bir dogrulama linkine tekrar tiklarsa,
-  // tarayici hash-only navigasyon yapar - tam sayfa yenilemesi olmaz, hook
-  // yeniden mount olmaz. Bunu jsdom'da mount SONRASI hash'i degistirip
-  // 'hashchange' dispatch ederek simule ediyoruz.
+  // Bug repro: if the user, already on this screen (e.g. after logging
+  // out), clicks an old/expired verification link again in the same tab,
+  // the browser does a hash-only navigation - no full reload, the hook
+  // doesn't remount. Simulated here by changing the hash AFTER mount in
+  // jsdom and dispatching 'hashchange'.
   it('picks up an expired-link error that appears in the hash AFTER the hook has already mounted, and clears it', () => {
     setHash('');
     const { result } = renderHook(() => useAuthRedirectError());
@@ -89,12 +89,12 @@ describe('useAuthRedirectError', () => {
     expect(window.location.hash).toBe('#access_token=abc&token_type=bearer');
   });
 
-  // Onceki implementasyon hash'i temizleyen bir yan etkiyi lazy useState
-  // initializer'ina koymustu - initializer'in kendisi yan etki icermedigi
-  // surece zararsiz olsa da, React Strict Mode'da (bkz. main.jsx) initializer
-  // GELISTIRME ORTAMINDA IKI KEZ cagrilir; impure bir initializer bu yuzden
-  // tutarsiz sonuc uretebiliyordu. Bu test, gercek uygulamanin sardigi
-  // StrictMode altinda da tek/dogru bir sonuc alindigini dogruluyor.
+  // A prior implementation put the hash-clearing side effect in the lazy
+  // useState initializer - harmless as long as the initializer itself has
+  // no side effects, but React Strict Mode (see main.jsx) calls the
+  // initializer TWICE in development; an impure initializer produced
+  // inconsistent results. This test verifies a single correct result is
+  // still obtained under the StrictMode the real app wraps itself in.
   it('parses the redirect error correctly even under StrictMode double-invoking', () => {
     setHash('#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired');
     const { result } = renderHook(() => useAuthRedirectError(), {
@@ -109,11 +109,10 @@ describe('useAuthRedirectError', () => {
     expect(window.location.hash).toBe('');
   });
 
-  // Bug repro: hesap silme sonrasi useAuthRedirectError'in state'i, sekmenin
-  // baska bir noktasinda okunmus eski/alakasiz bir hatayi tutmaya devam
-  // ediyordu ve AuthScreen'de silme basari mesajiyla ust uste gorunuyordu.
-  // Cagiran taraf (App) bunu clearRedirectError() ile bilincli olarak
-  // temizleyebilmeli.
+  // Bug repro: after account deletion, useAuthRedirectError's state kept
+  // holding a stale/unrelated error read elsewhere on the tab, and it
+  // overlapped with the deletion success message on AuthScreen. The caller
+  // (App) must be able to clear it explicitly via clearRedirectError().
   it('clears the redirect error via clearRedirectError, e.g. right before showing an unrelated notice', () => {
     setHash('#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired');
     const { result } = renderHook(() => useAuthRedirectError());

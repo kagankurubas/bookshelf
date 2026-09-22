@@ -5,10 +5,10 @@ export const CATEGORIES = [
   'Distopya', 'Kurgu Dışı', 'Biyografi', 'Bilim', 'Tarih', 'Felsefe'
 ];
 
-// Table gorunumunun arama/kategori/yazar/durum filtrelerini ve bunlarin
-// uyguladigi listeyi tutar. uniqueAuthors kasitli olarak activeLibraryId'ye
-// gore daraltilmiyor - BookModal'daki yazar otomatik tamamlama da bu listeyi
-// kullaniyor ve orada kitabin hangi kitapliga eklenecegi onemli degil.
+// Holds the Table view's search/category/author/status filters and the
+// list they produce. uniqueAuthors is deliberately not narrowed by
+// activeLibraryId - BookModal's author autocomplete uses this same list,
+// where which library a book will be added to doesn't matter.
 export function useBookFilters(books, activeLibraryId) {
   const [filterStatus, setFilterStatus] = useState('Tümü');
   const [selectedCategory, setSelectedCategory] = useState('Tümü');
@@ -17,8 +17,8 @@ export function useBookFilters(books, activeLibraryId) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const uniqueAuthors = [...new Set(books.map((b) => b.author))];
-  // uniqueAuthors ile ayni gerekce: activeLibraryId'ye gore daraltilmiyor,
-  // hem tablo filtresini hem BookModal'daki etiket oneri listesini besliyor.
+  // Same rationale as uniqueAuthors: not narrowed by activeLibraryId, since
+  // it feeds both the table filter and BookModal's tag suggestion list.
   const uniqueTags = [...new Set(books.flatMap((b) => b.tags || []))].sort();
 
   const filteredBooks = books

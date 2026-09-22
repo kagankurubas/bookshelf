@@ -38,7 +38,6 @@ export function useLibraries(userId) {
   }, [userId]);
 
   useEffect(() => {
-    // Kullanici degistiginde (giris/cikis) veriyi yeniden cek - standart senkronizasyon deseni.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchLibraries();
   }, [fetchLibraries]);
@@ -76,9 +75,9 @@ export function useLibraries(userId) {
   }, []);
 
   const deleteLibrary = useCallback(async (id) => {
-    // UI zaten ana kitaplık için silme butonunu göstermiyor, ama bu fonksiyon
-    // başka bir yoldan çağrılırsa bile ana kitaplığın (ve içindeki kitapların)
-    // yanlışlıkla silinmesini burada da engelliyoruz.
+    // The UI already hides the delete button for the default library, but
+    // this also guards against the default library (and its books) being
+    // deleted by accident if this function is ever called another way.
     const target = libraries.find((lib) => lib.id === id);
     if (target?.isDefault) {
       throw new Error('Ana kitaplık silinemez.');

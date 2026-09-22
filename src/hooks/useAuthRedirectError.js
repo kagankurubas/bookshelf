@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
-// Supabase, dogrulama/parola-sifirlama linki gecersizse (suresi dolmus,
-// zaten kullanilmis vb.) kullaniciyi yine emailRedirectTo'ya yonlendirir
-// ama basari verileri yerine URL hash'ine error/error_code/error_description
-// ekler. Router olmadigi icin bu hash'i uygulamanin kok bileseninde
-// yakalayip anlasilir bir mesaja cevirmemiz gerekiyor.
+// If a verification/password-reset link is invalid (expired, already used,
+// etc), Supabase still redirects to emailRedirectTo, but appends
+// error/error_code/error_description to the URL hash instead of success
+// data. There's no router, so we catch this hash in the app's root
+// component and turn it into a readable message.
 function parseRedirectError(hash) {
   if (!hash || hash.length < 2) return null;
 
@@ -24,29 +24,28 @@ function clearHash() {
 }
 
 export function useAuthRedirectError() {
-  // Lazy initializer: SADECE okur, yan etkisi yok - bu yuzden React'in
-  // Strict Mode'da initializer'i iki kez cagirmasi (bkz. React useState
-  // dokumantasyonu, "initializer function runs twice") sorun yaratmaz, her
-  // iki cagri da ayni sonucu dondurur. Onceki surumde bu initializer
-  // history.replaceState de cagiriyordu (yan etkili/impure) - iki kez
-  // cagrildiginda ikinci cagri hash'i zaten temizlenmis buluyor ve null
-  // donduruyordu, boylece hata bazen kayboluyordu.
+  // Lazy initializer: read-only, no side effects - so React calling it
+  // twice in Strict Mode (see the useState docs, "initializer function runs
+  // twice") is harmless, both calls return the same result. A prior
+  // version also called history.replaceState here (impure); calling it
+  // twice made the second call find the hash already cleared and return
+  // null, so the error sometimes disappeared.
   const [redirectError, setRedirectError] = useState(() => parseRedirectError(window.location.hash));
 
   useEffect(() => {
-    // Lazy initializer'in okudugu hata hala URL'deyse (taze sayfa
-    // yuklemesi durumu) burada temizle - initializer icinde degil, cunku
-    // initializer'in Strict Mode'da iki kez cagrilmasi bu yan etkiyi de
-    // ikiye katlardi.
+    // If the error the lazy initializer read is still in the URL (fresh
+    // page load), clear it here rather than in the initializer, since
+    // Strict Mode calling the initializer twice would double this side
+    // effect too.
     if (parseRedirectError(window.location.hash)) clearHash();
 
-    // Kullanici zaten acik olan bu sekmede Supabase'in dogrulama linkine
-    // TEKRAR tiklarsa (ör. logout sonrasi ayni sekmeden eski linke donmek):
-    // hedef URL sadece hash'te farklilastigi icin tarayici TAM SAYFA
-    // YENILEMESI yapmaz, sadece 'hashchange' olayi fırlatir - component
-    // yeniden mount olmaz, lazy initializer bir daha calismaz. Bu dinleyici
-    // olmadan sonraki hatalar hic islenmez ve hash de hic temizlenmez
-    // (bildirilen bug tam olarak buydu).
+    // If the user clicks Supabase's verification link AGAIN while already
+    // on this tab (e.g. returning to an old link after logout), the target
+    // URL only differs in the hash, so the browser does NOT do a full page
+    // reload - it only fires 'hashchange'. The component doesn't remount,
+    // so the lazy initializer never runs again. Without this listener,
+    // later errors are never processed and the hash is never cleared
+    // (exactly the reported bug).
     const handleHashChange = () => {
       const next = parseRedirectError(window.location.hash);
       if (!next) return;
@@ -58,12 +57,12 @@ export function useAuthRedirectError() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Bu state, sayfa hic yenilenmeden gecen TUM tab omru boyunca yasar -
-  // kullanici gecersiz bir linkle inip mesaji gorduktan sonra giris yapip
-  // uygulamayi kullanmaya devam etse bile silinmez. Bu yuzden onunla ayni
-  // ekranda (AuthScreen) baska, birbiriyle celisen bir bildirim daha
-  // gosterilecekse (ör. hesap silme basarili mesaji) cagiran taraf bu
-  // eski/alakasiz hatayi bilincli olarak temizleyebilmeli.
+  // This state lives for the whole tab session without a refresh - it
+  // isn't cleared just because the user logs in and keeps using the app
+  // after seeing the error from an invalid link. So if the same screen
+  // (AuthScreen) needs to show another, conflicting notice (e.g. account
+  // deletion success), the caller must be able to explicitly clear this
+  // stale/unrelated error.
   const clearRedirectError = useCallback(() => setRedirectError(null), []);
 
   return [redirectError, clearRedirectError];

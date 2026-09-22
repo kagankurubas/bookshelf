@@ -1,23 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 
-// Tarayicinin/isletim sisteminin bildirdigi ag arayuzu durumunu yansitir -
-// gercek internet erisimini degil (ör. bagli ama internetsiz bir agda hatali
-// 'true' donebilir), bu bilinen bir platform sinirlamasi.
+// Reflects the network interface status reported by the browser/OS - not
+// actual internet reachability (e.g. can wrongly report 'true' on a network
+// that's connected but has no internet), a known platform limitation.
 //
-// Opsiyonel `onOnline` callback'i, tarayici 'offline'dan 'online'a GECTIGI
-// anda (mount aninda zaten online olma durumunda degil, sadece gercek bir
-// gecişte) bir kez cagrilir - offline kuyrugu senkronizasyonu gibi
-// "baglanti geri geldi" tetikleyicileri icin. Mevcut parametresiz cagri
-// (`useOnlineStatus()`) geriye donuk uyumlu kalir.
+// The optional `onOnline` callback fires once, exactly when the browser
+// transitions from 'offline' to 'online' (not when already online at
+// mount) - for "connection is back" triggers like offline-queue sync. The
+// existing no-argument call (`useOnlineStatus()`) stays backward compatible.
 //
-// `onOnline` bir ref'te tutulup her render sonrasi guncelleniyor - asagidaki
-// 'online' event listener'i mount'ta BIR KEZ kaydediliyor (bagimlilik dizisi
-// bos), yani App.jsx her render'da yeni bir `onOnline` closure'i (guncel
-// `library`/state'i yakalayan) geçse bile, event gercekten ateslendiginde
-// listener'in kendisi eski/ilk render'daki closure'i degil, ref uzerinden
-// HER ZAMAN EN GUNCEL callback'i cagirir. Bu ref olmadan, kuyruk
-// senkronizasyonu ilk render'daki (henuz kitaplik verisi yuklenmemis)
-// bayat bir closure'i calistirirdi.
+// `onOnline` is kept in a ref and updated after every render - the 'online'
+// event listener below is registered ONCE at mount (empty dependency
+// array), so even though App.jsx passes a new `onOnline` closure (capturing
+// current `library`/state) on every render, the listener always calls the
+// LATEST callback via the ref when the event actually fires, not the
+// stale one from the first render. Without this ref, offline-queue sync
+// would run against a stale closure from the first render (before library
+// data had loaded).
 export function useOnlineStatus(onOnline) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const onOnlineRef = useRef(onOnline);

@@ -9,9 +9,10 @@ function mapRow(row) {
   };
 }
 
-// Kitaplığın yıllara göre okuma trendini (get_yearly_reading_stats) döner -
-// aylık grafiğin aksine tek bir yılla sınırlı değil, veri bulunan her yıl
-// için bir satır (eskiden yeniye). date_finished'a göre gruplanır.
+// Returns a library's year-over-year reading trend
+// (get_yearly_reading_stats) - unlike the monthly chart, not limited to a
+// single year: one row per year with data (oldest to newest). Grouped by
+// date_finished.
 export function useYearlyReadingStats(libraryId) {
   const [yearlyStats, setYearlyStats] = useState([]);
   const [loading, setLoading] = useState(true);

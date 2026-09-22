@@ -11,7 +11,7 @@ vi.mock('../lib/supabaseClient', () => ({
   },
 }));
 
-// Supabase'in zincirlenebilir (select().eq().order() gibi) sorgu builder'ini taklit eder.
+// Mimics Supabase's chainable query builder (select().eq().order() etc).
 function queryResult(result) {
   const builder = {};
   const self = () => builder;
@@ -77,7 +77,7 @@ describe('useAiChat', () => {
 
     expect(result.current.error).toEqual({ code: 'unknown', message: 'Unauthorized' });
     expect(result.current.isSending).toBe(false);
-    // Optimistic user mesaji kalir, ama asistan yaniti eklenmez.
+    // The optimistic user message stays, but no assistant reply is added.
     expect(result.current.messages).toHaveLength(1);
     expect(result.current.messages[0].role).toBe('user');
   });

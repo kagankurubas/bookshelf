@@ -3,18 +3,17 @@ import { useOnlineStatus } from './useOnlineStatus';
 import { useAddOrQueueBook } from './useAddOrQueueBook';
 import { enqueueBook, getQueuedBooks, removeQueuedBook } from '../lib/offlineBookQueue';
 
-// Offline kitap ekleme kuyrugunun tum orkestrasyonunu (App.jsx'e gomulu
-// kalirsa hem kitaplik/raf mantigiyla ilgisiz bir ikinci degisim nedeni
-// olurdu hem de test edilemezdi) tek bir yerde toplar: kuyrukta bekleyen
-// kayit sayisi, kayitlari sirayla (paralel degil) senkronize eden flush
-// islemi, ve online/offline durumuna gore "dogrudan ekle vs kuyrukla"
-// karari.
+// Centralizes the whole offline book-add queue orchestration (staying
+// embedded in App.jsx would both be a second, unrelated reason for it to
+// change and make it untestable): the pending-record count, a flush that
+// syncs records sequentially (not in parallel), and the "add directly vs
+// queue" decision based on online/offline status.
 //
-// `addBook`: online'ken tek bir kitabi hemen eklemek icin (stats'i kendi
-// tazeler). `addBookForSync`: flush sirasinda N kitap icin N kez stats
-// tazelemesin diye stats-siz varyant - dongu bitince `refreshStats` bir
-// kez cagrilir. `isReady`, kitaplik verisi (activeLibraryId) henuz
-// yuklenmemisken flush denenmesin diye disaridan kontrol edilir.
+// `addBook`: adds a single book immediately while online (refreshes stats
+// itself). `addBookForSync`: a stats-free variant for flushing N books, so
+// stats aren't refreshed N times - `refreshStats` is called once after the
+// loop finishes. `isReady` is controlled from outside so a flush isn't
+// attempted before library data (activeLibraryId) has loaded.
 export function useOfflineBookQueue({ addBook, addBookForSync, refreshStats, isReady }) {
   const [queuedCount, setQueuedCount] = useState(0);
 
@@ -24,11 +23,10 @@ export function useOfflineBookQueue({ addBook, addBookForSync, refreshStats, isR
       .catch((err) => console.error(err));
   };
 
-  // Kayitlari sirayla (paralel degil) dener; her biri basarili olur olmaz
-  // HEMEN IndexedDB'den siler (toplu silme degil) - senkronizasyon yarida
-  // kesilirse kalan kayitlar guvende kalir. Bir oge basarisiz olursa dongu
-  // durur, kalanlar kuyrukta kalip bir sonraki online gecisinde tekrar
-  // denenir.
+  // Tries records sequentially (not in parallel); each one is deleted from
+  // IndexedDB IMMEDIATELY on success (not in bulk) - so remaining records
+  // stay safe if the sync is interrupted. If one item fails, the loop
+  // stops, and the rest stay queued for retry on the next online transition.
   const flushQueuedBooks = async () => {
     const queued = await getQueuedBooks();
     let addedAny = false;
@@ -49,20 +47,20 @@ export function useOfflineBookQueue({ addBook, addBookForSync, refreshStats, isR
     refreshQueuedCount();
   };
 
-  // useOnlineStatus, cagirani her render'da yeni bir onOnline closure'i
-  // (bu render'daki guncel addBookForSync/refreshStats'i yakalayan
-  // flushQueuedBooks'u) gecirse de, gercek 'offline'->'online' gecisinde
-  // HER ZAMAN EN GUNCEL closure'i cagirir (bkz. useOnlineStatus.js - bir
-  // ref uzerinden). Bu sayede senkronizasyon bayat/yuklenmemis kitaplik
-  // verisiyle calismaz.
+  // Even though a new onOnline closure (wrapping this render's current
+  // addBookForSync/refreshStats via flushQueuedBooks) is passed to
+  // useOnlineStatus on every render, it always calls the LATEST closure on
+  // an actual 'offline'->'online' transition (see useOnlineStatus.js - via
+  // a ref). This keeps the sync from running against stale/unloaded
+  // library data.
   const isOnline = useOnlineStatus(() => {
     flushQueuedBooks();
   });
 
-  // Kuyruk-veya-ekle karari (isOnline bayragina bakarak, bir yazmayi
-  // deneyip hata tipini yorumlamak yerine) izole/test edilebilir bir
-  // yardimciya (useAddOrQueueBook) dayanir; burada sadece kuyruga
-  // dusen ekleme sonrasi sayaci tazeliyoruz.
+  // The queue-or-add decision (based on the isOnline flag, not on
+  // attempting a write and inspecting the error type) is delegated to an
+  // isolated/testable helper (useAddOrQueueBook); here we only refresh the
+  // counter after an add that ends up queued.
   const addOrQueueBookRaw = useAddOrQueueBook({ isOnline, addBook, enqueueBook });
   const addOrQueueBook = async (fields) => {
     const outcome = await addOrQueueBookRaw(fields);
@@ -72,13 +70,13 @@ export function useOfflineBookQueue({ addBook, addBookForSync, refreshStats, isR
     return outcome;
   };
 
-  // Uygulama offline'ken kapatilip sonra ONLINE'ken tekrar acilirsa 'online'
-  // event'i hic ateslenmez (tarayici zaten online) - bu yuzden `isReady`
-  // ilk true oldugu anda (kitaplik verisi hazir oldugunda) ayrica bir kez
-  // kontrol ediyoruz. flushQueuedBooks'u bilincli olarak deps'e eklemedik -
-  // her render'da yeniden olusan bir closure, ama biz zaten sadece
-  // hasFlushedOnLoadRef ile korunan TEK bir cagriyi (verinin ilk hazir
-  // oldugu andaki en guncel closure'i) istiyoruz.
+  // If the app is closed while offline and reopened while already ONLINE,
+  // the 'online' event never fires (the browser is already online) - so we
+  // also check once as soon as `isReady` becomes true (once library data is
+  // ready). flushQueuedBooks is deliberately left out of the deps - it's a
+  // closure that's recreated every render, but we only want the ONE call
+  // guarded by hasFlushedOnLoadRef (the latest closure at the moment the
+  // data first becomes ready).
   const hasFlushedOnLoadRef = useRef(false);
   useEffect(() => {
     if (!isReady) return;
@@ -90,8 +88,8 @@ export function useOfflineBookQueue({ addBook, addBookForSync, refreshStats, isR
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isReady]);
 
-  // Kuyrukta onceki bir oturumdan kalan kayit varsa, banner'in dogru sayiyi
-  // ilk render'dan itibaren gosterebilmesi icin acilista bir kez okunur.
+  // Read once on startup, so the banner can show the right count from the
+  // first render if records were left queued from a previous session.
   useEffect(() => {
     refreshQueuedCount();
   }, []);
