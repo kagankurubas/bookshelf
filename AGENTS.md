@@ -13,6 +13,10 @@ Every feature or fix, however small, starts on its own branch off `main` — nev
 
 No exceptions for "it's a small change" or "just a one-line fix." If you find a sign that a prior session skipped this (uncommitted changes sitting in `main`'s working tree, or `main` diverged from `origin/main`), tell the user before doing anything else, propose a fix, and don't proceed without their approval.
 
+## Spec-first discipline
+
+Except for trivial one-line fixes, a new feature or piece of work always starts with `/to-spec` (research the codebase, present a spec draft, get the user's approval) rather than going straight to implementation from a request — even when the request already reads like a spec.
+
 ## Commit and comment language/style
 
 Commit messages are always written in English, even when the conversation itself is in Turkish, and new code comments are English-only and minimal — a comment adds only a "what this does" summary the code doesn't already make obvious, never a restatement of what the code already says. This isn't retroactive: existing Turkish commit history and existing Turkish comments are left as they are.
