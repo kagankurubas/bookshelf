@@ -5,12 +5,15 @@ function TableView({
   books,
   categories,
   uniqueAuthors,
+  uniqueTags,
   searchQuery,
   onSearchQueryChange,
   selectedCategory,
   onSelectedCategoryChange,
   selectedAuthor,
   onSelectedAuthorChange,
+  selectedTag,
+  onSelectedTagChange,
   filterStatus,
   onFilterStatusChange,
   onOpenBook,
@@ -41,6 +44,11 @@ function TableView({
             {uniqueAuthors.map((author) => <option key={author} value={author}>{author}</option>)}
           </select>
 
+          <select className="form-select" aria-label={t('table.tagFilterLabel')} value={selectedTag} onChange={(e) => onSelectedTagChange(e.target.value)}>
+            <option value="Tümü">{t('table.allTags')}</option>
+            {uniqueTags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
+          </select>
+
           <select className="form-select" aria-label={t('table.statusFilterLabel')} value={filterStatus} onChange={(e) => onFilterStatusChange(e.target.value)}>
             <option value="Tümü">{t('table.allStatuses')}</option>
             <option value="Başlanmadı">{t('statuses.Başlanmadı')}</option>
@@ -62,6 +70,7 @@ function TableView({
                 <th style={{ padding: '12px 16px', fontWeight: 700 }}>{t('table.colAuthor')}</th>
                 <th style={{ padding: '12px 16px', fontWeight: 700 }}>{t('table.colPublisher')}</th>
                 <th style={{ padding: '12px 16px', fontWeight: 700 }}>{t('table.colCategory')}</th>
+                <th style={{ padding: '12px 16px', fontWeight: 700 }}>{t('table.colTags')}</th>
                 <th style={{ padding: '12px 16px', fontWeight: 700 }}>{t('table.colStatus')}</th>
                 <th style={{ padding: '12px 16px', fontWeight: 700 }}>{t('table.colRating')}</th>
                 <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700 }}>{t('table.colActions')}</th>
@@ -74,6 +83,11 @@ function TableView({
                   <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{book.author}</td>
                   <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{book.publisher || '-'}</td>
                   <td style={{ padding: '12px 16px' }}>{book.category ? <span className="property-tag category">{t(`categories.${book.category}`, book.category)}</span> : '-'}</td>
+                  <td style={{ padding: '12px 16px' }}>
+                    {book.tags && book.tags.length > 0
+                      ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>{book.tags.map((tag) => <span key={tag} className="property-tag tag">{tag}</span>)}</div>
+                      : '-'}
+                  </td>
                   <td style={{ padding: '12px 16px' }}><span className={`property-tag status ${book.status.toLowerCase().replace(/\s+/g, '-')}`}>{t(`statuses.${book.status}`, book.status)}</span></td>
                   <td style={{ padding: '12px 16px' }}>{book.rating > 0 ? renderStars(book.rating) : '-'}</td>
                   <td style={{ padding: '12px 16px', textAlign: 'right' }}>

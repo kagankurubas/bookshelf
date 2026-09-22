@@ -297,12 +297,15 @@ function App() {
           books={bookFilters.filteredBooks}
           categories={bookFilters.categories}
           uniqueAuthors={bookFilters.uniqueAuthors}
+          uniqueTags={bookFilters.uniqueTags}
           searchQuery={bookFilters.searchQuery}
           onSearchQueryChange={bookFilters.setSearchQuery}
           selectedCategory={bookFilters.selectedCategory}
           onSelectedCategoryChange={bookFilters.setSelectedCategory}
           selectedAuthor={bookFilters.selectedAuthor}
           onSelectedAuthorChange={bookFilters.setSelectedAuthor}
+          selectedTag={bookFilters.selectedTag}
+          onSelectedTagChange={bookFilters.setSelectedTag}
           filterStatus={bookFilters.filterStatus}
           onFilterStatusChange={bookFilters.setFilterStatus}
           onOpenBook={addFlow.openBookDetailModal}
@@ -385,6 +388,7 @@ function App() {
           selectedBook={addFlow.selectedBook}
           prefillData={addFlow.prefillBook}
           existingAuthors={bookFilters.uniqueAuthors}
+          existingTags={bookFilters.uniqueTags}
           libraries={libraries}
           activeLibraryId={activeLibraryId}
         />

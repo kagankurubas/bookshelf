@@ -32,6 +32,7 @@ function CardsView({ books, onOpenBook, onDeleteBook, renderStars }) {
                   {book.rating > 0 && <span className="property-tag rating">{renderStars(book.rating)}</span>}
                   {book.category && <span className="property-tag category">{t(`categories.${book.category}`, book.category)}</span>}
                   <span className={`property-tag status ${book.status.toLowerCase().replace(/\s+/g, '-')}`}>{t(`statuses.${book.status}`, book.status)}</span>
+                  {(book.tags || []).map((tag) => <span key={tag} className="property-tag tag">{tag}</span>)}
                 </div>
               </div>
 

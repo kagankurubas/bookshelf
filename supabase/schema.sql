@@ -51,7 +51,10 @@ create table if not exists books (
   isbn text,
   -- Okuma istatistikleri (toplam sayfa) icin - opsiyonel, bilinmiyorsa bos kalir.
   page_count integer check (page_count is null or page_count >= 0),
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- Serbest etiketler (category'den bagimsiz, kullanici tanimli, coklu).
+  -- Ayri bir tags/book_tags tablosu yerine duz text[]: bkz. migration 013.
+  tags text[] not null default '{}'
 );
 
 create index if not exists books_user_id_idx on books(user_id);
