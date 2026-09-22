@@ -20,6 +20,11 @@ const PlusMiniIcon = () => (<svg width="11" height="11" viewBox="0 0 24 24" fill
 const NoteIcon = () => (<svg {...iconProps}><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v4h4" /><path d="M9.5 12h5M9.5 16h5" /></svg>);
 const PencilIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>);
 
+// Identifies a note across renders/edits regardless of list position - a
+// saved note's DB id, or a draft's generated key. Never sent to the server
+// as `id` (syncNotes() reads that field to decide insert vs. update).
+const noteKey = (note) => note.id ?? note.draftKey;
+
 function BookModal({ onClose, onSave, selectedBook, prefillData = null, existingAuthors = [], existingTags = [], libraries = [], activeLibraryId = null }) {
   const { t } = useTranslation();
   useEscapeKey(onClose);
@@ -51,7 +56,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
   
   const [notesList, setNotesList] = useState(selectedBook ? selectedBook.notesList || [] : []);
   const [newNoteText, setNewNoteText] = useState('');
-  const [editingNoteIndex, setEditingNoteIndex] = useState(null);
+  const [editingNoteKey, setEditingNoteKey] = useState(null);
   const [editingNoteText, setEditingNoteText] = useState('');
 
   const [shelfId] = useState(selectedBook ? selectedBook.shelfId || 'default' : 'default');
@@ -130,33 +135,34 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
     const trimmed = newNoteText.trim();
     if (trimmed) {
       // No `id` field on a fresh note - syncNotes() in useBooks.js treats
-      // its absence as "insert" once the book is saved.
-      setNotesList([...notesList, { text: trimmed }]);
+      // its absence as "insert" once the book is saved. `draftKey` only
+      // identifies it locally (see noteKey) and is dropped once saved.
+      setNotesList([...notesList, { text: trimmed, draftKey: crypto.randomUUID() }]);
     }
     setNewNoteText('');
   };
 
-  const startNoteEdit = (index) => {
-    setEditingNoteIndex(index);
-    setEditingNoteText(notesList[index].text);
+  const startNoteEdit = (note) => {
+    setEditingNoteKey(noteKey(note));
+    setEditingNoteText(note.text);
   };
 
   const cancelNoteEdit = () => {
-    setEditingNoteIndex(null);
+    setEditingNoteKey(null);
     setEditingNoteText('');
   };
 
-  const commitNoteEdit = (index) => {
+  const commitNoteEdit = (key) => {
     const trimmed = editingNoteText.trim();
     if (trimmed) {
-      setNotesList(notesList.map((note, i) => (i === index ? { ...note, text: trimmed } : note)));
+      setNotesList(notesList.map((note) => (noteKey(note) === key ? { ...note, text: trimmed } : note)));
     }
     cancelNoteEdit();
   };
 
-  const handleRemoveNote = (index) => {
-    setNotesList(notesList.filter((_, i) => i !== index));
-    if (editingNoteIndex === index) cancelNoteEdit();
+  const handleRemoveNote = (key) => {
+    setNotesList(notesList.filter((note) => noteKey(note) !== key));
+    if (editingNoteKey === key) cancelNoteEdit();
   };
 
   const handleLibraryToggle = (libId) => {
@@ -437,39 +443,42 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
                 <p className="notes-empty">{t('bookModal.notesEmpty')}</p>
               ) : (
                 <ul className="notes-list">
-                  {notesList.map((note, index) => (
-                    <li key={note.id ?? `draft-${index}`} className="note-item">
-                      {editingNoteIndex === index ? (
-                        <div className="note-edit-row">
-                          <textarea
-                            className="form-input notes-textarea"
-                            value={editingNoteText}
-                            onChange={(e) => setEditingNoteText(e.target.value)}
-                            autoFocus
-                          />
-                          <div className="note-item-actions">
-                            <button type="button" className="chip-btn" onClick={() => commitNoteEdit(index)}>{t('bookModal.notesSaveEdit')}</button>
-                            <button type="button" className="chip-btn" onClick={cancelNoteEdit}>{t('bookModal.notesCancelEdit')}</button>
+                  {notesList.map((note) => {
+                    const key = noteKey(note);
+                    return (
+                      <li key={key} className="note-item">
+                        {editingNoteKey === key ? (
+                          <div className="note-edit-row">
+                            <textarea
+                              className="form-input notes-textarea"
+                              value={editingNoteText}
+                              onChange={(e) => setEditingNoteText(e.target.value)}
+                              autoFocus
+                            />
+                            <div className="note-item-actions">
+                              <button type="button" className="chip-btn" onClick={() => commitNoteEdit(key)}>{t('bookModal.notesSaveEdit')}</button>
+                              <button type="button" className="chip-btn" onClick={cancelNoteEdit}>{t('bookModal.notesCancelEdit')}</button>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="note-item-body">
-                            <p className="note-text">{note.text}</p>
-                            <span className="note-date">{note.date || t('bookModal.notesDraftDate')}</span>
-                          </div>
-                          <div className="note-item-actions">
-                            <button type="button" className="note-action-btn" aria-label={t('bookModal.notesEdit')} onClick={() => startNoteEdit(index)}>
-                              <PencilIcon />
-                            </button>
-                            <button type="button" className="note-action-btn note-action-danger" aria-label={t('bookModal.notesDelete')} onClick={() => handleRemoveNote(index)}>
-                              ×
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </li>
-                  ))}
+                        ) : (
+                          <>
+                            <div className="note-item-body">
+                              <p className="note-text">{note.text}</p>
+                              <span className="note-date">{note.date || t('bookModal.notesDraftDate')}</span>
+                            </div>
+                            <div className="note-item-actions">
+                              <button type="button" className="note-action-btn" aria-label={t('bookModal.notesEdit')} onClick={() => startNoteEdit(note)}>
+                                <PencilIcon />
+                              </button>
+                              <button type="button" className="note-action-btn note-action-danger" aria-label={t('bookModal.notesDelete')} onClick={() => handleRemoveNote(key)}>
+                                ×
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
               <div className="note-add-row">

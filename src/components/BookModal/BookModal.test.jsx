@@ -61,11 +61,11 @@ describe('BookModal notes', () => {
 
     save();
 
-    await waitFor(() =>
-      expect(handlers.onSave).toHaveBeenCalledWith(
-        expect.objectContaining({ notesList: [{ text: 'yeni not' }] })
-      )
-    );
+    await waitFor(() => expect(handlers.onSave).toHaveBeenCalled());
+    const [bookData] = handlers.onSave.mock.calls[0];
+    expect(bookData.notesList).toHaveLength(1);
+    expect(bookData.notesList[0]).toMatchObject({ text: 'yeni not' });
+    expect(bookData.notesList[0].id).toBeUndefined();
   });
 
   it('ignores whitespace-only note text on Add', () => {
@@ -97,6 +97,41 @@ describe('BookModal notes', () => {
       expect(handlers.onSave).toHaveBeenCalledWith(
         expect.objectContaining({
           notesList: [{ id: 'n1', text: 'güncel metin', date: '1 Ocak 2026' }],
+        })
+      )
+    );
+  });
+
+  it('keeps editing the right note when an earlier note in the list is deleted mid-edit', async () => {
+    const handlers = renderModal({
+      selectedBook: selectedBook({
+        notesList: [
+          { id: 'n1', text: 'birinci not', date: '1 Ocak 2026' },
+          { id: 'n2', text: 'ikinci not', date: '2 Ocak 2026' },
+        ],
+      }),
+    });
+
+    // Start editing the second note (index 1) ...
+    const editButtons = screen.getAllByRole('button', { name: 'Notu düzenle' });
+    fireEvent.click(editButtons[1]);
+    expect(screen.getByDisplayValue('ikinci not')).toBeInTheDocument();
+
+    // ... then delete the first note, which shifts everyone after it down
+    // by one array index. The edit must stay attached to the second note by
+    // identity (id), not by its now-stale position.
+    fireEvent.click(screen.getByRole('button', { name: 'Notu sil' }));
+    expect(screen.getByDisplayValue('ikinci not')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByDisplayValue('ikinci not'), { target: { value: 'güncellendi' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Kaydet' }));
+
+    save();
+
+    await waitFor(() =>
+      expect(handlers.onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          notesList: [{ id: 'n2', text: 'güncellendi', date: '2 Ocak 2026' }],
         })
       )
     );
