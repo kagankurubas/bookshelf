@@ -1,12 +1,12 @@
-// fake-indexeddb/auto SADECE bu dosyada import ediliyor (global test setup'a
-// eklenmiyor) - kapsam dar tutulup diger testlerin gercek/gerekmeyen bir
-// indexedDB kuresel nesnesiyle karsilasmasi engelleniyor.
+// fake-indexeddb/auto is imported ONLY in this file (not added to the
+// global test setup) - keeps the scope narrow so other tests don't
+// encounter a real/unneeded global indexedDB object.
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { enqueueBook, getQueuedBooks, removeQueuedBook } from './offlineBookQueue';
 
-// fake-indexeddb, testler arasinda ayni veritabani adini paylasip veri
-// sizdirmasin diye her testten once veritabanini tamamen siliyoruz.
+// fake-indexeddb shares the same database name across tests, so we wipe
+// the database before every test to avoid leaking data between them.
 beforeEach(async () => {
   await new Promise((resolve, reject) => {
     const request = indexedDB.deleteDatabase('bookshelf-offline-queue');
@@ -30,13 +30,12 @@ describe('offlineBookQueue', () => {
     expect(queued).toEqual([{ id, title: 'Dune', author: 'Frank Herbert' }]);
   });
 
-  // Regresyon: App.jsx'teki handleSaveBook, BookModal'in state'inden gelen
-  // bookData'yi oldugu gibi spread'liyor - yeni (henuz kaydedilmemis) bir
-  // kitap icin bu, `id: undefined` alanini ACIKCA (hasOwnProperty true)
-  // tasiyor. Chromium'un IndexedDB implementasyonu bunu, gercekten eksik
-  // bir `id` alanindan (autoIncrement'in devreye girdigi durum) ayirt edip
-  // "not a valid key" hatasi firlatiyordu - gercek tarayicida (jsdom'da
-  // degil) yakalandi.
+  // Regression: App.jsx's handleSaveBook spreads bookData from BookModal's
+  // state as-is - for a new (not yet saved) book this explicitly carries an
+  // `id: undefined` field (hasOwnProperty true). Chromium's IndexedDB
+  // implementation distinguished this from a genuinely missing `id` field
+  // (where autoIncrement kicks in) and threw "not a valid key" - caught in
+  // a real browser, not in jsdom.
   it('still auto-generates a key when bookFields explicitly carries an own id:undefined property', async () => {
     const bookFieldsWithExplicitUndefinedId = { id: undefined, title: 'Yeni Kitap' };
     expect(Object.prototype.hasOwnProperty.call(bookFieldsWithExplicitUndefinedId, 'id')).toBe(true);

@@ -23,7 +23,7 @@ const baseBook = {
     { text: 'İlk okuyuşta harikaydı', date: '1 Ocak 2026' },
     { text: 'İkinci okuyuş', date: '5 Ocak 2026' },
   ],
-  // UI-only alanlar - export'a dahil edilmemeli
+  // UI-only fields - must not be included in the export
   coverImage: 'https://example.com/cover.jpg',
   coverPosition: 60,
   shelfId: 'lib-1',
@@ -139,7 +139,7 @@ describe('buildBooksJson', () => {
 
 describe('getExportFilename', () => {
   it('formats the filename as bookshelf-export-YYYY-MM-DD.<extension>', () => {
-    const date = new Date(2026, 0, 5); // 5 Ocak 2026 (local)
+    const date = new Date(2026, 0, 5); // Jan 5 2026 (local)
     expect(getExportFilename('csv', date)).toBe('bookshelf-export-2026-01-05.csv');
     expect(getExportFilename('json', date)).toBe('bookshelf-export-2026-01-05.json');
   });

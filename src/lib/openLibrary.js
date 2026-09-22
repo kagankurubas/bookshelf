@@ -29,10 +29,10 @@ export async function getBookByIsbn(isbn) {
   const bibkey = `ISBN:${key}`;
   const url = `https://openlibrary.org/api/books?bibkeys=${encodeURIComponent(bibkey)}&format=json&jscmd=data`;
 
-  // Network hatasi/timeout ve HTTP hata kodlari (asagida) bilerek YUTULMUYOR,
-  // yeniden firlatiliyor - cagiran taraf bunu "bulunamadi"dan (basarili yanit
-  // ama veri yok) ayirt edebilsin diye. Basarisiz sonuc cache'e yazilmiyor ki
-  // kullanici tekrar denedigin de gercekten yeniden istek atilsin.
+  // Network errors/timeouts and HTTP error codes (below) are deliberately
+  // NOT swallowed, they're rethrown - so the caller can tell this apart
+  // from "not found" (a successful response with no data). A failed result
+  // is not cached, so a retry actually issues a new request.
   let response;
   try {
     response = await fetch(url);

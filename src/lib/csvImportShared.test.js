@@ -25,12 +25,11 @@ describe('parseCsvRows', () => {
     expect(result.malformedRowIndices.size).toBe(0);
   });
 
-  // Papa.parse'in gercekten bir result.errors girdisi ureten davranisini
-  // empirik olarak dogruladik (bkz. gorev raporu): baslikta 3 sutun varken bir
-  // veri satirinda fazladan kacissiz virgul yuzunden 4 alan olusmasi,
-  // "TooManyFields" (FieldMismatch) hatasi doguruyor ve bu hatanin `row`
-  // alani, parsed.data ile AYNI indekslemeyi kullanıyor (header disarida,
-  // 0-bazli veri-satiri indeksi) - asagidaki test bunu dogrudan kanitliyor.
+  // Empirically verified: a header with 3 columns plus a data row with an
+  // extra unescaped comma (4 fields) triggers Papa.parse's "TooManyFields"
+  // (FieldMismatch) error, whose `row` uses the SAME indexing as
+  // parsed.data (header excluded, 0-based data-row index) - proven directly
+  // by this test.
   it('flags a row with a field-count mismatch (extra unescaped comma) as malformed, by its parsed.data index', () => {
     const csv = [
       HEADER,
@@ -45,7 +44,7 @@ describe('parseCsvRows', () => {
     expect(result.rows).toHaveLength(3);
     expect(result.malformedRowIndices.has(1)).toBe(true);
     expect(result.malformedRowIndices.size).toBe(1);
-    // Diger satirlar bozuk olarak isaretlenmemeli.
+    // Other rows must not be flagged as malformed.
     expect(result.malformedRowIndices.has(0)).toBe(false);
     expect(result.malformedRowIndices.has(2)).toBe(false);
   });
@@ -92,8 +91,8 @@ describe('skipIfMalformedRow', () => {
     const skippedRows = [];
     const malformedRowIndices = new Set([0]);
 
-    // Bozuk satirin baslik alani da bos olsa bile, sebep 'malformed-row'
-    // olarak raporlanmali - 'missing-title' olarak degil.
+    // Even if the malformed row's title field is also empty, the reason
+    // must be reported as 'malformed-row', not 'missing-title'.
     if (!skipIfMalformedRow(0, malformedRowIndices, skippedRows)) {
       getTitleOrSkip('', 0, skippedRows);
     }

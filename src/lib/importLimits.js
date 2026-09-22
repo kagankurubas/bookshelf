@@ -1,16 +1,15 @@
-// İçe aktarma icin dosya boyutu / satir sayisi ust siniri - client-side (tarayicida)
-// islendigi icin cok buyuk bir dosya tarayiciyi kilitleyebilir. Bu kontroller,
-// Papa.parse ile tam ayristirmadan ONCE, ucuz bir on-kontrol olarak calisir.
-// (bkz. spec: "5 MB dosya boyutu VEYA 5000 satirdan buyuk dosyalar parse
-// edilmeden reddedilir")
+// File size / row count upper limits for import - since it's processed
+// client-side (in the browser), a huge file could lock up the browser.
+// These checks run as a cheap pre-check BEFORE full Papa.parse parsing.
+// (spec: "files over 5 MB OR over 5000 rows are rejected before parsing")
 export const MAX_IMPORT_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 export const MAX_IMPORT_ROW_COUNT = 5000;
 
-// Sadece File.size uzerinden calisan senkron, ucuz bir on-kontrol. Bilerek
-// csvText almiyor: caller (bkz. ImportPreviewModal.handleFileChange) bu
-// kontrolu file.text() cagirmadan ONCE calistirmali, boylece cok buyuk bir
-// dosya asla tam metin olarak tarayici bellegine okunmuyor - guard'in var
-// olma amaci tam olarak bu (bkz. spec.md).
+// A cheap, synchronous pre-check working only from File.size. Deliberately
+// takes no csvText: the caller (see ImportPreviewModal.handleFileChange)
+// must run this BEFORE calling file.text(), so an oversized file is never
+// read into browser memory as full text - that's the whole point of this
+// guard (see spec.md).
 export function checkFileSizeLimit(fileSizeBytes) {
   if (fileSizeBytes > MAX_IMPORT_FILE_SIZE_BYTES) {
     return { ok: false, reason: 'file-too-large' };
@@ -18,13 +17,13 @@ export function checkFileSizeLimit(fileSizeBytes) {
   return { ok: true };
 }
 
-// csvText: dosyanin ham metni - bu kontrol ancak dosya zaten okunmus ve
-// checkFileSizeLimit'ten gecmisse cagrilmali.
+// csvText: the file's raw text - this check should only be called once the
+// file has already been read and has passed checkFileSizeLimit.
 //
-// Tam bir CSV parse'i yapmadan, satir sonlarini sayarak kaba bir ust sinir
-// kontrolu - tirnak icinde gecen newline'lar bu sayimi hafifce sisirebilir
-// ama bu sadece "gercekten cok buyuk mu" sorusuna hizli cevap vermek icin,
-// kesin bir satir sayisi degil.
+// A rough upper-limit check by counting line breaks, without doing a full
+// CSV parse - newlines inside quotes can slightly inflate this count, but
+// this is only meant to quickly answer "is this really too big", not to
+// give an exact row count.
 export function checkRowCountLimit(csvText) {
   const lineCount = csvText.split(/\r\n|\r|\n/).filter((line) => line.trim().length > 0).length;
   const dataRowCount = Math.max(0, lineCount - 1);

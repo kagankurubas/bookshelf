@@ -8,20 +8,20 @@ import {
   DEFAULT_STATUS,
 } from './csvImportShared';
 
-// Goodreads'in gercek export basligindaki, formati taniyip tanimadigimizi
-// anlamak icin kontrol ettigimiz sutunlar - hepsi bulunmali. Kaynak: bkz.
-// arastirma notlari (gist.github.com/tmcw/f077b2f174a0194f62b94bec4e88f4d0
-// ile dogrulanmis gercek Goodreads export basligi).
+// Columns we check to recognize Goodreads' actual export header - all must
+// be present. Source: verified against a real Goodreads export header
+// (gist.github.com/tmcw/f077b2f174a0194f62b94bec4e88f4d0).
 const EXPECTED_GOODREADS_COLUMNS = ['Title', 'Author', 'Exclusive Shelf'];
 
-// Goodreads'in "Exclusive Shelf" degerleri -> BookShelf'in Turkce durum
-// adlarina eslemesi. Goodreads'in "yarida birakildi" kavramі yok - tanimayan/
-// bos deger Baslanmadi'ya duser. Ortak uc durum csvImportShared'dan geliyor.
+// Maps Goodreads' "Exclusive Shelf" values to BookShelf's Turkish status
+// names. Goodreads has no "did-not-finish" concept - unrecognized/empty
+// values fall back to Başlanmadı. The three common statuses come from
+// csvImportShared.
 const SHELF_TO_STATUS = { ...BASE_STATUS_MAP };
 
-// Goodreads, ISBN/ISBN13 sutunlarini Excel'in basindaki sifirlari/uzun sayiyi
-// bozmamasi icin ="1234567890123" seklinde bir Excel formulu olarak
-// sarmalayarak export eder - bu sarmalayiciyi temizliyoruz.
+// Goodreads exports the ISBN/ISBN13 columns wrapped as an Excel formula
+// like ="1234567890123", to preserve leading zeros/long numbers in Excel -
+// we strip that wrapper here.
 function stripIsbnWrapper(rawValue) {
   const value = (rawValue || '').trim();
   if (!value) return '';
@@ -44,13 +44,13 @@ function firstNonEmpty(...values) {
   return values.find((v) => v && v.trim().length > 0);
 }
 
-// Ham Goodreads CSV metnini alip BookShelf'in bookFields sekline (bkz.
-// useBooks.js -> mapBookRow/addBook) esler. Supabase/DOM bagimliligi yok -
-// saf fonksiyon, mocksuz test edilebilir.
+// Maps raw Goodreads CSV text to BookShelf's bookFields shape (see
+// useBooks.js -> mapBookRow/addBook). No Supabase/DOM dependency - pure
+// function, testable without mocks.
 //
-// Donus degeri iki sekilden biri:
-//  - { error: 'malformed' | 'wrong-format' }  -> hicbir satir islenmedi
-//  - { bookFields: [...], skippedRows: [...] } -> basarili (kismen atlanmis olabilir)
+// Return value is one of two shapes:
+//  - { error: 'malformed' | 'wrong-format' }  -> no row was processed
+//  - { bookFields: [...], skippedRows: [...] } -> success (may be partially skipped)
 export function parseGoodreadsCsv(csvText) {
   const parseResult = parseCsvRows(csvText, (fields) =>
     EXPECTED_GOODREADS_COLUMNS.every((col) => fields.includes(col))
