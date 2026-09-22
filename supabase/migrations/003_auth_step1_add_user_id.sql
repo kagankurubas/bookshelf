@@ -1,11 +1,11 @@
--- ADIM 1/3: Kullanici hesaplarina gecis - ilk adim.
+-- STEP 1/3: migrating to user accounts - first step.
 --
--- Once nullable birer user_id kolonu ekliyoruz (mevcut veriyi bozmadan).
--- RLS politikalari HENUZ degismiyor (uygulama hala herkese acik calisir) -
--- boylece sen ilk hesabini olusturana kadar uygulama kirilmaz.
+-- First add nullable user_id columns (without breaking existing data).
+-- RLS policies do NOT change yet (the app still runs wide open) - so the
+-- app doesn't break until you've created your first account.
 --
--- Bu dosyayi Supabase SQL Editor'da simdi calistir. Hesabini
--- olusturduktan sonra 004 ve 005 dosyalarini sirayla calistiracaksin.
+-- Run this file in the Supabase SQL Editor now. After creating your
+-- account, run files 004 and 005 in order.
 
 alter table libraries add column if not exists user_id uuid references auth.users(id) on delete cascade;
 alter table books add column if not exists user_id uuid references auth.users(id) on delete cascade;

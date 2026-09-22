@@ -1,21 +1,20 @@
--- Sayfa sayısı alanı ve kitaplık bazlı okuma istatistikleri için
--- performanslı, tek sorguda hesaplayan bir RPC fonksiyonu.
+-- Page count field and a performant, single-query RPC function for
+-- per-library reading stats.
 
 -- =========================================================
--- 1. books.page_count: kitabın sayfa sayısı (opsiyonel - eski kayıtlarda
---    ve manuel eklenen kitaplarda boş kalabilir).
+-- 1. books.page_count: the book's page count (optional - can be blank on
+--    older or manually-added records).
 -- =========================================================
 alter table books add column if not exists page_count integer check (page_count is null or page_count >= 0);
 
 -- =========================================================
--- 2. get_reading_stats: bir kitaplıktaki tamamlanmış kitaplar için toplam
---    kitap sayısı, toplam sayfa sayısı ve ortalama puanı tek sorguda
---    hesaplar. Tüm kitapları çekip client'ta toplamak yerine DB'de
---    agregasyon yapılır - kitaplık büyüdükçe ölçeklenir.
---    security invoker (varsayılan) ile çağıranın RLS'i geçerli olur, bu
---    yüzden fonksiyon başka bir kullanıcının kitaplığı için çağrılırsa
---    (RLS zaten books/book_libraries üzerinde uygulandığından) sıfır satır
---    döner, hata değil.
+-- 2. get_reading_stats: computes completed book count, total pages, and
+--    average rating for a library in a single query. Aggregation happens
+--    in the DB instead of fetching all books and summing client-side -
+--    scales as the library grows.
+--    security invoker (the default) means the caller's RLS applies, so if
+--    this function is called for another user's library (RLS already
+--    applies to books/book_libraries), it returns zero rows, not an error.
 -- =========================================================
 create or replace function get_reading_stats(p_library_id uuid)
 returns table (

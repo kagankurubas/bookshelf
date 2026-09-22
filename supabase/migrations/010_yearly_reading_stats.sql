@@ -1,6 +1,6 @@
--- Yıllara göre okuma trendi (her yıl için tamamlanan kitap/sayfa sayısı) -
--- aylık grafiğin aksine tek bir yılla sınırlı değil, kitaplığın tüm
--- geçmişini kapsar. date_finished'a göre gruplanır (bkz. 009'daki not).
+-- Reading trend by year (completed book/page count per year) - unlike the
+-- monthly chart, not limited to a single year, covers the library's entire
+-- history. Grouped by date_finished (see the note in 009).
 create or replace function get_yearly_reading_stats(p_library_id uuid)
 returns table (
   year int,

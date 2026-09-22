@@ -1,15 +1,14 @@
--- İstatistikler sayfası (yıllık/aylık/kategori kırılımı) için DB fonksiyonları.
+-- DB functions for the stats page (yearly/monthly/category breakdowns).
 --
--- Önemli: tüm yıl/ay gruplamaları kitabın "date_finished" (gerçekten
--- bitirildiği tarih) alanına göre yapılır, "created_at" (kayda ne zaman
--- eklendiği) alanına göre DEĞİL - kullanıcı 2023'te bitirdiği bir kitabı
--- 2026'da uygulamaya eklerse, bu kitap 2023 istatistiklerine sayılmalı,
--- 2026'ya değil.
+-- Important: all year/month grouping is based on the book's "date_finished"
+-- (actual completion date), NOT "created_at" (when the row was added) - if
+-- a user finished a book in 2023 but adds it to the app in 2026, it should
+-- count toward 2023's stats, not 2026's.
 
--- get_reading_stats'a opsiyonel yıl filtresi eklemek için önce eski
--- (tek parametreli) sürümü kaldırıp yerine ikinci parametresi varsayılan
--- null olan sürümünü koyuyoruz - aksi halde iki sürüm birden var olup
--- tek parametreyle çağrıldığında "ambiguous function call" hatası verir.
+-- To add an optional year filter to get_reading_stats, first drop the old
+-- (single-parameter) version and replace it with one whose second
+-- parameter defaults to null - otherwise both versions would exist and
+-- calling with one parameter would raise an "ambiguous function call" error.
 drop function if exists get_reading_stats(uuid);
 
 create or replace function get_reading_stats(p_library_id uuid, p_year int default null)
@@ -32,8 +31,8 @@ as $$
     and (p_year is null or extract(year from b.date_finished)::int = p_year);
 $$;
 
--- get_reading_years: yıl seçicide gösterilecek, kitaplıkta gerçekten veri
--- bulunan yılların listesi (en yeniden en eskiye).
+-- get_reading_years: years that actually have data in the library, for
+-- the year picker (newest to oldest).
 create or replace function get_reading_years(p_library_id uuid)
 returns table (year int)
 language sql
@@ -49,8 +48,8 @@ as $$
   order by year desc;
 $$;
 
--- get_monthly_reading_stats: seçilen yıl için 12 ay, veri olmayan aylar da
--- 0 olarak döner (grafik her zaman 12 sütun çizsin diye).
+-- get_monthly_reading_stats: 12 months for the selected year, months with
+-- no data still return 0 (so the chart always draws 12 columns).
 create or replace function get_monthly_reading_stats(p_library_id uuid, p_year int)
 returns table (
   month int,
@@ -80,10 +79,10 @@ as $$
   order by m.month;
 $$;
 
--- get_category_reading_stats: kitaplıktaki tamamlanmış kitapların kategoriye
--- göre kırılımı, isteğe bağlı yıl filtresiyle. Kategorisiz kitaplar "Diğer"e
--- düşer. Hangi kategorilerin ayrı renk alıp hangilerinin "Diğer"e katlanacağı
--- (renk körlüğü güvenli maksimum kategori sayısı) frontend'de belirleniyor.
+-- get_category_reading_stats: category breakdown of completed books in a
+-- library, with an optional year filter. Uncategorized books fall into
+-- "Other". Which categories get their own color vs. fold into "Other"
+-- (color-blind-safe max category count) is decided on the frontend.
 create or replace function get_category_reading_stats(p_library_id uuid, p_year int default null)
 returns table (
   category text,

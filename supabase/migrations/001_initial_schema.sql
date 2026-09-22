@@ -1,15 +1,15 @@
--- BookShelf veritabani semasi
+-- BookShelf database schema
 --
--- Bu, bir yeni (bos) projede sifirdan calistirilacak GUNCEL hedef sema.
--- Var olan bir projeyi bu hale getirmek icin supabase/migrations/
--- klasorundeki dosyalari SIRAYLA calistir (001, 002, 003, 004, 005...).
+-- This is the CURRENT target schema, meant to be run from scratch on a
+-- new (empty) project. To bring an existing project to this state, run
+-- the files under supabase/migrations/ IN ORDER (001, 002, 003, 004, 005...).
 --
--- Kullanicilar Supabase Auth (e-posta/sifre) ile giris yapar; her
--- kitaplik ve kitap bir kullaniciya (auth.users) aittir, RLS bunu
--- auth.uid() = user_id kontrolu ile zorunlu kilar.
+-- Users log in via Supabase Auth (email/password); every library and
+-- book belongs to a user (auth.users), enforced by RLS via
+-- auth.uid() = user_id.
 
 -- =========================================================
--- 1. libraries: kullanicinin olusturdugu kitapliklar
+-- 1. libraries: libraries created by the user
 -- =========================================================
 create table if not exists libraries (
   id uuid primary key default gen_random_uuid(),
@@ -23,7 +23,7 @@ create table if not exists libraries (
 create index if not exists libraries_user_id_idx on libraries(user_id);
 
 -- =========================================================
--- 2. books: kitap kayitlari
+-- 2. books: book records
 -- =========================================================
 create table if not exists books (
   id uuid primary key default gen_random_uuid(),
@@ -41,15 +41,15 @@ create table if not exists books (
   cover_position smallint not null default 50 check (cover_position between 0 and 100),
   shelf_id text not null default 'default',
   is_favorite boolean not null default false,
-  -- shelf_row: kitabın kitaplık rafındaki hangi raf katında olduğu (0'dan başlar).
-  -- slot_index: aynı raf katı içindeki sırası (0'dan başlar, o katta sıkışık/ardışık tutulur).
-  -- Sabit "raf kapasitesi" yok; bir rafın görsel uzunluğu, o rafa
-  -- atanmış kitap sayısı kadardır.
+  -- shelf_row: which shelf row the book is on within the library (starts at 0).
+  -- slot_index: order within that shelf row (starts at 0, kept packed/contiguous).
+  -- There's no fixed "shelf capacity" - a shelf's visual length is just however
+  -- many books are assigned to it.
   shelf_row integer not null default 0,
   slot_index integer not null default 0,
-  -- Barkod/ISBN ile arama uzerinden kitap eklerken kullanilacak
+  -- Used when adding a book via barcode/ISBN lookup
   isbn text,
-  -- Okuma istatistikleri (toplam sayfa) icin - opsiyonel, bilinmiyorsa bos kalir.
+  -- For reading stats (total pages) - optional, blank if unknown.
   page_count integer check (page_count is null or page_count >= 0),
   created_at timestamptz not null default now()
 );
@@ -57,8 +57,8 @@ create table if not exists books (
 create index if not exists books_user_id_idx on books(user_id);
 
 -- =========================================================
--- 3. book_libraries: books <-> libraries many-to-many ara tablosu
---    (bir kitap ayni anda birden fazla kitaplikta olabilir)
+-- 3. book_libraries: many-to-many join table between books <-> libraries
+--    (a book can be in more than one library at a time)
 -- =========================================================
 create table if not exists book_libraries (
   book_id uuid not null references books(id) on delete cascade,
@@ -69,7 +69,7 @@ create table if not exists book_libraries (
 create index if not exists book_libraries_library_id_idx on book_libraries(library_id);
 
 -- =========================================================
--- 4. notes: bir kitaba bagli notlar
+-- 4. notes: notes attached to a book
 -- =========================================================
 create table if not exists notes (
   id uuid primary key default gen_random_uuid(),
@@ -81,7 +81,7 @@ create table if not exists notes (
 create index if not exists notes_book_id_idx on notes(book_id);
 
 -- =========================================================
--- 5. ai_conversations / ai_messages: Kitap Asistani sohbet gecmisi
+-- 5. ai_conversations / ai_messages: Book Assistant chat history
 -- =========================================================
 create table if not exists ai_conversations (
   id uuid primary key default gen_random_uuid(),
@@ -103,8 +103,8 @@ create index if not exists ai_messages_conversation_id_idx on ai_messages(conver
 
 -- =========================================================
 -- 6. Row Level Security
---    Her kullanici sadece kendi kitaplik/kitap/not/sohbet kayitlarini
---    gorebilir ve degistirebilir.
+--    Each user can only see and modify their own library/book/note/chat
+--    records.
 -- =========================================================
 alter table libraries enable row level security;
 alter table books enable row level security;
@@ -146,12 +146,12 @@ create policy "Users manage own ai_messages" on ai_messages
   );
 
 -- =========================================================
--- 7. Okuma istatistikleri: kitaplık bazlı toplam/yıllık/aylık/kategori
---    kırılımları tek sorguda hesaplayan RPC fonksiyonları (client'ta tüm
---    kitapları çekip toplamak yerine DB'de agregasyon). security invoker
---    sayesinde çağıranın RLS'i geçerli olur. Tüm yıl/ay gruplamaları
---    kitabın gerçekten bitirildiği tarihe (date_finished) göre yapılır,
---    kayda ne zaman eklendiğine (created_at) göre DEĞİL.
+-- 7. Reading stats: RPC functions that compute total/yearly/monthly/category
+--    breakdowns per library in a single query (aggregation in the DB instead
+--    of fetching all books and summing client-side). security invoker means
+--    the caller's RLS applies. All year/month grouping is based on the
+--    book's actual completion date (date_finished), NOT when the row was
+--    added (created_at).
 -- =========================================================
 create or replace function get_reading_stats(p_library_id uuid, p_year int default null)
 returns table (
@@ -240,8 +240,8 @@ as $$
   order by completed_count desc;
 $$;
 
--- Yıllara göre okuma trendi - aylık grafiğin aksine tek bir yılla sınırlı
--- değil, kitaplığın tüm geçmişini kapsar.
+-- Reading trend by year - unlike the monthly chart, not limited to a single
+-- year, covers the library's entire history.
 create or replace function get_yearly_reading_stats(p_library_id uuid)
 returns table (
   year int,
@@ -266,13 +266,14 @@ as $$
 $$;
 
 -- =========================================================
--- 8. ai_daily_usage: Kitap Asistani (Gemini) icin gunluk kullanim kotasi.
---    Google'in ucretsiz katmaninda bu model 20 istek/gun (RPD) sinirina
---    sahip ve bu sinir TUM kullanicilar arasinda PAYLASILAN tek bir sayac -
---    kullanici basina degil. O gercek sinira carpip Gemini'den beklenmedik
---    hatalar almak yerine, ic kotamizi daha dusuk tutup (bkz. ai-chat Edge
---    Function'daki DAILY_QUOTA_LIMIT) kota dolunca Gemini'yi hic cagirmadan
---    kullaniciya nazik bir mesaj donuyoruz.
+-- 8. ai_daily_usage: daily usage quota for the Book Assistant (Gemini).
+--    On Google's free tier this model has a 20 requests/day (RPD) limit,
+--    and that limit is a single counter SHARED across ALL users, not
+--    per-user. Instead of hitting that real limit and getting unexpected
+--    errors from Gemini, we keep our own internal quota lower (see
+--    DAILY_QUOTA_LIMIT in the ai-chat Edge Function) and return a polite
+--    message to the user once the quota is used up, without calling
+--    Gemini at all.
 -- =========================================================
 create table if not exists ai_daily_usage (
   usage_date date primary key,
@@ -280,13 +281,14 @@ create table if not exists ai_daily_usage (
 );
 
 alter table ai_daily_usage enable row level security;
--- Kasitli olarak hicbir policy yok - bu tabloya sadece asagidaki
--- security definer fonksiyon uzerinden erisilir, istemciden dogrudan degil.
+-- Intentionally no policies - this table is only accessed through the
+-- security definer function below, never directly from the client.
 
--- Ilgili gunun sayacini atomik olarak arttirir; sinira ulasilmissa
--- arttirmadan false doner. Tek bir UPDATE ifadesi oldugu icin Postgres'in
--- satir kilitlemesi sayesinde es zamanli cagrilarda bile yarissiz
--- (race-free) calisir - iki istek ayni anda gelse bile sayac asilmaz.
+-- Atomically increments the counter for the given day; returns false
+-- without incrementing once the limit is reached. Because it's a single
+-- UPDATE statement, Postgres row locking makes it race-free even under
+-- concurrent calls - the counter can't be exceeded even if two requests
+-- arrive at the same time.
 create or replace function try_consume_ai_quota(p_usage_date date, p_max_requests integer)
 returns boolean
 language plpgsql

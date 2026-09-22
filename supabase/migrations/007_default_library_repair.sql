@@ -1,22 +1,23 @@
--- Ana kitaplık kavramını gerçek hale getirir ve mevcut veriyi onarır.
+-- Makes the "default library" concept real and repairs existing data.
 --
--- Sorun: uygulama şimdiye kadar hiçbir kitaplığı is_default = true olarak
--- işaretlemiyordu (LibraryToolbar'daki silme engeli bu bayrağa bakıyor ama
--- kimse hiç true olmadığı için hiçbir kitaplık gerçekte korunmuyordu).
--- Bir kullanıcı "ana" saydığı kitaplığını sildiğinde, kitapları book_libraries
--- (many-to-many ara tablo) üzerinden cascade ile bağlantısız kalıyor, kendisi
--- books tablosunda duruyor ama hiçbir kitaplıkta görünmüyor - veri kaybı gibi
--- görünen ama aslında "sahipsiz kitap" durumu.
+-- Problem: until now the app never marked any library as is_default = true
+-- (the delete guard in LibraryToolbar checks this flag, but since it was
+-- never true for anyone, no library was actually protected). When a user
+-- deleted the library they considered "their main one," their books lost
+-- their link via the book_libraries cascade (many-to-many join table) -
+-- the book itself still exists in the books table but shows up in no
+-- library - looks like data loss but is really an "unowned book" state.
 --
--- Bu migration üç adımda onarır (hepsi idempotent, tekrar çalıştırmak güvenli):
---   1) Hâlâ hiçbir kitaplığı is_default olmayan kullanıcılar için en eski
---      (ilk oluşturulan) kitaplığı ana kitaplık olarak işaretler - bu,
---      App.jsx'in şimdiye kadar zaten "varsayılan" saydığı kitaplıkla aynısı.
---   2) Sahipsiz kitabı olup hiç kitaplığı kalmamış kullanıcılar için yeni bir
---      ana kitaplık oluşturur (tüm kitaplıklarını silmiş olabilirler).
---   3) Her sahipsiz kitabı, kullanıcısının ana kitaplığına bağlar.
+-- This migration repairs it in three steps (all idempotent, safe to
+-- re-run):
+--   1) For users who still have no library marked is_default, marks their
+--      oldest (first created) library as the default - the same library
+--      App.jsx already treated as the "default" one up to now.
+--   2) For users with an unowned book but no libraries left at all, creates
+--      a new default library (they may have deleted every library).
+--   3) Links every remaining unowned book to its user's default library.
 
--- 1) En eski kitaplığı ana kitaplık yap (henüz ana kitaplığı olmayanlar için).
+-- 1) Make the oldest library the default (for users without one yet).
 with users_without_default as (
   select user_id
   from libraries
@@ -33,15 +34,15 @@ update libraries
 set is_default = true
 where id in (select id from oldest_per_user);
 
--- 2) Sahipsiz kitabı olan ama hiç kitaplığı kalmamış kullanıcılar için yeni
---    bir ana kitaplık oluştur.
+-- 2) Create a new default library for users with an unowned book but no
+--    libraries left.
 insert into libraries (user_id, name, shelf_count, is_default)
 select distinct b.user_id, 'Kitaplığım', 2, true
 from books b
 where not exists (select 1 from book_libraries bl where bl.book_id = b.id)
   and not exists (select 1 from libraries l where l.user_id = b.user_id);
 
--- 3) Sahipsiz kalan her kitabı, kullanıcısının ana kitaplığına bağla.
+-- 3) Link every remaining unowned book to its user's default library.
 insert into book_libraries (book_id, library_id)
 select b.id, l.id
 from books b
