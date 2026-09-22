@@ -8,7 +8,8 @@ import CardsView from './components/CardsView/CardsView';
 import TableView from './components/TableView/TableView';
 import ShelfView from './components/ShelfView/ShelfView';
 import AddChoiceModal from './components/AddChoiceModal/AddChoiceModal';
-import AuthScreen from './components/AuthScreen/AuthScreen';
+import AuthGate from './components/AuthGate/AuthGate';
+import OfflineBanner from './components/OfflineBanner/OfflineBanner';
 import AiChatDrawer from './components/AiChatDrawer/AiChatDrawer';
 import SettingsModal from './components/SettingsModal/SettingsModal';
 import ReadingStats from './components/ReadingStats/ReadingStats';
@@ -182,221 +183,211 @@ function App() {
     }
   };
 
-  // So the offline banner can also appear across the loading/auth/main-app
-  // screens, these three branches were converted from separate early-returns
-  // into one nested ternary inside a single return - each branch's own
-  // content is kept exactly as before.
   return (
     <>
-      {!isOnline && (
-        <div className="offline-banner" role="status">
-          {t('app.offlineBanner')}
-          {queuedCount > 0 && ' ' + t('app.offlineBannerQueued', { count: queuedCount })}
-        </div>
-      )}
-      {authLoading ? (
-        <div className="main-container">
-          <p className="app-loading-text">{t('app.loading')}</p>
-        </div>
-      ) : !user ? (
-        <AuthScreen
-          onSignIn={signIn}
-          onSignUp={signUp}
-          redirectError={redirectError}
-          accountDeletedNotice={accountDeletedNotice}
-        />
-      ) : (
-    <div className="main-container" onDragEnd={shelfDnd.handleDragEnd}>
-
-      {booksLoading || librariesLoading ? (
-        <p className="app-loading-text">{t('app.loading')}</p>
-      ) : booksError || librariesError ? (
-        <div className="app-load-error">
-          <p>{t('app.loadError')}</p>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => { refetchBooks(); refetchLibraries(); }}
-          >
-            {t('app.retry')}
-          </button>
-        </div>
-      ) : (
-      <>
-      <AppHeader
-        activeView={activeView}
-        onChangeView={setActiveView}
-        userEmail={user.email}
-        onSignOut={signOut}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-      />
-
-      {isSettingsOpen && (
-        <SettingsModal
-          userEmail={user.email}
-          books={books}
-          addBook={addBook}
-          libraries={libraries}
-          onClose={() => setIsSettingsOpen(false)}
-          onAccountDeleted={() => {
-            setIsSettingsOpen(false);
-            // Account deletion is unrelated to the verification-link error -
-            // but redirectError can stay in memory for this tab's whole
-            // lifetime (e.g. user landed with an invalid link, then signed in
-            // and deleted their account). Since the two aren't meaningful
-            // together, we clear it deliberately, otherwise AuthScreen would
-            // show two stacked messages.
-            clearRedirectError();
-            setAccountDeletedNotice(true);
-          }}
-        />
-      )}
-
-      <LibraryToolbar
-        libraries={libraries}
-        activeLibraryId={activeLibraryId}
-        onChangeActiveLibrary={library.setActiveLibraryId}
-        isAddingLibrary={isAddingLibrary}
-        onStartAddingLibrary={() => { setIsAddingLibrary(true); setLibraryNameError(null); }}
-        onCancelAddingLibrary={() => { setIsAddingLibrary(false); setLibraryNameError(null); }}
-        newLibraryName={newLibraryName}
-        onNewLibraryNameChange={(value) => { setNewLibraryName(value); setLibraryNameError(null); }}
-        newLibraryNameError={libraryNameError}
-        onCreateLibrary={handleCreateLibrary}
-        onDeleteLibrary={handleDeleteLibrary}
-        onOpenAddBook={addFlow.openNewBookModal}
-      />
-
-      {activeView !== 'dashboard' && <ReadingStats stats={readingStats} />}
-
-      <button
-        className="ai-chat-fab"
-        onClick={() => setIsAiChatOpen(true)}
-        title={t('aiChat.fabTitle')}
-        aria-label={t('aiChat.fabTitle')}
+      <OfflineBanner isOnline={isOnline} queuedCount={queuedCount} />
+      <AuthGate
+        authLoading={authLoading}
+        user={user}
+        onSignIn={signIn}
+        onSignUp={signUp}
+        redirectError={redirectError}
+        accountDeletedNotice={accountDeletedNotice}
       >
-        <SparkleIcon />
-      </button>
+        {/* JSX children are evaluated eagerly regardless of what AuthGate
+            ends up rendering, and this subtree reads user.email/user.id -
+            guarded here too so it's never constructed while user is null. */}
+        {user && (
+          <div className="main-container" onDragEnd={shelfDnd.handleDragEnd}>
+            {booksLoading || librariesLoading ? (
+              <p className="app-loading-text">{t('app.loading')}</p>
+            ) : booksError || librariesError ? (
+              <div className="app-load-error">
+                <p>{t('app.loadError')}</p>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => { refetchBooks(); refetchLibraries(); }}
+                >
+                  {t('app.retry')}
+                </button>
+              </div>
+            ) : (
+              <>
+                <AppHeader
+                  activeView={activeView}
+                  onChangeView={setActiveView}
+                  userEmail={user.email}
+                  onSignOut={signOut}
+                  onOpenSettings={() => setIsSettingsOpen(true)}
+                />
 
-      {isAiChatOpen && (
-        <AiChatDrawer userId={user.id} onClose={() => setIsAiChatOpen(false)} />
-      )}
+                {isSettingsOpen && (
+                  <SettingsModal
+                    userEmail={user.email}
+                    books={books}
+                    addBook={addBook}
+                    libraries={libraries}
+                    onClose={() => setIsSettingsOpen(false)}
+                    onAccountDeleted={() => {
+                      setIsSettingsOpen(false);
+                      // Account deletion is unrelated to the verification-link error -
+                      // but redirectError can stay in memory for this tab's whole
+                      // lifetime (e.g. user landed with an invalid link, then signed in
+                      // and deleted their account). Since the two aren't meaningful
+                      // together, we clear it deliberately, otherwise AuthScreen would
+                      // show two stacked messages.
+                      clearRedirectError();
+                      setAccountDeletedNotice(true);
+                    }}
+                  />
+                )}
 
-      {activeView === 'cards' && (
-        <CardsView
-          books={currentLibraryBooks}
-          onOpenBook={addFlow.openBookDetailModal}
-          onDeleteBook={handleDeleteBook}
-          renderStars={renderStars}
-        />
-      )}
+                <LibraryToolbar
+                  libraries={libraries}
+                  activeLibraryId={activeLibraryId}
+                  onChangeActiveLibrary={library.setActiveLibraryId}
+                  isAddingLibrary={isAddingLibrary}
+                  onStartAddingLibrary={() => { setIsAddingLibrary(true); setLibraryNameError(null); }}
+                  onCancelAddingLibrary={() => { setIsAddingLibrary(false); setLibraryNameError(null); }}
+                  newLibraryName={newLibraryName}
+                  onNewLibraryNameChange={(value) => { setNewLibraryName(value); setLibraryNameError(null); }}
+                  newLibraryNameError={libraryNameError}
+                  onCreateLibrary={handleCreateLibrary}
+                  onDeleteLibrary={handleDeleteLibrary}
+                  onOpenAddBook={addFlow.openNewBookModal}
+                />
 
-      {activeView === 'table' && (
-        <TableView
-          books={bookFilters.filteredBooks}
-          categories={bookFilters.categories}
-          uniqueAuthors={bookFilters.uniqueAuthors}
-          uniqueTags={bookFilters.uniqueTags}
-          searchQuery={bookFilters.searchQuery}
-          onSearchQueryChange={bookFilters.setSearchQuery}
-          selectedCategory={bookFilters.selectedCategory}
-          onSelectedCategoryChange={bookFilters.setSelectedCategory}
-          selectedAuthor={bookFilters.selectedAuthor}
-          onSelectedAuthorChange={bookFilters.setSelectedAuthor}
-          selectedTag={bookFilters.selectedTag}
-          onSelectedTagChange={bookFilters.setSelectedTag}
-          filterStatus={bookFilters.filterStatus}
-          onFilterStatusChange={bookFilters.setFilterStatus}
-          onOpenBook={addFlow.openBookDetailModal}
-          onDeleteBook={handleDeleteBook}
-          renderStars={renderStars}
-        />
-      )}
+                {activeView !== 'dashboard' && <ReadingStats stats={readingStats} />}
 
-      {activeView === 'shelf' && (
-        <ShelfView
-          books={currentLibraryBooks}
-          shelfCount={shelfCount}
-          shelfDnd={shelfDnd}
-          onOpenBook={addFlow.openBookDetailModal}
-        />
-      )}
+                <button
+                  className="ai-chat-fab"
+                  onClick={() => setIsAiChatOpen(true)}
+                  title={t('aiChat.fabTitle')}
+                  aria-label={t('aiChat.fabTitle')}
+                >
+                  <SparkleIcon />
+                </button>
 
-      {activeView === 'dashboard' && (
-        <DashboardPage libraryId={activeLibraryId} libraryName={activeLibrary?.name} books={currentLibraryBooks} />
-      )}
+                {isAiChatOpen && (
+                  <AiChatDrawer userId={user.id} onClose={() => setIsAiChatOpen(false)} />
+                )}
 
-      {addFlow.isAddChoiceOpen && (
-        <AddChoiceModal
-          onClose={addFlow.closeAddChoice}
-          onBarcodeAdd={addFlow.startBarcodeAdd}
-          onSearchAdd={addFlow.startSearchAdd}
-          onBatchAdd={addFlow.startBatchScanAdd}
-          onManualAdd={addFlow.startManualAdd}
-        />
-      )}
+                {activeView === 'cards' && (
+                  <CardsView
+                    books={currentLibraryBooks}
+                    onOpenBook={addFlow.openBookDetailModal}
+                    onDeleteBook={handleDeleteBook}
+                    renderStars={renderStars}
+                  />
+                )}
 
-      {addFlow.isScannerOpen && (
-        <div className="modal-overlay" onClick={addFlow.closeScanner}>
-          <div onClick={(e) => e.stopPropagation()} className="modal-inline-panel modal-inline-panel--wide">
-            <Suspense fallback={null}>
-              <BarcodeScanner onScan={addFlow.handleBarcodeScanned} onClose={addFlow.closeScanner} />
-            </Suspense>
+                {activeView === 'table' && (
+                  <TableView
+                    books={bookFilters.filteredBooks}
+                    categories={bookFilters.categories}
+                    uniqueAuthors={bookFilters.uniqueAuthors}
+                    uniqueTags={bookFilters.uniqueTags}
+                    searchQuery={bookFilters.searchQuery}
+                    onSearchQueryChange={bookFilters.setSearchQuery}
+                    selectedCategory={bookFilters.selectedCategory}
+                    onSelectedCategoryChange={bookFilters.setSelectedCategory}
+                    selectedAuthor={bookFilters.selectedAuthor}
+                    onSelectedAuthorChange={bookFilters.setSelectedAuthor}
+                    selectedTag={bookFilters.selectedTag}
+                    onSelectedTagChange={bookFilters.setSelectedTag}
+                    filterStatus={bookFilters.filterStatus}
+                    onFilterStatusChange={bookFilters.setFilterStatus}
+                    onOpenBook={addFlow.openBookDetailModal}
+                    onDeleteBook={handleDeleteBook}
+                    renderStars={renderStars}
+                  />
+                )}
+
+                {activeView === 'shelf' && (
+                  <ShelfView
+                    books={currentLibraryBooks}
+                    shelfCount={shelfCount}
+                    shelfDnd={shelfDnd}
+                    onOpenBook={addFlow.openBookDetailModal}
+                  />
+                )}
+
+                {activeView === 'dashboard' && (
+                  <DashboardPage libraryId={activeLibraryId} libraryName={activeLibrary?.name} books={currentLibraryBooks} />
+                )}
+
+                {addFlow.isAddChoiceOpen && (
+                  <AddChoiceModal
+                    onClose={addFlow.closeAddChoice}
+                    onBarcodeAdd={addFlow.startBarcodeAdd}
+                    onSearchAdd={addFlow.startSearchAdd}
+                    onBatchAdd={addFlow.startBatchScanAdd}
+                    onManualAdd={addFlow.startManualAdd}
+                  />
+                )}
+
+                {addFlow.isScannerOpen && (
+                  <div className="modal-overlay" onClick={addFlow.closeScanner}>
+                    <div onClick={(e) => e.stopPropagation()} className="modal-inline-panel modal-inline-panel--wide">
+                      <Suspense fallback={null}>
+                        <BarcodeScanner onScan={addFlow.handleBarcodeScanned} onClose={addFlow.closeScanner} />
+                      </Suspense>
+                    </div>
+                  </div>
+                )}
+
+                {addFlow.isSearchOpen && (
+                  <div className="modal-overlay" onClick={addFlow.closeSearch}>
+                    <div onClick={(e) => e.stopPropagation()} className="modal-inline-panel">
+                      <BookSearch onSelect={addFlow.handleSearchResultSelect} onClose={addFlow.closeSearch} />
+                    </div>
+                  </div>
+                )}
+
+                {addFlow.isBatchScanOpen && (
+                  <div className="modal-overlay" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-inline-panel modal-inline-panel--wide">
+                      <Suspense fallback={null}>
+                        <BatchScanner
+                          books={books}
+                          activeLibraryId={activeLibraryId}
+                          addBook={addOrQueueBook}
+                          isOnline={isOnline}
+                          onBatchSaved={library.refreshStats}
+                          onClose={addFlow.closeBatchScan}
+                          onManualAddIsbn={addFlow.handleManualAddFromIsbn}
+                        />
+                      </Suspense>
+                    </div>
+                  </div>
+                )}
+
+                {addFlow.isLookingUpIsbn && (
+                  <div className="modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: '320px', padding: '30px', textAlign: 'center' }}>
+                      <p style={{ color: 'var(--text)', fontFamily: 'var(--font-body)', margin: 0 }}>{t('isbnLookup.loading')}</p>
+                    </div>
+                  </div>
+                )}
+
+                {addFlow.isModalOpen && (
+                  <BookModal
+                    onClose={addFlow.closeBookModal}
+                    onSave={handleSaveBook}
+                    selectedBook={addFlow.selectedBook}
+                    prefillData={addFlow.prefillBook}
+                    existingAuthors={bookFilters.uniqueAuthors}
+                    existingTags={bookFilters.uniqueTags}
+                    libraries={libraries}
+                    activeLibraryId={activeLibraryId}
+                  />
+                )}
+              </>
+            )}
           </div>
-        </div>
-      )}
-
-      {addFlow.isSearchOpen && (
-        <div className="modal-overlay" onClick={addFlow.closeSearch}>
-          <div onClick={(e) => e.stopPropagation()} className="modal-inline-panel">
-            <BookSearch onSelect={addFlow.handleSearchResultSelect} onClose={addFlow.closeSearch} />
-          </div>
-        </div>
-      )}
-
-      {addFlow.isBatchScanOpen && (
-        <div className="modal-overlay" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-inline-panel modal-inline-panel--wide">
-            <Suspense fallback={null}>
-              <BatchScanner
-                books={books}
-                activeLibraryId={activeLibraryId}
-                addBook={addOrQueueBook}
-                isOnline={isOnline}
-                onBatchSaved={library.refreshStats}
-                onClose={addFlow.closeBatchScan}
-                onManualAddIsbn={addFlow.handleManualAddFromIsbn}
-              />
-            </Suspense>
-          </div>
-        </div>
-      )}
-
-      {addFlow.isLookingUpIsbn && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '320px', padding: '30px', textAlign: 'center' }}>
-            <p style={{ color: 'var(--text)', fontFamily: 'var(--font-body)', margin: 0 }}>{t('isbnLookup.loading')}</p>
-          </div>
-        </div>
-      )}
-
-      {addFlow.isModalOpen && (
-        <BookModal
-          onClose={addFlow.closeBookModal}
-          onSave={handleSaveBook}
-          selectedBook={addFlow.selectedBook}
-          prefillData={addFlow.prefillBook}
-          existingAuthors={bookFilters.uniqueAuthors}
-          existingTags={bookFilters.uniqueTags}
-          libraries={libraries}
-          activeLibraryId={activeLibraryId}
-        />
-      )}
-      </>
-      )}
-
-    </div>
-      )}
+        )}
+      </AuthGate>
     </>
   );
 }
