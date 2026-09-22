@@ -107,6 +107,25 @@ describe('useBooks', () => {
     expect(result.current.books[0].id).toBe('new-1');
   });
 
+  it('addBook sends tags through the same plain-column insert path as category/status', async () => {
+    const { result } = await renderWithInitialRows([]);
+
+    const insertBuilder = queryResult({
+      data: { ...baseRow, id: 'new-1', tags: ['ödünç aldım'], book_libraries: undefined, notes: undefined },
+      error: null,
+    });
+    supabase.from.mockReturnValueOnce(insertBuilder);
+
+    let newBook;
+    await act(async () => {
+      newBook = await result.current.addBook({ title: 'Foundation', author: 'Asimov', tags: ['ödünç aldım'] });
+    });
+
+    expect(insertBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ tags: ['ödünç aldım'] }));
+    expect(newBook.tags).toEqual(['ödünç aldım']);
+    expect(result.current.books[0].tags).toEqual(['ödünç aldım']);
+  });
+
   it('editBook sends only the changed columns and merges the result into state', async () => {
     const { result } = await renderWithInitialRows([baseRow]);
 

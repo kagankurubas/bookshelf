@@ -11,7 +11,6 @@ const HashIcon = () => (<svg {...iconProps}><path d="M5 9h14M5 15h14M10 3L8 21M1
 const PagesIcon = () => (<svg {...iconProps}><path d="M4 5.5C4 4.7 4.7 4 5.5 4H12v16H5.5A1.5 1.5 0 0 1 4 18.5v-13z" /><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H12v16h6.5a1.5 1.5 0 0 0 1.5-1.5v-13z" /></svg>);
 const LibraryStackIcon = () => (<svg {...iconProps}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>);
 const TagIcon = () => (<svg {...iconProps}><path d="M20.6 12.6L12 21l-9-9 8.6-8.4H20.6z" /><circle cx="14.5" cy="7.5" r="1.2" fill="currentColor" stroke="none" /></svg>);
-const TagsIcon = () => (<svg {...iconProps}><path d="M17.6 10.6L11 4H4v7l6.6 6.6a2 2 0 0 0 2.8 0l4.2-4.2a2 2 0 0 0 0-2.8z" /><circle cx="8" cy="8" r="1.1" fill="currentColor" stroke="none" /></svg>);
 const RefreshIcon = () => (<svg {...iconProps}><path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 3v6h-6" /></svg>);
 const PlayIcon = () => (<svg {...iconProps}><path d="M6 4l14 8-14 8V4z" fill="currentColor" stroke="none" /></svg>);
 const FlagIcon = () => (<svg {...iconProps}><path d="M5 21V4h13l-3 4.5L18 13H5" /></svg>);
@@ -366,7 +365,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
           </div>
 
           <div className="form-group tag-input-group">
-            <span className="form-label"><TagsIcon /> {t('bookModal.tags')}</span>
+            <label className="form-label" htmlFor="book-tags"><TagIcon /> {t('bookModal.tags')}</label>
             <div className="tag-input-wrap">
               <input
                 id="book-tags"
@@ -376,7 +375,6 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleTagInputKeyDown}
-                onBlur={() => commitTagInput(tagInput)}
                 placeholder={t('bookModal.tagsPlaceholder')}
               />
               <datalist id="tag-suggestions">
