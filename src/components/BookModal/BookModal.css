@@ -141,6 +141,109 @@
   opacity: 1;
 }
 
+/* Notlar (ekleme/düzenleme/silme) */
+.notes-group {
+  align-items: flex-start;
+}
+
+.notes-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.notes-empty {
+  margin: 0;
+  color: var(--text-muted, #888);
+  font-size: 13px;
+  font-family: var(--font-body);
+}
+
+.notes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.note-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.note-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.note-text {
+  margin: 0 0 4px;
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.note-date {
+  font-size: 11px;
+  color: var(--text-muted, #888);
+}
+
+.note-item-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.note-action-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.75;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.note-action-btn:hover {
+  opacity: 1;
+}
+
+.note-action-danger {
+  color: var(--danger);
+}
+
+.note-edit-row,
+.note-add-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.note-add-row {
+  align-items: flex-start;
+}
+
+.notes-textarea {
+  width: 100%;
+  min-height: 60px;
+  resize: vertical;
+  font-family: var(--font-body);
+}
+
 /* Yıldızlı Puanlama */
 .rating-input {
   display: flex;
