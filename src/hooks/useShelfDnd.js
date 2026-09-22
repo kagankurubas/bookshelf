@@ -1,22 +1,21 @@
 import { useState } from 'react';
 import { countBooksInRow as countBooksInRowPure } from '../lib/shelfSpine';
 
-// Raf gorunumundeki surukle-birak yeniden siralama ve raf kati ekleme/silme
-// mantigini tasir. shelfCount disaridan geliyor cunku aktif kitapligin hangi
-// kayit oldugunu (ve dolayisiyla guncel raf kati sayisini) cozmek App.jsx'in
-// isi - bu hook sadece o sayiyi kullanarak DB guncellemesi yapar.
+// Handles drag-and-drop reordering and shelf-row add/remove in the shelf
+// view. shelfCount comes from outside because resolving which record the
+// active library is (and thus its current shelf-row count) is App.jsx's
+// job - this hook only uses that count to update the DB.
 export function useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, updateBookPosition) {
   const [draggedBookId, setDraggedBookId] = useState(null);
   const [dragOverTarget, setDragOverTarget] = useState(null); // { shelfRow, bookId } | null
-  // Dokunmatik ekranlarda native HTML5 drag&drop calismadigi icin, "kitaba
-  // dokun -> hedefe dokun" seklinde ikinci bir tasima yolu: secili kitabin id'si.
+  // Touch screens don't support native HTML5 drag&drop, so a second move
+  // path exists: "tap book -> tap target" - the id of the selected book.
   const [pickedBookId, setPickedBookId] = useState(null);
 
   const currentLibraryBooks = books.filter((b) => b.libraryIds.includes(activeLibraryId));
 
   const countBooksInRow = (libraryId, shelfRow) => countBooksInRowPure(books, libraryId, shelfRow);
 
-  // Yeni Raf Katı Ekle
   const handleAddShelfRow = async () => {
     try {
       await updateLibrary(activeLibraryId, { shelfCount: (shelfCount || 2) + 1 });
@@ -25,7 +24,7 @@ export function useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, u
     }
   };
 
-  // Raf Katı Sil - en alttaki raftaki kitaplar bir üstteki rafın sonuna taşınır
+  // Remove shelf row - books on the bottom row move to the end of the row above
   const handleRemoveShelfRow = async () => {
     const currentShelfCount = shelfCount || 2;
     if (currentShelfCount <= 1) return;
@@ -66,9 +65,9 @@ export function useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, u
     setDragOverTarget({ shelfRow, bookId });
   };
 
-  // targetBookId === null -> ilgili rafın sonuna ekle. Hem native mouse
-  // surukle-birak (handleDropAt) hem de dokunarak-sec-tasima (handlePlaceBook)
-  // ayni yeniden siralama mantigini kullanir.
+  // targetBookId === null -> append to the end of that row. Both native
+  // mouse drag-and-drop (handleDropAt) and tap-to-select-and-move
+  // (handlePlaceBook) use this same reordering logic.
   const moveBookTo = async (activeBookId, targetShelfRow, targetBookId) => {
     const activeBook = books.find((b) => b.id === activeBookId);
     if (!activeBook) return;
@@ -117,24 +116,24 @@ export function useShelfDnd(books, activeLibraryId, shelfCount, updateLibrary, u
     handleDragEnd();
   };
 
-  // Kitabin uzerindeki tutamaca (MoveHandleIcon) dokununca secilir/secimi
-  // kaldirilir - ayni kitaba tekrar dokunmak secimi iptal eder.
+  // Selected/deselected by tapping the handle on the book (MoveHandleIcon)
+  // - tapping the same book again cancels the selection.
   const handlePickBook = (bookId) => {
     setPickedBookId((current) => (current === bookId ? null : bookId));
   };
 
   const cancelPick = () => setPickedBookId(null);
 
-  // targetBookId === null -> ilgili rafın sonuna tasi
+  // targetBookId === null -> move to the end of that row
   const handlePlaceBook = async (targetShelfRow, targetBookId) => {
     if (!pickedBookId) return;
     await moveBookTo(pickedBookId, targetShelfRow, targetBookId);
     setPickedBookId(null);
   };
 
-  // ShelfView'daki 3 hedef turu (bos sira, kitap sirti, ekleme alani) icin
-  // ayni "tiklama ne anlama gelir" (seciliyken iptal/tasi, degilse ac)
-  // dalini tek yerde topluyor - book === null bos bir alani temsil eder.
+  // Centralizes the same "what does a click mean" branch (cancel/move when
+  // selected, open otherwise) for ShelfView's 3 target types (empty row,
+  // book spine, add area) - book === null represents an empty area.
   const getSlotInteractionProps = (shelfRow, book, onOpen) => {
     const bookId = book?.id ?? null;
     const onClick = () => {

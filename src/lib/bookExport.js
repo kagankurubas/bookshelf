@@ -1,15 +1,14 @@
 import Papa from 'papaparse';
 
-// Kitaplık adları (CSV'de) ve not metinleri (CSV'de) birden fazla değeri tek
-// bir sütunda taşımak için kullanılan ayırıcılar. Papa.unparse gömülü
-// newline'ları doğru şekilde tırnaklayıp kaçışladığı için "\n---\n" bile
-// güvenle tek bir hücrede saklanabilir.
+// Separators for packing multiple values into one CSV cell (library names,
+// note text). Papa.unparse quotes/escapes embedded newlines correctly, so
+// even "\n---\n" is safe inside a single cell.
 const LIBRARY_NAME_SEPARATOR = '; ';
 const NOTE_TEXT_SEPARATOR = '\n---\n';
 
-// UI-only alanlar (coverImage, coverPosition, shelfId, shelfRow, slotIndex)
-// bilinçli olarak burada listelenmiyor - uygulama dışında (veya geri içe
-// aktarıldığında) anlamsızlar, bkz. spec "Dışa aktarımda hariç tutulanlar".
+// UI-only fields (coverImage, coverPosition, shelfId, shelfRow, slotIndex)
+// are deliberately left out here - meaningless outside the app or on
+// re-import (spec: "Fields excluded from export").
 function resolveLibraryNames(book, libraryNameById) {
   return (book.libraryIds || [])
     .map((id) => libraryNameById[id])
@@ -34,9 +33,9 @@ function toCommonFields(book, libraryNameById) {
   };
 }
 
-// CSV: kitaplık adları "; " ile, not metinleri "\n---\n" ile tek bir sütunda
-// birleştirilir - notların { text, date } yapısı JSON'a özgü, CSV'de sadece
-// metinler saklanır (spec: "Export edilen alanlar").
+// CSV: library names joined with "; ", note text joined with "\n---\n" -
+// the { text, date } note structure is JSON-only, CSV keeps just the text
+// (spec: "Exported fields").
 export function buildBooksCsv(books, libraryNameById = {}) {
   const rows = books.map((book) => {
     const fields = toCommonFields(book, libraryNameById);
@@ -61,8 +60,8 @@ export function buildBooksCsv(books, libraryNameById = {}) {
   return Papa.unparse(rows);
 }
 
-// JSON: tam yedek formatı - kitaplık adları bir dizi olarak, notlar
-// { text, date } yapısıyla tam olarak korunur.
+// JSON: full backup format - library names as an array, notes kept as
+// the full { text, date } structure.
 export function buildBooksJson(books, libraryNameById = {}) {
   const rows = books.map((book) => {
     const fields = toCommonFields(book, libraryNameById);
@@ -91,8 +90,8 @@ function pad2(value) {
   return String(value).padStart(2, '0');
 }
 
-// bookshelf-export-YYYY-MM-DD.<extension> - indirme anındaki yerel tarih
-// (spec: "Dosya adı konvansiyonu").
+// bookshelf-export-YYYY-MM-DD.<extension> - local date at download time
+// (spec: "Filename convention").
 export function getExportFilename(extension, date = new Date()) {
   const year = date.getFullYear();
   const month = pad2(date.getMonth() + 1);

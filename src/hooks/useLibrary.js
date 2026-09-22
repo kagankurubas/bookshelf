@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
-// Aktif kitaplik secimini, "her kitap ana kitapliga da aittir" degismezini
-// ve kitaplik silme orkestrasyonunu tek yerde toplar - App.jsx'in dagitik
-// olarak yeniden turettigi bu mantigi bir modul haline getirir.
+// Centralizes active-library selection, the "every book also belongs to the
+// default library" invariant, and library-deletion orchestration - turns
+// logic App.jsx used to re-derive in a scattered way into one module.
 export function useLibrary({ libraries, addBook, editBook, deleteBook, refetchBooks, deleteLibrary: deleteLibraryRow, refreshStats }) {
   const [explicitActiveLibraryId, setActiveLibraryId] = useState(null);
 
@@ -10,19 +10,19 @@ export function useLibrary({ libraries, addBook, editBook, deleteBook, refetchBo
   const activeLibraryId = explicitActiveLibraryId ?? defaultLibrary?.id ?? null;
   const activeLibrary = libraries.find((lib) => lib.id === activeLibraryId) || libraries[0] || null;
 
-  // Ana kitaplık silinemez ve her kitap her zaman ona bağlı kalır - bu
-  // sayede başka bir kitaplık silinse bile kitaplar veritabanında
-  // "sahipsiz" kalıp hem görünmez olmuyor hem de tekrar eklenmeye
-  // çalışılınca çakışmıyor.
+  // The default library can't be deleted and every book always stays
+  // linked to it - this way, even if another library gets deleted, books
+  // don't end up "orphaned" in the database, staying invisible or
+  // conflicting when re-added.
   const withDefaultLibrary = (libraryIds) => {
     const ids = new Set(libraryIds || []);
     if (defaultLibrary?.id) ids.add(defaultLibrary.id);
     return Array.from(ids);
   };
 
-  // Toplu tarama (BatchScanner) N kitabı art arda ekler - her ekleme sonrası
-  // ayrı bir stats refetch tetiklemek yerine, çağıran döngü bitince bir kez
-  // refreshStats() çağırır (bkz. BatchScanner.jsx).
+  // Batch scanning (BatchScanner) adds N books back to back - instead of
+  // triggering a separate stats refetch after each add, the calling loop
+  // calls refreshStats() once when it finishes (see BatchScanner.jsx).
   const addBookWithoutStatsRefresh = (fields) =>
     addBook({ ...fields, libraryIds: withDefaultLibrary(fields.libraryIds) });
 

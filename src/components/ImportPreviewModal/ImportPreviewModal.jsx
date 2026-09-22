@@ -6,13 +6,12 @@ import { checkFileSizeLimit, checkRowCountLimit } from '../../lib/importLimits';
 import { markPossibleDuplicates } from '../../lib/importDedup';
 import './ImportPreviewModal.css';
 
-// Kullanici Ayarlar > Veri > Ice Aktar'i tetikledigi zaman acilan, ucdan uca
-// akisi (platform sec -> dosya yukle -> onizle/dedup -> onayla -> addBook ->
-// ozet) yoneten paylasilan modal. Platforma ozel mantik burada YOK - hangi
-// platformlarin secilebilecegi ve her biri icin hangi parser'in cagrilacagi
-// tamamen IMPORT_PARSERS haritasindan turetiliyor (bkz. lib/importParsers.js),
-// boylece ticket 04 (StoryGraph) bu bilesene dokunmadan yeni bir parser
-// ekleyebiliyor.
+// Shared modal opened when the user triggers Settings > Data > Import, which
+// drives the whole end-to-end flow (pick platform -> upload file -> preview/dedup
+// -> confirm -> addBook -> summary). No platform-specific logic lives here -
+// which platforms can be picked and which parser is called for each is fully
+// derived from the IMPORT_PARSERS map (see lib/importParsers.js), so ticket 04
+// (StoryGraph) can add a new parser without touching this component.
 function ImportPreviewModal({ books, addBook, libraries, onClose }) {
   const { t } = useTranslation();
   useEscapeKey(onClose);
@@ -37,9 +36,9 @@ function ImportPreviewModal({ books, addBook, libraries, onClose }) {
 
     setFileError(null);
 
-    // Boyut kontrolu file.size uzerinden calisir - dosyanin tam metni HENUZ
-    // okunmadi, bu yuzden cok buyuk bir dosya asla file.text() ile tarayici
-    // bellegine okunmuyor (bkz. lib/importLimits.js).
+    // The size check works off file.size - the file's full text hasn't been
+    // read YET, so an oversized file never gets loaded into browser memory
+    // via file.text() (see lib/importLimits.js).
     const sizeCheck = checkFileSizeLimit(file.size);
     if (!sizeCheck.ok) {
       setFileError(sizeCheck.reason);
@@ -70,14 +69,14 @@ function ImportPreviewModal({ books, addBook, libraries, onClose }) {
 
       setPreviewRows(rowsWithFlags);
       setParseSkippedRows(result.skippedRows || []);
-      // Sadece bazi platform parserlari (ör. StoryGraph) kucuratli rating
-      // yuvarlar - Goodreads gibi bu alani hic donmeyen parserlar icin 0'a
-      // dusuyoruz, boylece ozet satiri gereksiz yere gorunmuyor.
+      // Only some platform parsers (e.g. StoryGraph) round fractional
+      // ratings - falls back to 0 for parsers like Goodreads that never
+      // return this field, so the summary line doesn't show up needlessly.
       setRoundedRatingsCount(result.roundedRatingsCount || 0);
       setStep('preview');
     } catch {
-      // Dosya okunamadi (ör. bozuk/beklenmeyen encoding) - teknik olmayan
-      // genel bir hata mesaji gosteriyoruz.
+      // File couldn't be read (e.g. corrupt/unexpected encoding) - show a
+      // generic, non-technical error message.
       setFileError('malformed');
     } finally {
       setIsReading(false);

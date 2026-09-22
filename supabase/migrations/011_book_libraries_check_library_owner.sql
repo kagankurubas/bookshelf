@@ -1,11 +1,10 @@
--- book_libraries RLS politikasi su ana kadar sadece book_id'nin cagiran
--- kullaniciya ait oldugunu dogruluyordu, library_id'yi kontrol etmiyordu.
--- Bu, bir kullanicinin kendi kitabini baska bir kullanicinin library_id'siyle
--- iliskilendiren bir book_libraries satiri eklemesine izin veriyordu
--- (referans butunlugu/veri karismasi riski - sorgular kitap sahipligine gore
--- filtrelendigi icin su an aktif bir veri sizintisi yok, ama duzeltilmesi
--- gereken gercek bir eksik). Artik hem book_id hem library_id'nin ayni
--- kullaniciya ait oldugu dogrulanir.
+-- Until now the book_libraries RLS policy only checked that book_id
+-- belonged to the calling user, not library_id. This allowed a user to
+-- insert a book_libraries row linking their own book to another user's
+-- library_id (a referential-integrity/data-mixing risk - not an active
+-- data leak today since queries are filtered by book ownership, but a
+-- real gap worth fixing). Now both book_id and library_id are checked to
+-- belong to the same user.
 drop policy if exists "Users manage own book_libraries" on book_libraries;
 
 create policy "Users manage own book_libraries" on book_libraries

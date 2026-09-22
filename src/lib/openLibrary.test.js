@@ -22,7 +22,7 @@ describe('getBookByIsbn', () => {
   });
 
   it('maps a successful Open Library response to the app book shape', async () => {
-    const isbn = '9780553804577-test'; // benzersiz, diger testlerin cache'iyle çakışmasın
+    const isbn = '9780553804577-test'; // unique, avoids clashing with other tests' cache
     mockFetchOnce({
       [`ISBN:${isbn}`]: {
         title: 'Dune',
@@ -59,7 +59,7 @@ describe('getBookByIsbn', () => {
 
   it('still returns null (not a throw) when Open Library genuinely has no data for the ISBN', async () => {
     const isbn = 'genuinely-missing-isbn-test';
-    mockFetchOnce({}); // basarili yanit ama bibkey icin veri yok
+    mockFetchOnce({}); // successful response but no data for this bibkey
     const result = await getBookByIsbn(isbn);
     expect(result).toBeNull();
   });

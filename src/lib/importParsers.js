@@ -1,10 +1,10 @@
 import { parseGoodreadsCsv } from './goodreadsImport';
 import { parseStoryGraphCsv } from './storygraphImport';
 
-// Platform -> parser fonksiyonu eslemesi. Ice aktarma UI'i (bkz.
-// ImportPreviewModal) bu haritadan hangi platform secimlerinin gosterilecegini
-// ve secilen platform icin hangi parse fonksiyonunun cagrilacagini turetir.
-// Her parser ayni imzayi paylasir: (csvText) => { bookFields, skippedRows,
+// Platform -> parser function mapping. The import UI (see
+// ImportPreviewModal) derives which platform options to show and which
+// parse function to call for the selected platform from this map. Every
+// parser shares the same signature: (csvText) => { bookFields, skippedRows,
 // roundedRatingsCount? } | { error }.
 export const IMPORT_PARSERS = {
   goodreads: parseGoodreadsCsv,

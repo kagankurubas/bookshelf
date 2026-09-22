@@ -19,10 +19,10 @@ export function useAuth() {
   }, []);
 
   const signUp = useCallback(async (email, password) => {
-    // Redirect'i acikca vermezsek Supabase Dashboard'daki Site URL fallback'ine
-    // duser - o deger prod/dev arasinda tutarsiz olabilir ve dogrulama linki
-    // kullaniciyi 404'e dusurebilir. window.location.origin her ortamda
-    // (localhost, Netlify) dogru degeri verir.
+    // If we don't pass a redirect explicitly, Supabase falls back to the
+    // Site URL in the Dashboard, which can be inconsistent between prod/dev
+    // and send the user to a 404. window.location.origin is always correct
+    // for the current environment (localhost, Netlify).
     const { data, error } = await supabase.auth.signUp({
       email,
       password,

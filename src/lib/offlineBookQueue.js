@@ -1,9 +1,9 @@
-// Kullanici offline'ken eklemeye calistigi kitaplari, baglanti gelene kadar
-// tarayicida (sekme kapatilsa/yenilense bile hayatta kalacak sekilde)
-// tutan basit bir FIFO kuyruk. Tek bir object store'luk minimal bir kullanim
-// oldugu icin `idb` gibi bir sarmalayici gereksiz - ham `indexedDB` API'si
-// dogrudan Promise'a sariliyor. src/lib/openLibrary.js ile ayni "saf fonksiyon,
-// Supabase/React'tan bagimsiz" desenine uyar.
+// A simple FIFO queue holding books the user tried to add while offline,
+// in the browser (surviving tab close/refresh), until connectivity returns.
+// This is a minimal single-object-store use case, so a wrapper like `idb`
+// is unnecessary - the raw `indexedDB` API is wrapped directly in a
+// Promise. Follows the same "pure function, independent of
+// Supabase/React" pattern as src/lib/openLibrary.js.
 const DB_NAME = 'bookshelf-offline-queue';
 const DB_VERSION = 1;
 const STORE_NAME = 'pendingBooks';
@@ -14,9 +14,8 @@ function openDb() {
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        // autoIncrement anahtar hem benzersiz bir id hem de ekleme sirasini
-        // (FIFO) garanti eder - getAll() sonuclari varsayilan olarak anahtar
-        // sirasina gore doner.
+        // autoIncrement guarantees both a unique id and insertion order
+        // (FIFO) - getAll() results are returned in key order by default.
         db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
       }
     };
@@ -25,9 +24,9 @@ function openDb() {
   });
 }
 
-// `run(store)` bir IDBRequest dondurur; bu request'in `.result`'u, ceviren
-// islemin (transaction) `oncomplete`'i tetiklendiginde (yani veri gercekten
-// diske/tarayici deposuna yazildiginda) cozulur.
+// `run(store)` returns an IDBRequest; its `.result` resolves when the
+// wrapping transaction's `oncomplete` fires (i.e. once data is actually
+// written to disk/browser storage).
 async function withStore(mode, run) {
   const db = await openDb();
   try {
@@ -44,31 +43,29 @@ async function withStore(mode, run) {
   }
 }
 
-// Kitap alanlarini kuyruga ekler, kaydin otomatik uretilen id'sini dondurur.
+// Adds book fields to the queue, returns the record's auto-generated id.
 //
-// Cagiran taraf (App.jsx) BookModal'in state'inden gelen bookData'yi
-// oldugu gibi spread'liyor - yeni bir kitap icin bu, acikca `id: undefined`
-// (henuz kaydedilmemis oldugu icin) tasiyan bir alan iceriyor. `id`
-// object store'un keyPath'i oldugu ve store autoIncrement kullandigi
-// icin, GERCEKTEN eksik bir `id` alaninda otomatik anahtar uretimi
-// calisirken, acikca `id: undefined` OLAN bir alanda IndexedDB "not a
-// valid key" hatasi firlatiyor (Chromium bu ikisini ayirt ediyor). Bu
-// yuzden `id` burada bilincli olarak atiliyor - cagiranin bunu
-// temizlemesine guvenilmiyor.
+// The caller (App.jsx) spreads bookData from BookModal's state as-is - for
+// a new book this includes a field explicitly holding `id: undefined` (not
+// saved yet). Since `id` is the object store's keyPath and the store uses
+// autoIncrement, IndexedDB throws "not a valid key" for a field explicitly
+// set to `id: undefined`, even though auto key generation works fine for a
+// field that's genuinely missing (Chromium distinguishes the two). So `id`
+// is deliberately stripped here - the caller isn't trusted to do it.
 export function enqueueBook(bookFields) {
   const fieldsWithoutId = { ...bookFields };
   delete fieldsWithoutId.id;
   return withStore('readwrite', (store) => store.add(fieldsWithoutId));
 }
 
-// Kuyruktaki tum kayitlari, eklenme sirasiyla (FIFO) dondurur. Her kayit,
-// orijinal alanlarin yaninda otomatik uretilen bir `id` alani da tasir.
+// Returns all queued records in insertion order (FIFO). Each record also
+// carries an auto-generated `id` field alongside its original fields.
 export function getQueuedBooks() {
   return withStore('readonly', (store) => store.getAll());
 }
 
-// Basariyla senkronize edilmis (veya artik gerek kalmamis) bir kaydi
-// kuyruktan siler.
+// Removes a record from the queue that was successfully synced (or is no
+// longer needed).
 export function removeQueuedBook(id) {
   return withStore('readwrite', (store) => store.delete(id));
 }

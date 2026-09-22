@@ -1,17 +1,17 @@
-// Okuma Özeti kartında gösterilecek kitapları belirleyen saf mantık. Diğer
-// okuma istatistikleriyle aynı kural: bir kitap "okunmuş" sayılması için
-// status'u Tamamlandı olmalı VE date_finished dolu olmalı (kayda ne zaman
-// eklendiğine göre değil) - bkz. supabase/schema.sql'deki RPC'ler.
+// Pure logic determining which books show on the Reading Recap card. Same
+// rule as other reading stats: a book counts as "read" only if status is
+// Tamamlandı AND date_finished is set (not when the record was added) -
+// see the RPCs in supabase/schema.sql.
 export const RECAP_COMPLETED_STATUS = 'Tamamlandı';
 
-// Kart taşmasın diye gösterilecek en fazla sırt sayısı - kalanı "+N kitap
-// daha" rozetiyle özetlenir.
+// Max spine count shown so the card doesn't overflow - the rest is
+// summarized with a "+N more books" badge.
 export const MAX_VISIBLE_SPINES = 24;
 
-// dateFinished bir Postgres "date" alanı (ör. "2026-09-14") - bunu
-// new Date(...) ile parse etmek tarayıcı saat dilimine göre bir gün kayabilir
-// (UTC gece yarısı yerel saate çevrilince önceki güne düşebilir). Yıl/ayı
-// string'den doğrudan okumak bu kaymayı önler.
+// dateFinished is a Postgres "date" field (e.g. "2026-09-14") - parsing it
+// with new Date(...) can shift by a day depending on browser timezone (UTC
+// midnight converted to local time can fall on the previous day). Reading
+// year/month directly from the string avoids that shift.
 function parseFinishedDate(dateFinished) {
   if (!dateFinished) return null;
   const [year, month] = dateFinished.split('-').map(Number);
@@ -19,8 +19,8 @@ function parseFinishedDate(dateFinished) {
   return { year, month };
 }
 
-// mode: 'month' | 'year'. 'month' modunda hem year hem month eşleşmeli,
-// 'year' modunda sadece year.
+// mode: 'month' | 'year'. In 'month' mode both year and month must match,
+// in 'year' mode only year.
 export function getFinishedBooksInPeriod(books, mode, year, month) {
   return books.filter((book) => {
     if (book.status !== RECAP_COMPLETED_STATUS) return false;
@@ -32,9 +32,9 @@ export function getFinishedBooksInPeriod(books, mode, year, month) {
   });
 }
 
-// Yıl seçicisinin seçenekleri: kitaplıkta gerçekten bitirilmiş kitap olan
-// yıllar (en yeniden en eskiye) - ama içinde bulunulan yıl hiç kitap yoksa
-// bile listede olmalı, çünkü ekran her zaman o yılla/ayla açılıyor.
+// Year picker options: years with at least one actually-finished book
+// (newest to oldest) - but the current year must be in the list even with
+// no books, since the screen always opens on that year/month.
 export function getRecapYearOptions(books, currentYear = new Date().getFullYear()) {
   const years = new Set([currentYear]);
   books.forEach((book) => {
@@ -45,8 +45,8 @@ export function getRecapYearOptions(books, currentYear = new Date().getFullYear(
   return Array.from(years).sort((a, b) => b - a);
 }
 
-// Kart üzerinde gösterilecek sırtları MAX_VISIBLE_SPINES ile sınırlar, kalanı
-// bir taşma sayısı olarak döner.
+// Limits the spines shown on the card to MAX_VISIBLE_SPINES, returning the
+// rest as an overflow count.
 export function splitForDisplay(books) {
   return {
     visible: books.slice(0, MAX_VISIBLE_SPINES),

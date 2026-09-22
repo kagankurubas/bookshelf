@@ -27,13 +27,12 @@ function ShelfView({ books, shelfCount, shelfDnd, onOpenBook }) {
       .sort((a, b) => (a.slotIndex ?? 0) - (b.slotIndex ?? 0))
   );
 
-  // Kitaplıkta hiç kitap yokken "Kitapları buraya sürükle" ipucu yanıltıcı
-  // olur (sürüklenecek hiçbir şey yok) - bu durumda ilk kitabı nasıl
-  // ekleyeceğini gösteren ayrı bir mesaj gösteriyoruz.
+  // The "Drag books here" hint is misleading with an empty library (nothing
+  // to drag) - show a separate message about how to add the first book instead.
   const isLibraryEmpty = books.length === 0;
-  // Dokunmatik ekranlarda native surukleme calismadigi icin ikinci bir
-  // tasima yolu: kitabin tutamacina dokununca "secili" olur, sonra herhangi
-  // bir kitaba/bos alana dokununca oraya tasinir (bkz. useShelfDnd).
+  // Native drag doesn't work on touch screens, so there's a second way to
+  // move books: touching a book's handle "picks" it, then touching any
+  // book/empty spot moves it there (see useShelfDnd).
   const isPicking = pickedBookId !== null;
 
   return (
@@ -82,10 +81,10 @@ function ShelfView({ books, shelfCount, shelfDnd, onOpenBook }) {
             );
           }
 
-          // Bir raf katı (shelfRow) sayfa genişliğine sığmayacak kadar kitap
-          // içerebilir - bu durumda birden fazla satıra (line) bölünüyor.
-          // Her satır kendi kesintisiz raf çizgisini alır (bkz. .shelf-row),
-          // ama hepsi aynı katın parçası olduğu için birbirine yakın durur.
+          // A shelf row (shelfRow) can hold more books than fit the page
+          // width - in that case it's split into multiple lines. Each line
+          // gets its own unbroken shelf line (see .shelf-row), but they sit
+          // close together since they're part of the same row.
           const lines = chunkIntoLines(rowBooks, availableWidth);
 
           return (

@@ -12,8 +12,8 @@ const BookGlyphIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fil
 const CheckCircleIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9" /><path d="M8.5 12.5l2.3 2.3L16 10" /></svg>);
 const CelebrateIcon = () => (<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.6"><path d="M4 20l3-9 9-3-3 9z" /><path d="M15 4l1 2 2 1-2 1-1 2-1-2-2-1 2-1z" /><path d="M19 13l.6 1.4L21 15l-1.4.6L19 17l-.6-1.4L17 15l1.4-.6z" /></svg>);
 
-// Ayni ISBN kisa sure icinde tekrar okunursa (barkod hala kamera karesinde
-// dururken) yeniden islenmesin diye bekleme suresi.
+// Cooldown so the same ISBN isn't reprocessed if scanned again shortly after
+// (barcode still in the camera frame).
 const REPROCESS_COOLDOWN_MS = 4000;
 
 function BatchScanner({ books, activeLibraryId, addBook, isOnline, onBatchSaved, onClose, onManualAddIsbn }) {
@@ -44,11 +44,10 @@ function BatchScanner({ books, activeLibraryId, addBook, isOnline, onBatchSaved,
         );
       })
       .catch((err) => {
-        // getBookByIsbn burada network hatasi/timeout veya HTTP hata kodu
-        // icin throw ediyor - bu, gercek "Open Library'de yok" (not_found)
-        // durumundan ayri bir 'error' status'u olarak isaretleniyor ki
-        // kullanici baglanti sorununu kitabin gercekten bulunamamasiyla
-        // karistirmasin.
+        // getBookByIsbn throws here for a network error/timeout or HTTP error
+        // code - marked as a separate 'error' status from the genuine "not on
+        // Open Library" (not_found) case, so the user doesn't mistake a
+        // connectivity issue for the book actually being unfindable.
         console.error(err);
         setEntries((prev) => prev.map((e) => (e.isbn === isbn ? { ...e, status: 'error', book: null } : e)));
       });
@@ -96,18 +95,18 @@ function BatchScanner({ books, activeLibraryId, addBook, isOnline, onBatchSaved,
       setSavedCount(saved);
       setSaveError(t('batchScanner.saveError'));
     } finally {
-      // addBook her cagrida stats'i ayrica tazelemiyor (N kitaplik bir
-      // partide N gereksiz refetch olmasin diye) - kismi basari da dahil,
-      // dongu bitince bir kez tazeliyoruz.
+      // addBook doesn't refresh stats on every call (to avoid N redundant
+      // refetches for a batch of N books) - refresh once after the loop ends,
+      // partial success included.
       if (saved > 0) onBatchSaved();
       setIsSaving(false);
     }
   };
 
   const foundEntries = entries.filter((e) => e.status === 'found');
-  // 'not_found' (Open Library'de gercekten yok) ve 'error' (baglanti/HTTP
-  // hatasi) ayni inceleme bolumunde birlikte gosteriliyor - ikisi de
-  // kaydedilemeyecek durumda, ama satir metni hangisi oldugunu belirtiyor.
+  // 'not_found' (genuinely not on Open Library) and 'error' (connectivity/HTTP
+  // failure) are shown together in the same review section - both are
+  // unsaveable, but the row text states which one it is.
   const notFoundEntries = entries.filter((e) => e.status === 'not_found' || e.status === 'error');
   const pendingCount = entries.filter((e) => e.status === 'pending').length;
 

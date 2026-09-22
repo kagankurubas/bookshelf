@@ -3,9 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { useDeleteAccount, WrongPasswordError } from '../../hooks/useDeleteAccount';
 
-// Hesap silme geri donusu olmayan bir islem oldugu icin kullaniciyi tek
-// tikla degil, ya onay kelimesini yazdirarak ya da sifresini tekrar
-// girdirerek dogruluyoruz.
+// Account deletion is irreversible, so we confirm via typing a confirmation
+// word or re-entering the password, not a single click.
 function DeleteAccountModal({ email, onClose, onDeleted }) {
   const { t } = useTranslation();
   useEscapeKey(onClose);
@@ -16,10 +15,10 @@ function DeleteAccountModal({ email, onClose, onDeleted }) {
   const [password, setPassword] = useState('');
 
   const confirmWord = t('deleteAccount.confirmWord');
-  // Duz .toUpperCase() Turkce 'i' -> 'I' (noktasiz) cevirir, ama "SİL" noktali
-  // İ ile yaziliyor - bu yuzden 'sil' asla eslesmezdi. Turkce locale'i acikca
-  // vererek "sil" -> "SİL" donusumunu dogru yapiyoruz; "delete" gibi noktasiz
-  // kelimeler icin bunun bir etkisi yok.
+  // Plain .toUpperCase() converts Turkish 'i' to dotless 'I', but "SİL" is
+  // written with a dotted İ - so 'sil' would never match. Passing the Turkish
+  // locale explicitly makes "sil" -> "SİL" convert correctly; this has no
+  // effect on dotless words like "delete".
   const isTextValid = confirmText.trim().toLocaleUpperCase('tr') === confirmWord.toLocaleUpperCase('tr');
   const isPasswordValid = password.length > 0;
   const canSubmit = (method === 'text' ? isTextValid : isPasswordValid) && !isDeleting;
@@ -37,7 +36,7 @@ function DeleteAccountModal({ email, onClose, onDeleted }) {
       await deleteAccount(email, method === 'password' ? { password } : {});
       onDeleted();
     } catch {
-      // Hata durumu asagida errorMessage ile zaten gosteriliyor, modal acik kalir.
+      // Error state is already shown below via errorMessage; modal stays open.
     }
   };
 

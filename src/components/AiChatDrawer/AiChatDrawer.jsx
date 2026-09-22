@@ -50,10 +50,10 @@ function AiChatDrawer({ userId, onClose }) {
   };
 
   const suggestions = [t('aiChat.suggestion1'), t('aiChat.suggestion2')];
-  // useAiChat, paylasilan gunluk Gemini kotasi dolduğunda bu hatayi
-  // AI_CHAT_ERROR_CODES.DAILY_LIMIT koduyla isaretler (bkz. lib/aiChatErrors) -
-  // genel hata mesaji yerine kullaniciya bunu nazikce acikliyoruz ve
-  // kompozer'i devre disi birakiyoruz (tekrar denemenin bir anlami yok).
+  // useAiChat marks this error with AI_CHAT_ERROR_CODES.DAILY_LIMIT when the
+  // shared daily Gemini quota is exhausted (see lib/aiChatErrors) - we show a
+  // gentler message than the generic error and disable the composer, since
+  // retrying wouldn't help.
   const isDailyLimitReached = error?.code === AI_CHAT_ERROR_CODES.DAILY_LIMIT;
 
   return (

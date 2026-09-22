@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import Papa from 'papaparse';
 
-// Bu, gercek export/import mantigini test etmez (bkz. ticket 02/03) - sadece
-// papaparse'in bu projenin ESM/Vite/Vitest kurulumunda dogru import edilip
-// calistigini kanitlayan bir smoke testidir.
+// This does not test the actual export/import logic (see ticket 02/03) -
+// it's just a smoke test proving papaparse imports and runs correctly
+// under this project's ESM/Vite/Vitest setup.
 describe('papaparse smoke test', () => {
   it('round-trips a small array of objects through unparse then parse', () => {
     const rows = [

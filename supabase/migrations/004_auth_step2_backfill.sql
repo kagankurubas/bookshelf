@@ -1,11 +1,11 @@
--- ADIM 2/3: Kullanici hesaplarina gecis - mevcut veriyi hesabina baglama.
+-- STEP 2/3: migrating to user accounts - linking existing data to your account.
 --
--- Bu migration orijinalde tek seferlik, elle calistirilan bir production
--- script'iydi (BURAYA_USER_ID placeholder'i elle degistirilip calistirilirdi).
--- Fresh/local bir veritabaninda sahipsiz (user_id = null) satir hic olmayacagi
--- icin bu blok normalde hicbir sey yapmiyor. Eger gercekten sahipsiz veri
--- varsa (ör. eski bir prod dump'i restore edildiyse), acik bir hata verip
--- durur - sessizce yanlis/placeholder bir UUID yazmaz.
+-- This migration was originally a one-off, manually run production script
+-- (the BURAYA_USER_ID placeholder was hand-edited in before running). On a
+-- fresh/local database there will never be any unowned (user_id = null)
+-- rows, so this block normally does nothing. If unowned data genuinely
+-- exists (e.g. an old prod dump was restored), it raises an explicit error
+-- and stops - it does not silently write a wrong/placeholder UUID.
 
 do $$
 begin

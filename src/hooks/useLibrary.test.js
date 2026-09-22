@@ -113,7 +113,7 @@ describe('useLibrary', () => {
 
     expect(deleteLibrary).toHaveBeenCalledWith('lib-1');
     expect(refetchBooks).toHaveBeenCalledTimes(1);
-    // Secim sifirlanip varsayilan kitapliga dustu.
+    // Selection reset and fell back to the default library.
     expect(result.current.activeLibraryId).toBe('lib-2');
   });
 

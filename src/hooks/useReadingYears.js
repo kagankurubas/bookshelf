@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-// Bir kitaplıkta gerçekten kitap bitirilmiş (date_finished dolu) yılların
-// listesini döner (en yeniden en eskiye) - yıl seçicinin seçeneklerini
-// doldurmak için kullanılır.
+// Returns the years a library actually has finished books in
+// (date_finished set), newest first - used to populate the year picker's
+// options.
 export function useReadingYears(libraryId) {
   const [years, setYears] = useState([]);
   const [loading, setLoading] = useState(true);

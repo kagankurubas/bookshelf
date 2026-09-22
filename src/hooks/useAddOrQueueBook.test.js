@@ -28,8 +28,8 @@ describe('useAddOrQueueBook', () => {
   });
 
   it('bases the decision on the isOnline flag at call time, not on whether the write would fail', async () => {
-    // isOnline === true iken addBook gercekten reddederse (gercek sunucu
-    // hatasi), bu kuyruga alinmaz - hata oldugu gibi yukari firlatilir.
+    // If addBook actually rejects while isOnline === true (a real server
+    // error), it is not queued - the error is thrown as-is.
     const addBook = vi.fn().mockRejectedValue(new Error('server error'));
     const enqueueBook = vi.fn();
     const { result } = renderHook(() => useAddOrQueueBook({ isOnline: true, addBook, enqueueBook }));

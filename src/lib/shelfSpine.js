@@ -1,6 +1,6 @@
-// Kitap sırtlarının gerçek bir kitaplıktaki gibi biraz farklı en/boyda
-// görünmesi için, kitabın id'sinden deterministik (her renderda aynı)
-// bir boyut türetiyoruz - rastgele state tutmaya gerek kalmıyor.
+// Spine size is derived deterministically from the book's id (same on
+// every render) so spines vary slightly in width/height like a real
+// bookshelf, without needing to keep random state.
 export function hashString(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -16,14 +16,14 @@ export function getSpineSize(id) {
   return { width, height };
 }
 
-// Renk kategoriye göre belirleniyor, ama aynı kategorideki tüm kitaplar
-// birebir aynı tonda olunca raf tek renk bir duvar gibi görünüyor. Kitabın
-// id'sinden türetilen küçük, deterministik bir ton/doygunluk/parlaklık
-// sapması ekleyip gerçek bir kitaplıktaki gibi aile içinde çeşitlilik
-// katıyoruz - kategori hâlâ tanınabilir, ama her sırt biraz farklı.
+// Color is chosen by category, but books in the same category all in the
+// exact same tone made the shelf look like a flat-colored wall. We add a
+// small, deterministic hue/saturation/brightness offset derived from the
+// book's id for variety within the family, like a real bookshelf - the
+// category stays recognizable, but each spine is slightly different.
 export function getSpineFilter(id) {
   const hash = hashString(`spine-${id}`);
-  const hueShift = ((hash % 41) - 20); // -20..20 derece
+  const hueShift = ((hash % 41) - 20); // -20..20 degrees
   const saturate = 0.85 + (((hash >> 6) % 31) / 100); // 0.85..1.15
   const brightness = 0.92 + (((hash >> 11) % 19) / 100); // 0.92..1.10
   return `hue-rotate(${hueShift}deg) saturate(${saturate}) brightness(${brightness})`;
@@ -53,19 +53,19 @@ const CATEGORY_EMBLEMS_EN = {
   'Bilim': 'SCI',
 };
 
-// Sırt üzerindeki küçük folyo rozetine yazılan 3 harfli kategori kısaltması -
-// renk tek başına yeterince ayırt edici olmadığında (renk körlüğü, benzer
-// tonlar) kategoriyi metinle de okunur kılıyor. Kategori DB'de her zaman
-// Türkçe canonical string olarak tutuluyor, bu yüzden hangi haritanın
-// kullanılacağını UI dili (language) belirliyor.
+// 3-letter category abbreviation shown on the spine's small foil badge -
+// makes the category readable as text when color alone isn't distinctive
+// enough (colorblindness, similar tones). Category is always stored as a
+// Turkish canonical string in the DB, so the UI language decides which map
+// to use.
 export function getCategoryEmblem(category, language = 'tr') {
   const emblems = language === 'en' ? CATEGORY_EMBLEMS_EN : CATEGORY_EMBLEMS_TR;
   if (emblems[category]) return emblems[category];
   return category ? category.slice(0, 3).toUpperCase() : '';
 }
 
-// Kategoriye göre sırt zemin rengini seçen CSS sınıfı - ShelfView ve Okuma
-// Özeti aynı ".shelf-book.category-*" kurallarını (App.css) paylaşır.
+// CSS class selecting spine background color by category - ShelfView and
+// Reading Recap share the same ".shelf-book.category-*" rules (App.css).
 export function getCategoryColorClass(category) {
   switch (category) {
     case 'Klasik Edebiyat': return 'category-klasik';
@@ -81,18 +81,18 @@ export function getCategoryColorClass(category) {
   }
 }
 
-// Bir kitaplığın belirli bir raf katında kaç kitap oldugunu sayar - yeni
-// kitaplar bu katin sonuna eklenir (shelf_row: 0, sirali slot_index).
-// useShelfDnd ve BatchScanner (toplu tarama) ayni hesabi paylasir.
+// Counts how many books are on a given shelf row of a library - new books
+// are appended to the end of that row (shelf_row: 0, sequential
+// slot_index). useShelfDnd and BatchScanner share this same calculation.
 export function countBooksInRow(books, libraryId, shelfRow) {
   return books.filter((b) => b.libraryIds.includes(libraryId) && (b.shelfRow ?? 0) === shelfRow).length;
 }
 
-const SPINE_GAP = 9; // .shelf-row'daki gap ile aynı olmalı
+const SPINE_GAP = 9; // must match the gap in .shelf-row
 
-// Bir raf katındaki kitapları, verilen genişliğe sığacak şekilde satırlara
-// böler - her satır kendi bütün (kesintisiz) raf çizgisini alacak. Sabit bir
-// "kaç kitap sığar" varsayımı yok, gerçek piksel genişliklerini toplar.
+// Splits books in a shelf row into lines that fit the given width - each
+// line gets its own full (unbroken) shelf line. No fixed "how many books
+// fit" assumption, sums actual pixel widths.
 export function chunkIntoLines(books, availableWidth) {
   if (!availableWidth || availableWidth <= 0 || books.length === 0) {
     return books.length ? [books] : [];

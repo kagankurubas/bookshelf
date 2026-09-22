@@ -152,11 +152,11 @@ describe('parseGoodreadsCsv', () => {
     expect(result.skippedRows).toEqual([{ index: 0, reason: 'missing-title' }]);
   });
 
-  // Papa.parse'in kendi hata listesini (result.errors) parseCsvRows'un
-  // yakalayip skippedRows'a 'malformed-row' olarak eklemesini dogruluyoruz.
-  // Fazladan kacissiz bir virgul, baslikla (31 sutun) uyusmayan bir alan
-  // sayisi (32) uretiyor - bu Papa.parse'de gercekten bir "TooManyFields"
-  // hatasi doguruyor (bkz. csvImportShared.test.js).
+  // Verifies parseCsvRows catches Papa.parse's own error list (result.errors)
+  // and adds a 'malformed-row' entry to skippedRows. An extra unescaped
+  // comma produces a field count (32) mismatched against the header (31
+  // columns), which triggers a real Papa.parse "TooManyFields" error (see
+  // csvImportShared.test.js).
   it('skips a row with a field-count mismatch (malformed row) and does not produce a garbage book entry', () => {
     const goodRow1 = row({ title: 'Book One' });
     const malformedRow = row({ title: 'Book Two' }) + ',extra-unescaped-field';

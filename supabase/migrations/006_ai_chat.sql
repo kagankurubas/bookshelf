@@ -1,10 +1,10 @@
--- Kitap Asistani (AI sohbet) icin sohbet ve mesaj tablolari.
--- Her sohbet bir kullaniciya ait, mesajlar sohbete bagli. RLS diger
--- tablolarla ayni desende: sadece sahibi okuyup yazabilir.
+-- Chat and message tables for the Book Assistant (AI chat).
+-- Each chat belongs to a user, messages belong to a chat. RLS follows the
+-- same pattern as the other tables: only the owner can read/write.
 --
--- Not: create table zaten idempotent (if not exists). create policy'lerden
--- once drop policy if exists eklendi ki schema.sql (001) bu policy'leri
--- zaten iceriyorsa (fresh/local kurulum) da hatasiz calissin.
+-- Note: create table is already idempotent (if not exists). drop policy if
+-- exists was added before each create policy so this runs cleanly even if
+-- schema.sql (001) already has these policies (fresh/local setup).
 
 create table if not exists ai_conversations (
   id uuid primary key default gen_random_uuid(),

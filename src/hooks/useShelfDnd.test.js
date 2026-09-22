@@ -112,8 +112,8 @@ describe('useShelfDnd', () => {
     expect(updateLibrary).not.toHaveBeenCalled();
   });
 
-  // Dokunmatik ekranlarda native surukleme calismadigi icin "dokun -> sec ->
-  // hedefe dokun" akisi ikinci bir tasima yolu olarak eklendi.
+  // Touch screens don't support native dragging, so "tap -> select -> tap
+  // target" was added as a second move flow.
   it('handlePickBook selects a book, and picking it again cancels the selection', () => {
     const books = [book('A', 0, 0)];
     const { result } = setup(books);
@@ -157,9 +157,9 @@ describe('useShelfDnd', () => {
     expect(updateBookPosition).not.toHaveBeenCalled();
   });
 
-  // getSlotInteractionProps, ShelfView'da 3 farkli hedef turune (bos sira,
-  // kitap sirti, ekleme alani) kopyalanan "tiklama ne anlama gelir" dalini
-  // tek bir yerde toplar - bkz. ShelfView.jsx.
+  // getSlotInteractionProps centralizes the "what does a click mean" branch
+  // that used to be copied across ShelfView's 3 target types (empty row,
+  // book spine, add area) - see ShelfView.jsx.
   describe('getSlotInteractionProps', () => {
     it('opens the book on click when nothing is being picked', () => {
       const books = [book('A', 0, 0)];

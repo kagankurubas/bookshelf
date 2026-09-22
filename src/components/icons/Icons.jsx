@@ -1,8 +1,8 @@
-// public/favicon.svg ile ayni kaynaktan (bkz. oradaki yorum: potrace ile
-// vektorize edilmis bookshelf motifi) - path verisi elle degil, o dosyadan
-// kopyalanarak senkron tutuluyor. Ikisi ayri dosyalar oldugu icin (biri
-// statik PWA/favicon asset'i, digeri React bileseni) tek bir kaynaktan
-// otomatik paylasilmiyor - favicon.svg degisirse burasi da elle guncellenmeli.
+// Same source as public/favicon.svg (see the comment there: bookshelf motif
+// vectorized with potrace) - the path data is kept in sync by copying from
+// that file, not by hand. Since they're separate files (one a static
+// PWA/favicon asset, the other a React component), they aren't automatically
+// shared from one source - if favicon.svg changes, this must be updated by hand.
 export const BookLogoIcon = ({ light = false }) => (
   <svg width="44" height="44" viewBox="0 0 1350 1350" fill="none">
     <g transform="translate(177, 280.5)">

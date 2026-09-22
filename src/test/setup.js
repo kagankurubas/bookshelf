@@ -3,11 +3,11 @@ import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import i18n from '../i18n/i18n';
 
-// jsdom'un varsayılan navigator.language'i (en-US) dil algılayıcıyı
-// İngilizce'ye yönlendirebiliyor - testler her ortamda aynı sonucu
-// versin diye uygulamanın birincil dilini (Türkçe) sabitliyoruz.
+// jsdom's default navigator.language (en-US) can steer the language detector
+// to English - pin the app's primary language (Turkish) so tests give the
+// same result in every environment.
 i18n.changeLanguage('tr');
 
-// Her testten sonra render edilen DOM'u temizle, aksi halde ayni dosyadaki
-// testler birbirinin ürettiği elemanları görüp "birden fazla eşleşme" hatası verir.
+// Clean up the rendered DOM after each test, otherwise tests in the same file
+// see each other's elements and fail with a "multiple matches" error.
 afterEach(cleanup);

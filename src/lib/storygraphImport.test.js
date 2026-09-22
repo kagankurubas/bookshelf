@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { parseStoryGraphCsv } from './storygraphImport';
 
-// Gercek StoryGraph export basligi (dogrulanmis kaynak: github.com/mateusz-bak/
-// openreads issue #525). Okuma-durumu sutununun adi "Read Status" (iki
-// kelime) - bkz. buildCsv/buildCsvWithReadStatusHeader ayrimi asagida, tek
-// kelimeli "ReadStatus" varyasyonunu da ayrica test ediyoruz.
+// Real StoryGraph export header (verified source: github.com/mateusz-bak/
+// openreads issue #525). Read-status column is named "Read Status" (two
+// words) - see the buildCsv/buildCsvWithReadStatusHeader split below, we
+// also separately test the one-word "ReadStatus" variant.
 const HEADER =
   'Title,Authors,Contributors,ISBN/UID,Format,Read Status,Date Added,' +
   'Last Date Read,Dates Read,Read Count,Moods,Pace,' +
@@ -166,9 +166,9 @@ describe('parseStoryGraphCsv', () => {
     expect(result.skippedRows).toEqual([{ index: 0, reason: 'missing-title' }]);
   });
 
-  // Fazladan kacissiz bir virgul, baslikla (23 sutun) uyusmayan bir alan
-  // sayisi uretiyor - Papa.parse bunu "TooManyFields" hatasi olarak
-  // isaretliyor (bkz. csvImportShared.test.js icin empirik dogrulama).
+  // An extra unescaped comma produces a field count mismatched against the
+  // header (23 columns) - Papa.parse flags this as a "TooManyFields" error
+  // (see csvImportShared.test.js for empirical verification).
   it('skips a row with a field-count mismatch (malformed row) and does not produce a garbage book entry', () => {
     const goodRow1 = row({ title: 'Book One' });
     const malformedRow = row({ title: 'Book Two' }) + ',extra-unescaped-field';

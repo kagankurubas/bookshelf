@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
-// 12 elemanlı, index 0 = Ocak olacak şekilde boş bir dizi.
+// An empty 12-element array, index 0 = January.
 const EMPTY_MONTHS = Array.from({ length: 12 }, (_, i) => ({
   month: i + 1,
   completedCount: 0,
@@ -16,9 +16,9 @@ function mapRow(row) {
   };
 }
 
-// Belirli bir yıl için kitaplığın ay bazlı okuma istatistiklerini
-// (get_monthly_reading_stats) döner - her zaman 12 ay, veri olmayan aylar
-// 0 olarak gelir. Kitabın gerçekten bitirildiği ay (date_finished) esas alınır.
+// Returns a library's month-by-month reading stats for a given year
+// (get_monthly_reading_stats) - always 12 months, months with no data come
+// back as 0. Based on the month a book was actually finished (date_finished).
 export function useMonthlyReadingStats(libraryId, year) {
   const [months, setMonths] = useState(EMPTY_MONTHS);
   const [loading, setLoading] = useState(true);

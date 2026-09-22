@@ -35,9 +35,9 @@ function MetricToggle({ value, onChange, t }) {
 
 function DashboardPage({ libraryId, libraryName, books }) {
   const { t } = useTranslation();
-  const [selectedYear, setSelectedYear] = useState(null); // null = tüm zamanlar
-  const [trendMetric, setTrendMetric] = useState('books'); // 'books' | 'pages' - aylık + yıllık grafikler için
-  const [categoryMetric, setCategoryMetric] = useState('books'); // kategori grafiği için ayrı
+  const [selectedYear, setSelectedYear] = useState(null); // null = all time
+  const [trendMetric, setTrendMetric] = useState('books'); // 'books' | 'pages' - for the monthly + yearly charts
+  const [categoryMetric, setCategoryMetric] = useState('books'); // separate for the category chart
   const [isRecapOpen, setIsRecapOpen] = useState(false);
 
   const readingYears = useReadingYears(libraryId);
@@ -47,16 +47,15 @@ function DashboardPage({ libraryId, libraryName, books }) {
   const yearlyResult = useYearlyReadingStats(libraryId);
   const { yearlyStats } = yearlyResult;
 
-  // Aylık grafik her zaman somut bir yıl gösterir - "Tüm Zamanlar"
-  // seçiliyken veri bulunan en yeni yıla (yoksa içinde bulunulan yıla) düşer.
+  // The monthly chart always shows a concrete year - falls back to the most
+  // recent year with data (or the current year) when "All Time" is selected.
   const monthlyYear = selectedYear ?? years[0] ?? new Date().getFullYear();
   const monthlyResult = useMonthlyReadingStats(libraryId, monthlyYear);
   const { months } = monthlyResult;
 
-  // Bu RPC çağrılarından biri başarısız olursa (ağ/DB hatası), aşağıdaki
-  // grafikler sessizce "veri yok" gösterir - kullanıcı bunu gerçek bir boş
-  // kitaplıktan ayırt edemez. O yüzden herhangi biri hata verirse üstte
-  // açık bir "tekrar dene" mesajı gösteriyoruz.
+  // If one of these RPC calls fails (network/DB error), the charts below
+  // silently show "no data" - the user can't tell that apart from a genuinely
+  // empty library. So if any of them errors, show an explicit "retry" message above.
   const hasLoadError = Boolean(
     readingYears.error || readingStats.error || categoryStats.error || yearlyResult.error || monthlyResult.error
   );

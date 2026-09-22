@@ -58,11 +58,11 @@ describe('useOnlineStatus', () => {
     expect(onOnline).not.toHaveBeenCalled();
   });
 
-  // Bayat closure regresyon testi: App.jsx her render'da yeni bir onOnline
-  // closure'i gecirir (o render'daki en guncel state/library'yi yakalayan).
-  // Hook, event listener'i mount'ta bir kez kaydettigi icin, bir ref
-  // uzerinden EN SON gecirilen callback'i cagirmalidir - ilk render'da
-  // kaydedilmis ilk (bayat) callback'i degil.
+  // Stale-closure regression test: App.jsx passes a new onOnline closure
+  // (capturing that render's current state/library) on every render. Since
+  // the hook registers the event listener once at mount, it must call the
+  // LATEST callback via a ref - not the first (stale) one registered at
+  // mount.
   it('always invokes the latest onOnline passed on the most recent render, not a stale one from mount', () => {
     setNavigatorOnline(false);
     const firstOnOnline = vi.fn();

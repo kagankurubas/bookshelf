@@ -94,8 +94,8 @@ async function syncBookLibraries(bookId, newLibraryIds, oldLibraryIds) {
   }
 }
 
-// Not listesini önceki DB durumuna göre diff'leyip ekleme/güncelleme/silme yapar,
-// ardından yeni id/tarih bilgileriyle güncel notesList'i döner.
+// Diffs the notes list against the previous DB state to add/update/delete,
+// then returns the current notesList with fresh id/date info.
 async function syncNotes(bookId, newNotes, oldNotes) {
   const oldIds = oldNotes.map((n) => n.id);
   const removedIds = oldIds.filter((id) => !newNotes.some((n) => n.id === id));
@@ -166,7 +166,6 @@ export function useBooks(userId) {
   }, [userId]);
 
   useEffect(() => {
-    // Kullanici degistiginde (giris/cikis) veriyi yeniden cek - standart senkronizasyon deseni.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchBooks();
   }, [fetchBooks]);

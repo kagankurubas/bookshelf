@@ -1,13 +1,13 @@
-// Dashboard'daki kategori grafiği için renk kısmı - dataviz kılavuzunun
-// doğrulanmış 8 renkli kategorik paleti (bkz. dataviz skill referans
-// paleti), renk körlüğü ve normal görüş ayırt edilebilirlik testlerinden
-// geçmiş sabit bir sıra. Kategori isimleri, uygulamanın kendi kategori
-// listesiyle (App.jsx categories) eşleşiyor.
+// Color mapping for the dashboard's category chart - the dataviz guide's
+// validated 8-color categorical palette (see the dataviz skill reference
+// palette), a fixed order that has passed colorblind and normal-vision
+// distinguishability tests. Category names match the app's own category
+// list (App.jsx categories).
 //
-// Palet en fazla 8 kategoriyi güvenle ayırt edebiliyor (bkz. dataviz
+// The palette can safely distinguish at most 8 categories (see dataviz
 // skill: "A 9th series is never a generated hue - it folds into Other").
-// Uygulamada 9 kategori olduğu için en az kullanılanı (Biyografi) ve
-// kategorisi olmayan/tanınmayan her şey "Diğer" nötr rengine katlanıyor.
+// The app has 9 categories, so the least-used one (Biography) and
+// anything uncategorized/unrecognized fold into the neutral "Other" color.
 const CATEGORY_CHART_COLORS = {
   'Bilim Kurgu': '#2a78d6',
   'Fantastik Kurgu': '#eb6834',
@@ -26,10 +26,10 @@ export function getCategoryChartColor(category) {
   return CATEGORY_CHART_COLORS[category] || OTHER_CATEGORY_COLOR;
 }
 
-// get_category_reading_stats'tan gelen ham satırları (her gerçek kategori
-// kendi satırı + SQL'in NULL kategori için ürettiği 'Diğer' satırı) renk
-// paletinin güvenle ayırt edebildiği kategorilere ve tek bir "Diğer"
-// toplamına indirger, kitap sayısına göre azalan sırada döner.
+// Folds the raw rows from get_category_reading_stats (one row per real
+// category plus the 'Other' row SQL produces for NULL category) down to
+// the categories the palette can distinguish plus a single "Other" total,
+// returned sorted by book count descending.
 export function foldCategoriesForChart(categories) {
   const known = [];
   let otherCount = 0;

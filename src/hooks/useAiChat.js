@@ -25,7 +25,6 @@ export function useAiChat(userId) {
   }, [userId]);
 
   useEffect(() => {
-    // Kullanici degistiginde sohbet listesini yeniden cek - standart senkronizasyon deseni.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchConversations();
   }, [fetchConversations]);

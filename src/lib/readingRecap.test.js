@@ -43,8 +43,9 @@ describe('getFinishedBooksInPeriod', () => {
   });
 
   it('does not shift a month-boundary date across a UTC/local timezone gap', () => {
-    // 2026-01-01 doğrudan Date olarak parse edilip yerel saate çevrilseydi
-    // negatif UTC-ofsetli saat dilimlerinde 2025 Aralık'a kayabilirdi.
+    // If 2026-01-01 were parsed directly as a Date and converted to local
+    // time, it could shift back to December 2025 in negative UTC-offset
+    // timezones.
     const books = [book({ id: 'a', dateFinished: '2026-01-01' })];
     expect(getFinishedBooksInPeriod(books, 'month', 2026, 1)).toHaveLength(1);
     expect(getFinishedBooksInPeriod(books, 'month', 2025, 12)).toHaveLength(0);

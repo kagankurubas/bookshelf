@@ -10,9 +10,9 @@ const HEADER =
   'Read Count,Recommended For,Recommended By,Owned Copies,Original Purchase Date,' +
   'Original Purchase Location,Condition,Condition Description,BCID';
 
-// Bir satiri, dedup'i tetikleyecek sekilde mevcut bir kitapla (Fahrenheit 451
-// / Ray Bradbury) eslesen "muhtemel cift kayit", digerini yeni bir kitap
-// (1984 / George Orwell) olarak kuruyoruz.
+// Set up one row as a "possible duplicate" matching an existing book
+// (Fahrenheit 451 / Ray Bradbury) to trigger dedup, and the other as a new
+// book (1984 / George Orwell).
 const CSV_TEXT = [
   HEADER,
   '1,Fahrenheit 451,Ray Bradbury,"Bradbury, Ray",,,="9781451673319",5,4.0,Simon & Schuster,Paperback,256,1953,1953,2023/06/01,2023/05/01,,,read,,,,,1,,,0,,,,',
@@ -21,7 +21,7 @@ const CSV_TEXT = [
 
 function buildFile(text = CSV_TEXT) {
   const file = new File([text], 'goodreads_library_export.csv', { type: 'text/csv' });
-  // jsdom'da File.text() bazi surumlerde eksik olabiliyor - guvence altina aliyoruz.
+  // File.text() can be missing in some jsdom versions - guard against it.
   if (!file.text) {
     file.text = () => Promise.resolve(text);
   }
@@ -71,9 +71,9 @@ describe('ImportPreviewModal', () => {
 
     const checkboxes = screen.getAllByRole('checkbox');
     expect(checkboxes).toHaveLength(2);
-    // Ilk satir (Fahrenheit 451) cift kayit oldugu icin varsayilan olarak secimsiz.
+    // First row (Fahrenheit 451) is deselected by default since it's a duplicate.
     expect(checkboxes[0]).not.toBeChecked();
-    // Ikinci satir (1984) yeni bir kitap oldugu icin varsayilan olarak secili.
+    // Second row (1984) is selected by default since it's a new book.
     expect(checkboxes[1]).toBeChecked();
   });
 
@@ -174,10 +174,9 @@ describe('ImportPreviewModal', () => {
   });
 
   it('skips a row with a malformed field count and reports it in the preview and summary', async () => {
-    // Ikinci satira fazladan kacissiz bir virgul eklenerek, 31 sutunluk
-    // baslikla uyusmayan (32 alanli) bir satir olusturuluyor - bu Papa.parse
-    // tarafindan gercek bir "TooManyFields" hatasi olarak isaretleniyor
-    // (bkz. csvImportShared.test.js).
+    // An extra unescaped comma is added to the second row, producing a
+    // 32-field row that doesn't match the 31-column header - Papa.parse
+    // flags this as a genuine "TooManyFields" error (see csvImportShared.test.js).
     const malformedCsv = [
       HEADER,
       '1,Fahrenheit 451,Ray Bradbury,"Bradbury, Ray",,,="9781451673319",5,4.0,Simon & Schuster,Paperback,256,1953,1953,2023/06/01,2023/05/01,,,read,,,,,1,,,0,,,,,extra-field',
@@ -188,7 +187,7 @@ describe('ImportPreviewModal', () => {
     await uploadFile(buildFile(malformedCsv));
 
     await waitFor(() => expect(screen.getByText('1984')).toBeInTheDocument());
-    // Bozuk satir (Fahrenheit 451) onizleme listesinde hic gorunmemeli.
+    // The malformed row (Fahrenheit 451) must never appear in the preview list.
     expect(screen.queryByText('Fahrenheit 451')).not.toBeInTheDocument();
     expect(screen.getByText('1 kitap bozuk formatlı olduğu için atlandı.')).toBeInTheDocument();
 
