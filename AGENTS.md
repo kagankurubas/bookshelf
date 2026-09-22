@@ -14,4 +14,4 @@ Single-context layout: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/ag
 
 ### Supabase migrations
 
-Before running `supabase migration repair` or `supabase db push` against the linked project, if `supabase migration list` shows unexpected gaps between local and remote. See `docs/agents/supabase-migrations.md`.
+Verify before trusting `supabase migration list` if it shows unexpected gaps between local and remote history. See `docs/agents/supabase-migrations.md`.
