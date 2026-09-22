@@ -1,3 +1,7 @@
+## Commit and comment language/style
+
+Commit messages are always written in English, even when the conversation itself is in Turkish, and new code comments are English-only and minimal — a comment adds only a "what this does" summary the code doesn't already make obvious, never a restatement of what the code already says. This isn't retroactive: existing Turkish commit history and existing Turkish comments are left as they are.
+
 ## Agent skills
 
 ### Issue tracker
