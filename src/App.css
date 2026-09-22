@@ -669,6 +669,11 @@ html, body, #root {
   color: var(--info-soft-text);
 }
 
+.property-tag.tag {
+  background-color: var(--accent-2-soft);
+  color: oklch(42% 0.15 300);
+}
+
 .property-tag.status.başlanmadı { background-color: var(--surface-sunken); color: var(--text-secondary); }
 .property-tag.status.okunuyor { background-color: var(--accent-2-soft); color: oklch(42% 0.15 300); }
 .property-tag.status.tamamlandı { background-color: var(--accent-soft); color: var(--accent-soft-text); }

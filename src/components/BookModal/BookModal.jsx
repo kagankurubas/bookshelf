@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { resolveTagCasing } from '../../lib/tagCasing';
 import './BookModal.css';
 
 const iconProps = { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 };
@@ -17,7 +18,7 @@ const CheckIcon = () => (<svg width="11" height="11" viewBox="0 0 24 24" fill="n
 const StarPlaceholderIcon = () => (<svg {...iconProps} strokeWidth="1.6"><path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.5 6.3L12 17l-5.7 3.1 1.5-6.3-4.8-4.3 6.4-.6z" /></svg>);
 const PlusMiniIcon = () => (<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 5v14M5 12h14" /></svg>);
 
-function BookModal({ onClose, onSave, selectedBook, prefillData = null, existingAuthors = [], libraries = [], activeLibraryId = null }) {
+function BookModal({ onClose, onSave, selectedBook, prefillData = null, existingAuthors = [], existingTags = [], libraries = [], activeLibraryId = null }) {
   const { t } = useTranslation();
   useEscapeKey(onClose);
   const defaultLibraryId = libraries.find((lib) => lib.isDefault)?.id || null;
@@ -26,6 +27,8 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
   const [publisher, setPublisher] = useState(selectedBook ? selectedBook.publisher || '' : (prefillData?.publisher || ''));
   const [rating, setRating] = useState(selectedBook ? selectedBook.rating : 0);
   const [category, setCategory] = useState(selectedBook ? selectedBook.category : 'Klasik Edebiyat');
+  const [tags, setTags] = useState(selectedBook ? selectedBook.tags || [] : []);
+  const [tagInput, setTagInput] = useState('');
   const [status, setStatus] = useState(selectedBook ? selectedBook.status : 'Başlanmadı');
   const [dateStarted, setDateStarted] = useState(selectedBook ? selectedBook.dateStarted : '');
   const [dateFinished, setDateFinished] = useState(selectedBook ? selectedBook.dateFinished : '');
@@ -65,6 +68,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
         publisher !== (selectedBook.publisher || '') ||
         rating !== selectedBook.rating ||
         category !== selectedBook.category ||
+        JSON.stringify(tags) !== JSON.stringify(selectedBook.tags || []) ||
         status !== selectedBook.status ||
         dateStarted !== (selectedBook.dateStarted || '') ||
         dateFinished !== (selectedBook.dateFinished || '') ||
@@ -87,6 +91,34 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
       const today = new Date().toISOString().split('T')[0];
       setDateFinished(today);
     }
+  };
+
+  const commitTagInput = (rawValue) => {
+    const trimmed = rawValue.trim();
+    if (!trimmed) {
+      setTagInput('');
+      return;
+    }
+    // Baska bir kitapta ayni etiket farkli case ile zaten kullanilmissa
+    // (ör. "Favori"), o casing'i kullan - ayni kavram tum kitaplarda ayni
+    // string olarak birikir, gecmise donuk bir normalize/migration gerekmez.
+    const value = resolveTagCasing(trimmed, existingTags);
+    const alreadyPresent = tags.some((tag) => tag.toLowerCase() === value.toLowerCase());
+    if (!alreadyPresent) {
+      setTags([...tags, value]);
+    }
+    setTagInput('');
+  };
+
+  const handleTagInputKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      commitTagInput(tagInput);
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove) => {
+    setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
   const handleLibraryToggle = (libId) => {
@@ -151,6 +183,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
       publisher,
       rating,
       category,
+      tags,
       status,
       dateStarted,
       dateFinished,
@@ -329,6 +362,35 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
             <select id="book-category" className="form-select" value={category} onChange={(e) => setCategory(e.target.value)}>
               {categories.map(cat => <option key={cat} value={cat}>{t(`categories.${cat}`, cat)}</option>)}
             </select>
+          </div>
+
+          <div className="form-group tag-input-group">
+            <label className="form-label" htmlFor="book-tags"><TagIcon /> {t('bookModal.tags')}</label>
+            <div className="tag-input-wrap">
+              <input
+                id="book-tags"
+                type="text"
+                className="form-input"
+                list="tag-suggestions"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagInputKeyDown}
+                placeholder={t('bookModal.tagsPlaceholder')}
+              />
+              <datalist id="tag-suggestions">
+                {existingTags.map((tag, index) => <option key={index} value={tag} />)}
+              </datalist>
+              {tags.length > 0 && (
+                <div className="tag-chip-list">
+                  {tags.map((tag) => (
+                    <span key={tag} className="tag-chip">
+                      {tag}
+                      <button type="button" onClick={() => handleRemoveTag(tag)} aria-label={t('bookModal.removeTag', { tag })}>×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="form-group">

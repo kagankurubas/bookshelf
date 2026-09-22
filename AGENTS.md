@@ -11,3 +11,7 @@ Default five-role vocabulary (needs-triage, needs-info, ready-for-agent, ready-f
 ### Domain docs
 
 Single-context layout: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### Supabase migrations
+
+Production's migration history can silently disagree with what `supabase migration list` reports. See `docs/agents/supabase-migrations.md`.

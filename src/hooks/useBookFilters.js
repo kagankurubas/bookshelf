@@ -13,21 +13,30 @@ export function useBookFilters(books, activeLibraryId) {
   const [filterStatus, setFilterStatus] = useState('Tümü');
   const [selectedCategory, setSelectedCategory] = useState('Tümü');
   const [selectedAuthor, setSelectedAuthor] = useState('Tümü');
+  const [selectedTag, setSelectedTag] = useState('Tümü');
   const [searchQuery, setSearchQuery] = useState('');
 
   const uniqueAuthors = [...new Set(books.map((b) => b.author))];
+  // uniqueAuthors ile ayni gerekce: activeLibraryId'ye gore daraltilmiyor,
+  // hem tablo filtresini hem BookModal'daki etiket oneri listesini besliyor.
+  const uniqueTags = [...new Set(books.flatMap((b) => b.tags || []))].sort();
 
   const filteredBooks = books
     .filter((book) => book.libraryIds.includes(activeLibraryId))
     .filter((book) => {
-      const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            book.author.toLowerCase().includes(searchQuery.toLowerCase());
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = query === '' ||
+                            book.title.toLowerCase().includes(query) ||
+                            book.author.toLowerCase().includes(query) ||
+                            book.notesList.some((n) => n.text.toLowerCase().includes(query)) ||
+                            (book.tags || []).some((tag) => tag.toLowerCase().includes(query));
 
       const matchesCategory = selectedCategory === 'Tümü' || book.category === selectedCategory;
       const matchesAuthor = selectedAuthor === 'Tümü' || book.author === selectedAuthor;
       const matchesStatus = filterStatus === 'Tümü' || book.status === filterStatus;
+      const matchesTag = selectedTag === 'Tümü' || (book.tags || []).includes(selectedTag);
 
-      return matchesSearch && matchesCategory && matchesAuthor && matchesStatus;
+      return matchesSearch && matchesCategory && matchesAuthor && matchesStatus && matchesTag;
     });
 
   return {
@@ -38,9 +47,12 @@ export function useBookFilters(books, activeLibraryId) {
     setSelectedCategory,
     selectedAuthor,
     setSelectedAuthor,
+    selectedTag,
+    setSelectedTag,
     searchQuery,
     setSearchQuery,
     filteredBooks,
     uniqueAuthors,
+    uniqueTags,
   };
 }

@@ -59,6 +59,16 @@ describe('useBooks', () => {
     expect(result.current.books[0].notesList[0]).toMatchObject({ id: 'n1', text: 'great' });
   });
 
+  it('maps the tags column from the db row, defaulting to an empty array when null', async () => {
+    const { result } = await renderWithInitialRows([
+      { ...baseRow, id: 'b1', tags: ['ödünç aldım', 'yeniden okunacak'] },
+      { ...baseRow, id: 'b2', tags: null },
+    ]);
+
+    expect(result.current.books[0].tags).toEqual(['ödünç aldım', 'yeniden okunacak']);
+    expect(result.current.books[1].tags).toEqual([]);
+  });
+
   it('stores the error and stops loading when the fetch fails', async () => {
     const fetchError = new Error('network down');
     supabase.from.mockReturnValueOnce(queryResult({ data: null, error: fetchError }));
@@ -97,6 +107,25 @@ describe('useBooks', () => {
     expect(result.current.books[0].id).toBe('new-1');
   });
 
+  it('addBook sends tags through the same plain-column insert path as category/status', async () => {
+    const { result } = await renderWithInitialRows([]);
+
+    const insertBuilder = queryResult({
+      data: { ...baseRow, id: 'new-1', tags: ['ödünç aldım'], book_libraries: undefined, notes: undefined },
+      error: null,
+    });
+    supabase.from.mockReturnValueOnce(insertBuilder);
+
+    let newBook;
+    await act(async () => {
+      newBook = await result.current.addBook({ title: 'Foundation', author: 'Asimov', tags: ['ödünç aldım'] });
+    });
+
+    expect(insertBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ tags: ['ödünç aldım'] }));
+    expect(newBook.tags).toEqual(['ödünç aldım']);
+    expect(result.current.books[0].tags).toEqual(['ödünç aldım']);
+  });
+
   it('editBook sends only the changed columns and merges the result into state', async () => {
     const { result } = await renderWithInitialRows([baseRow]);
 
@@ -112,6 +141,20 @@ describe('useBooks', () => {
     expect(updateBuilder.eq).toHaveBeenCalledWith('id', 'b1');
     expect(updated).toMatchObject({ id: 'b1', title: 'New Title', rating: 5, libraryIds: ['lib-1'] });
     expect(result.current.books[0].title).toBe('New Title');
+  });
+
+  it('editBook sends tags through the same plain-column update path as category/status', async () => {
+    const { result } = await renderWithInitialRows([baseRow]);
+
+    const updateBuilder = queryResult({ error: null });
+    supabase.from.mockReturnValueOnce(updateBuilder);
+
+    await act(async () => {
+      await result.current.editBook('b1', { tags: ['ödünç aldım'] });
+    });
+
+    expect(updateBuilder.update).toHaveBeenCalledWith({ tags: ['ödünç aldım'] });
+    expect(result.current.books[0].tags).toEqual(['ödünç aldım']);
   });
 
   it('deleteBook removes the book from supabase and from state', async () => {
