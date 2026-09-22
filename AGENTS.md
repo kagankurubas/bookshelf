@@ -14,4 +14,4 @@ Single-context layout: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/ag
 
 ### Supabase migrations
 
-Verify before trusting `supabase migration list` if it shows unexpected gaps between local and remote history. See `docs/agents/supabase-migrations.md`.
+Production's migration history can silently disagree with what `supabase migration list` reports. See `docs/agents/supabase-migrations.md`.
