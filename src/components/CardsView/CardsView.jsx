@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import CoverImage from '../CoverImage/CoverImage';
 
 function CardsView({ books, onOpenBook, onDeleteBook, renderStars }) {
   const { t } = useTranslation();
@@ -11,17 +12,23 @@ function CardsView({ books, onOpenBook, onDeleteBook, renderStars }) {
         <div className="book-cards-grid">
           {books.map((book) => (
             <div key={book.id} className="book-card" onClick={() => onOpenBook(book)} style={{ cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
-              {book.coverImage ? (
-                <div className="card-cover-banner">
-                  <img src={book.coverImage} alt={book.title} className="card-cover-image" style={{ objectPosition: `center ${book.coverPosition || 50}%` }} />
-                  <div className="card-cover-hover-hint">{t('cards.editCover')}</div>
-                </div>
-              ) : (
-                <div className="card-cover-banner placeholder">
-                  <span className="card-cover-placeholder-icon">+</span>
-                  <div className="card-cover-hover-hint">{t('cards.addCover')}</div>
-                </div>
-              )}
+              <CoverImage
+                src={book.coverImage} alt={book.title} className="card-cover-image"
+                style={{ objectPosition: `center ${book.coverPosition || 50}%` }}
+                fallback={(
+                  <div className="card-cover-banner placeholder">
+                    <span className="card-cover-placeholder-icon">+</span>
+                    <div className="card-cover-hover-hint">{t('cards.addCover')}</div>
+                  </div>
+                )}
+              >
+                {(img) => (
+                  <div className="card-cover-banner">
+                    {img}
+                    <div className="card-cover-hover-hint">{t('cards.editCover')}</div>
+                  </div>
+                )}
+              </CoverImage>
 
               <div className="card-content" style={{ padding: '15px 20px 20px 20px' }}>
                 <h3 className="card-title">{book.title}</h3>

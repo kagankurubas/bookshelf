@@ -4,6 +4,7 @@ import BarcodeScanner from '../BarcodeScanner/BarcodeScanner';
 import { getBookByIsbn } from '../../lib/openLibrary';
 import { countBooksInRow } from '../../lib/shelfSpine';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import CoverImage from '../CoverImage/CoverImage';
 import './BatchScanner.css';
 
 const ClockIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3.5 2" /></svg>);
@@ -137,13 +138,15 @@ function BatchScanner({ books, activeLibraryId, addBook, isOnline, onBatchSaved,
                   .reverse()
                   .map((entry) => (
                     <li key={entry.isbn} className="batch-scanner-row">
-                      {entry.status === 'found' && entry.book?.coverImage ? (
-                        <img src={entry.book.coverImage} alt={entry.book.title} className="batch-scanner-cover" />
-                      ) : (
-                        <div className="batch-scanner-cover batch-scanner-cover-placeholder">
-                          {entry.status === 'pending' ? <ClockIcon /> : entry.status === 'not_found' || entry.status === 'error' ? <QuestionIcon /> : <BookGlyphIcon />}
-                        </div>
-                      )}
+                      <CoverImage
+                        src={entry.status === 'found' ? entry.book?.coverImage : null} thumbnail
+                        alt={entry.book?.title} className="batch-scanner-cover"
+                        fallback={(
+                          <div className="batch-scanner-cover batch-scanner-cover-placeholder">
+                            {entry.status === 'pending' ? <ClockIcon /> : entry.status === 'not_found' || entry.status === 'error' ? <QuestionIcon /> : <BookGlyphIcon />}
+                          </div>
+                        )}
+                      />
                       <div className="batch-scanner-row-info">
                         {entry.status === 'pending' && <span className="batch-scanner-row-title">ISBN: {entry.isbn}</span>}
                         {entry.status === 'found' && (
@@ -186,11 +189,10 @@ function BatchScanner({ books, activeLibraryId, addBook, isOnline, onBatchSaved,
               <ul className="batch-scanner-list">
                 {foundEntries.map((entry) => (
                   <li key={entry.isbn} className="batch-scanner-row">
-                    {entry.book.coverImage ? (
-                      <img src={entry.book.coverImage} alt={entry.book.title} className="batch-scanner-cover" />
-                    ) : (
-                      <div className="batch-scanner-cover batch-scanner-cover-placeholder"><BookGlyphIcon /></div>
-                    )}
+                    <CoverImage
+                      src={entry.book.coverImage} thumbnail alt={entry.book.title} className="batch-scanner-cover"
+                      fallback={<div className="batch-scanner-cover batch-scanner-cover-placeholder"><BookGlyphIcon /></div>}
+                    />
                     <div className="batch-scanner-row-info">
                       <span className="batch-scanner-row-title">{entry.book.title}</span>
                       <span className="batch-scanner-row-author">{entry.book.author || t('batchScanner.unknownAuthor')}</span>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { searchBooks } from '../../lib/openLibrary';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import CoverImage from '../CoverImage/CoverImage';
 import './BookSearch.css';
 
 const DEBOUNCE_MS = 400;
@@ -98,11 +99,10 @@ function BookSearch({ onSelect, onClose }) {
                   }
                 }}
               >
-                {book.coverImage ? (
-                  <img src={book.coverImage} alt={book.title} className="book-search-cover" />
-                ) : (
-                  <div className="book-search-cover book-search-cover-placeholder"><BookPlaceholderIcon /></div>
-                )}
+                <CoverImage
+                  src={book.coverImage} thumbnail alt={book.title} className="book-search-cover"
+                  fallback={<div className="book-search-cover book-search-cover-placeholder"><BookPlaceholderIcon /></div>}
+                />
                 <div className="book-search-item-info">
                   <span className="book-search-item-title">{book.title}</span>
                   <span className="book-search-item-author">{book.author || t('bookSearch.unknownAuthor')}</span>
