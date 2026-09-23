@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { resolveTagCasing } from '../../lib/tagCasing';
 import { openLibraryCoverUrl } from '../../lib/openLibrary';
-import { useBrokenCovers } from '../../hooks/useBrokenCovers';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import './BookModal.css';
 
 const iconProps = { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 };
@@ -51,7 +51,8 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
   const [saveError, setSaveError] = useState(null);
 
   const [isAddingCover, setIsAddingCover] = useState(false);
-  const { isBroken, markBroken } = useBrokenCovers();
+  const [failedCover, setFailedCover] = useState(null);
+  useOnlineStatus(() => setFailedCover(null));
   const [coverPosition, setCoverPosition] = useState(selectedBook ? selectedBook.coverPosition || 50 : 50);
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
@@ -262,7 +263,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
     'Distopya', 'Kurgu Dışı', 'Biyografi', 'Bilim', 'Tarih', 'Felsefe'
   ];
   const statuses = ['Başlanmadı', 'Okunuyor', 'Tamamlandı', 'Yarıda Bırakıldı'];
-  const showCover = Boolean(coverImage) && !isBroken(coverImage);
+  const showCover = Boolean(coverImage) && coverImage !== failedCover;
 
   return (
     <div className="modal-overlay book-modal-overlay" onClick={onClose}>
@@ -290,7 +291,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
 
           {showCover ? (
             <div style={{ width: '100%', height: '100%', position: 'relative', userSelect: 'none', touchAction: 'none' }} onMouseDown={handleMouseDown} onTouchStart={handleTouchStart}>
-              <img src={openLibraryCoverUrl(coverImage)} alt={t('bookModal.coverPreviewAlt')} draggable="false" onError={() => markBroken(coverImage)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `center ${coverPosition}%`, pointerEvents: 'none' }} />
+              <img src={openLibraryCoverUrl(coverImage)} alt={t('bookModal.coverPreviewAlt')} draggable="false" onError={() => setFailedCover(coverImage)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `center ${coverPosition}%`, pointerEvents: 'none' }} />
               <div style={{ position: 'absolute', bottom: '10px', left: '15px', background: 'rgba(0,0,0,0.6)', padding: '3px 8px', borderRadius: '4px', pointerEvents: 'none', zIndex: 10, display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2"><path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4" /></svg>
                 <span style={{ fontSize: '10px', color: '#ccc' }}>{t('bookModal.dragCoverHint')}</span>

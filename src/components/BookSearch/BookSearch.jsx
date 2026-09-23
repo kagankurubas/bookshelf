@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { coverThumbnailProps, searchBooks } from '../../lib/openLibrary';
+import { searchBooks } from '../../lib/openLibrary';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
-import { useBrokenCovers } from '../../hooks/useBrokenCovers';
+import CoverImage from '../CoverImage/CoverImage';
 import './BookSearch.css';
 
 const DEBOUNCE_MS = 400;
@@ -16,7 +16,6 @@ const BookPlaceholderIcon = () => (
 
 function BookSearch({ onSelect, onClose }) {
   const { t } = useTranslation();
-  const { isBroken, markBroken } = useBrokenCovers();
   useEscapeKey(onClose);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -100,14 +99,10 @@ function BookSearch({ onSelect, onClose }) {
                   }
                 }}
               >
-                {book.coverImage && !isBroken(book.coverImage) ? (
-                  <img
-                    {...coverThumbnailProps(book.coverImage)} alt={book.title} className="book-search-cover"
-                    loading="lazy" decoding="async" onError={() => markBroken(book.coverImage)}
-                  />
-                ) : (
-                  <div className="book-search-cover book-search-cover-placeholder"><BookPlaceholderIcon /></div>
-                )}
+                <CoverImage
+                  src={book.coverImage} thumbnail alt={book.title} className="book-search-cover"
+                  fallback={<div className="book-search-cover book-search-cover-placeholder"><BookPlaceholderIcon /></div>}
+                />
                 <div className="book-search-item-info">
                   <span className="book-search-item-title">{book.title}</span>
                   <span className="book-search-item-author">{book.author || t('bookSearch.unknownAuthor')}</span>
