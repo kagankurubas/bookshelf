@@ -101,6 +101,20 @@ export default defineConfig(({ mode }) => {
         },
       }),
     ],
+    build: {
+      rolldownOptions: {
+        output: {
+          // Stable vendor chunks: an app-only deploy then invalidates just the
+          // app chunk, not React/Supabase, in the browser and SW precache.
+          codeSplitting: {
+            groups: [
+              { name: 'react-vendor', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
+              { name: 'supabase-vendor', test: /node_modules[\\/](@supabase[\\/]|iceberg-js[\\/])/ },
+            ],
+          },
+        },
+      },
+    },
     server: {
       // Varsayılan olarak sadece IPv6 loopback'te (::1) dinliyordu. 0.0.0.0'a
       // bağlanarak hem 127.0.0.1'i hem de LAN IP'sini dinler - telefondan

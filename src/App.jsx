@@ -10,10 +10,7 @@ import ShelfView from './components/ShelfView/ShelfView';
 import AddChoiceModal from './components/AddChoiceModal/AddChoiceModal';
 import AuthGate from './components/AuthGate/AuthGate';
 import OfflineBanner from './components/OfflineBanner/OfflineBanner';
-import AiChatDrawer from './components/AiChatDrawer/AiChatDrawer';
-import SettingsModal from './components/SettingsModal/SettingsModal';
 import ReadingStats from './components/ReadingStats/ReadingStats';
-import DashboardPage from './components/DashboardPage/DashboardPage';
 import { StarIcon, SparkleIcon } from './components/icons/Icons';
 import { useAuth } from './hooks/useAuth';
 import { useAuthRedirectError } from './hooks/useAuthRedirectError';
@@ -27,11 +24,14 @@ import { useLibrary } from './hooks/useLibrary';
 import { useOfflineBookQueue } from './hooks/useOfflineBookQueue';
 import './App.css';
 
-// These two components carry the zxing-wasm barcode-reading engine and are
-// only needed once the user opens a scan flow - code-split via dynamic import
-// to keep them out of the initial page load.
+// Feature-specific UI that's only needed once its flow opens - code-split via
+// dynamic import to keep it (zxing-wasm, papaparse, html-to-image, charts) out
+// of the initial page load.
 const BarcodeScanner = lazy(() => import('./components/BarcodeScanner/BarcodeScanner'));
 const BatchScanner = lazy(() => import('./components/BatchScanner/BatchScanner'));
+const SettingsModal = lazy(() => import('./components/SettingsModal/SettingsModal'));
+const DashboardPage = lazy(() => import('./components/DashboardPage/DashboardPage'));
+const AiChatDrawer = lazy(() => import('./components/AiChatDrawer/AiChatDrawer'));
 
 function App() {
   const { t } = useTranslation();
@@ -223,24 +223,26 @@ function App() {
                 />
 
                 {isSettingsOpen && (
-                  <SettingsModal
-                    userEmail={user.email}
-                    books={books}
-                    addBook={addBook}
-                    libraries={libraries}
-                    onClose={() => setIsSettingsOpen(false)}
-                    onAccountDeleted={() => {
-                      setIsSettingsOpen(false);
-                      // Account deletion is unrelated to the verification-link error -
-                      // but redirectError can stay in memory for this tab's whole
-                      // lifetime (e.g. user landed with an invalid link, then signed in
-                      // and deleted their account). Since the two aren't meaningful
-                      // together, we clear it deliberately, otherwise AuthScreen would
-                      // show two stacked messages.
-                      clearRedirectError();
-                      setAccountDeletedNotice(true);
-                    }}
-                  />
+                  <Suspense fallback={null}>
+                    <SettingsModal
+                      userEmail={user.email}
+                      books={books}
+                      addBook={addBook}
+                      libraries={libraries}
+                      onClose={() => setIsSettingsOpen(false)}
+                      onAccountDeleted={() => {
+                        setIsSettingsOpen(false);
+                        // Account deletion is unrelated to the verification-link error -
+                        // but redirectError can stay in memory for this tab's whole
+                        // lifetime (e.g. user landed with an invalid link, then signed in
+                        // and deleted their account). Since the two aren't meaningful
+                        // together, we clear it deliberately, otherwise AuthScreen would
+                        // show two stacked messages.
+                        clearRedirectError();
+                        setAccountDeletedNotice(true);
+                      }}
+                    />
+                  </Suspense>
                 )}
 
                 <LibraryToolbar
@@ -270,7 +272,9 @@ function App() {
                 </button>
 
                 {isAiChatOpen && (
-                  <AiChatDrawer userId={user.id} onClose={() => setIsAiChatOpen(false)} />
+                  <Suspense fallback={null}>
+                    <AiChatDrawer userId={user.id} onClose={() => setIsAiChatOpen(false)} />
+                  </Suspense>
                 )}
 
                 {activeView === 'cards' && (
@@ -314,7 +318,9 @@ function App() {
                 )}
 
                 {activeView === 'dashboard' && (
-                  <DashboardPage libraryId={activeLibraryId} libraryName={activeLibrary?.name} books={currentLibraryBooks} />
+                  <Suspense fallback={<p className="app-loading-text">{t('app.loading')}</p>}>
+                    <DashboardPage libraryId={activeLibraryId} libraryName={activeLibrary?.name} books={currentLibraryBooks} />
+                  </Suspense>
                 )}
 
                 {addFlow.isAddChoiceOpen && (
