@@ -68,6 +68,7 @@ const OFFLINE_BANNER_TEXT = 'İnternet bağlantın yok. Bazı özellikler çalı
 describe('App', () => {
   beforeEach(() => {
     supabase.from.mockReturnValue(emptyQueryResult());
+    supabase.rpc.mockImplementation(emptyRpcResult);
   });
 
   it('shows the loading screen while auth is loading, not the auth screen or the logged-in app', () => {
@@ -145,9 +146,6 @@ describe('App', () => {
   });
 
   it('opens the lazy-loaded Dashboard, Settings and AI chat from the logged-in app', async () => {
-    supabase.rpc.mockImplementation(emptyRpcResult);
-    // jsdom has no scrollIntoView; AiChatDrawer calls it on render.
-    Element.prototype.scrollIntoView = vi.fn();
     mockAuth({ loading: false, user: { id: 'u1', email: 'test@example.com' } });
     mockOnlineStatus({ isOnline: true });
 
