@@ -1,7 +1,10 @@
 import { useTranslation } from 'react-i18next';
+import { openLibraryCoverUrl } from '../../lib/openLibrary';
+import { useBrokenCovers } from '../../hooks/useBrokenCovers';
 
 function CardsView({ books, onOpenBook, onDeleteBook, renderStars }) {
   const { t } = useTranslation();
+  const { isBroken, markBroken } = useBrokenCovers();
 
   return (
     <main className="book-list-container">
@@ -11,9 +14,13 @@ function CardsView({ books, onOpenBook, onDeleteBook, renderStars }) {
         <div className="book-cards-grid">
           {books.map((book) => (
             <div key={book.id} className="book-card" onClick={() => onOpenBook(book)} style={{ cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
-              {book.coverImage ? (
+              {book.coverImage && !isBroken(book.coverImage) ? (
                 <div className="card-cover-banner">
-                  <img src={book.coverImage} alt={book.title} className="card-cover-image" style={{ objectPosition: `center ${book.coverPosition || 50}%` }} />
+                  <img
+                    src={openLibraryCoverUrl(book.coverImage)} alt={book.title} className="card-cover-image"
+                    loading="lazy" decoding="async" onError={() => markBroken(book.coverImage)}
+                    style={{ objectPosition: `center ${book.coverPosition || 50}%` }}
+                  />
                   <div className="card-cover-hover-hint">{t('cards.editCover')}</div>
                 </div>
               ) : (

@@ -39,4 +39,19 @@ describe('CardsView', () => {
     expect(onDeleteBook).toHaveBeenCalledTimes(1);
     expect(onDeleteBook.mock.calls[0][1]).toBe('1');
   });
+
+  it('lazy-loads an Open Library cover and falls back to the placeholder when it fails to load', () => {
+    const books = [{ id: '1', title: 'Dune', author: 'Frank Herbert', publisher: '', rating: 0, category: '', status: 'Okunuyor', coverImage: 'https://covers.openlibrary.org/b/isbn/9780000000000-L.jpg' }];
+    render(<CardsView books={books} onOpenBook={vi.fn()} onDeleteBook={vi.fn()} renderStars={renderStars} />);
+
+    const img = screen.getByRole('img', { name: 'Dune' });
+    expect(img).toHaveAttribute('loading', 'lazy');
+    expect(img).toHaveAttribute('src', 'https://covers.openlibrary.org/b/isbn/9780000000000-L.jpg?default=false');
+
+    // Stands in for Open Library's 404 on a book without a cover.
+    fireEvent.error(img);
+
+    expect(screen.queryByRole('img', { name: 'Dune' })).not.toBeInTheDocument();
+    expect(screen.getByText('Kapak Ekle')).toBeInTheDocument();
+  });
 });

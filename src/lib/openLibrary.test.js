@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getBookByIsbn, searchBooks } from './openLibrary';
+import { coverThumbnailProps, getBookByIsbn, openLibraryCoverUrl, searchBooks } from './openLibrary';
 
 function mockFetchOnce(body, ok = true) {
   global.fetch = vi.fn().mockResolvedValue({
@@ -151,5 +151,42 @@ describe('searchBooks', () => {
     await expect(searchBooks(query)).rejects.toThrow();
 
     expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('openLibraryCoverUrl', () => {
+  it('rewrites an Open Library cover to the requested size and adds default=false', () => {
+    expect(openLibraryCoverUrl('https://covers.openlibrary.org/b/id/12345-L.jpg', 'S'))
+      .toBe('https://covers.openlibrary.org/b/id/12345-S.jpg?default=false');
+  });
+
+  it('keeps the stored size when no size is given', () => {
+    expect(openLibraryCoverUrl('https://covers.openlibrary.org/b/isbn/9780553293357-L.jpg'))
+      .toBe('https://covers.openlibrary.org/b/isbn/9780553293357-L.jpg?default=false');
+  });
+
+  it('preserves an existing query string', () => {
+    expect(openLibraryCoverUrl('https://covers.openlibrary.org/b/olid/OL7353617M-M.jpg?foo=1', 'S'))
+      .toBe('https://covers.openlibrary.org/b/olid/OL7353617M-S.jpg?foo=1&default=false');
+  });
+
+  it('returns non-Open Library, invalid and empty URLs unchanged', () => {
+    expect(openLibraryCoverUrl('https://example.com/cover-L.jpg', 'S')).toBe('https://example.com/cover-L.jpg');
+    expect(openLibraryCoverUrl('not a url', 'S')).toBe('not a url');
+    expect(openLibraryCoverUrl('', 'S')).toBe('');
+    expect(openLibraryCoverUrl(null, 'S')).toBe(null);
+  });
+});
+
+describe('coverThumbnailProps', () => {
+  it('uses S at 1x and M at 2x for Open Library covers', () => {
+    expect(coverThumbnailProps('https://covers.openlibrary.org/b/id/12345-L.jpg')).toEqual({
+      src: 'https://covers.openlibrary.org/b/id/12345-S.jpg?default=false',
+      srcSet: 'https://covers.openlibrary.org/b/id/12345-S.jpg?default=false 1x, https://covers.openlibrary.org/b/id/12345-M.jpg?default=false 2x',
+    });
+  });
+
+  it('passes other URLs through without a srcSet', () => {
+    expect(coverThumbnailProps('https://example.com/cover.jpg')).toEqual({ src: 'https://example.com/cover.jpg' });
   });
 });

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { searchBooks } from '../../lib/openLibrary';
+import { coverThumbnailProps, searchBooks } from '../../lib/openLibrary';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { useBrokenCovers } from '../../hooks/useBrokenCovers';
 import './BookSearch.css';
 
 const DEBOUNCE_MS = 400;
@@ -15,6 +16,7 @@ const BookPlaceholderIcon = () => (
 
 function BookSearch({ onSelect, onClose }) {
   const { t } = useTranslation();
+  const { isBroken, markBroken } = useBrokenCovers();
   useEscapeKey(onClose);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -98,8 +100,11 @@ function BookSearch({ onSelect, onClose }) {
                   }
                 }}
               >
-                {book.coverImage ? (
-                  <img src={book.coverImage} alt={book.title} className="book-search-cover" />
+                {book.coverImage && !isBroken(book.coverImage) ? (
+                  <img
+                    {...coverThumbnailProps(book.coverImage)} alt={book.title} className="book-search-cover"
+                    loading="lazy" decoding="async" onError={() => markBroken(book.coverImage)}
+                  />
                 ) : (
                   <div className="book-search-cover book-search-cover-placeholder"><BookPlaceholderIcon /></div>
                 )}

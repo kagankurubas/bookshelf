@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { resolveTagCasing } from '../../lib/tagCasing';
+import { openLibraryCoverUrl } from '../../lib/openLibrary';
+import { useBrokenCovers } from '../../hooks/useBrokenCovers';
 import './BookModal.css';
 
 const iconProps = { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 };
@@ -49,6 +51,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
   const [saveError, setSaveError] = useState(null);
 
   const [isAddingCover, setIsAddingCover] = useState(false);
+  const { isBroken, markBroken } = useBrokenCovers();
   const [coverPosition, setCoverPosition] = useState(selectedBook ? selectedBook.coverPosition || 50 : 50);
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
@@ -259,6 +262,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
     'Distopya', 'Kurgu Dışı', 'Biyografi', 'Bilim', 'Tarih', 'Felsefe'
   ];
   const statuses = ['Başlanmadı', 'Okunuyor', 'Tamamlandı', 'Yarıda Bırakıldı'];
+  const showCover = Boolean(coverImage) && !isBroken(coverImage);
 
   return (
     <div className="modal-overlay book-modal-overlay" onClick={onClose}>
@@ -266,9 +270,9 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
         
         <div
           style={{
-            width: '100%', height: coverImage || isAddingCover ? '240px' : '90px',
-            background: coverImage ? '#1a1a1a' : 'var(--surface-alt)', position: 'relative', overflow: 'hidden', borderBottom: '1px solid var(--border)',
-            transition: 'height 0.2s ease', cursor: coverImage ? (isDragging ? 'grabbing' : 'grab') : 'default'
+            width: '100%', height: showCover || isAddingCover ? '240px' : '90px',
+            background: showCover ? '#1a1a1a' : 'var(--surface-alt)', position: 'relative', overflow: 'hidden', borderBottom: '1px solid var(--border)',
+            transition: 'height 0.2s ease', cursor: showCover ? (isDragging ? 'grabbing' : 'grab') : 'default'
           }}
           onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}
           onTouchMove={handleTouchMove} onTouchEnd={handleMouseUp}
@@ -284,9 +288,9 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
             ×
           </button>
 
-          {coverImage ? (
+          {showCover ? (
             <div style={{ width: '100%', height: '100%', position: 'relative', userSelect: 'none', touchAction: 'none' }} onMouseDown={handleMouseDown} onTouchStart={handleTouchStart}>
-              <img src={coverImage} alt={t('bookModal.coverPreviewAlt')} draggable="false" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `center ${coverPosition}%`, pointerEvents: 'none' }} />
+              <img src={openLibraryCoverUrl(coverImage)} alt={t('bookModal.coverPreviewAlt')} draggable="false" onError={() => markBroken(coverImage)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `center ${coverPosition}%`, pointerEvents: 'none' }} />
               <div style={{ position: 'absolute', bottom: '10px', left: '15px', background: 'rgba(0,0,0,0.6)', padding: '3px 8px', borderRadius: '4px', pointerEvents: 'none', zIndex: 10, display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2"><path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4" /></svg>
                 <span style={{ fontSize: '10px', color: '#ccc' }}>{t('bookModal.dragCoverHint')}</span>

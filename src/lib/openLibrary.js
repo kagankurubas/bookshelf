@@ -94,3 +94,39 @@ export async function searchBooks(query) {
   searchCache.set(key, results);
   return results;
 }
+
+const OPEN_LIBRARY_COVER_PATH = /^\/b\/(id|isbn|olid)\/(.+)-[SML]\.jpg$/i;
+
+function parseOpenLibraryCoverUrl(url) {
+  if (!url) return null;
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  const match = parsed.hostname === 'covers.openlibrary.org' && parsed.pathname.match(OPEN_LIBRARY_COVER_PATH);
+  return match ? { parsed, type: match[1], key: match[2] } : null;
+}
+
+// Rewrites an Open Library cover URL to the given size variant (S/M/L; omit to
+// keep the stored size) and adds default=false so a missing cover 404s instead
+// of returning a 1x1 blank. Any other URL is returned unchanged.
+export function openLibraryCoverUrl(url, size) {
+  const cover = parseOpenLibraryCoverUrl(url);
+  if (!cover) return url;
+
+  const { parsed, type, key } = cover;
+  if (size) {
+    parsed.pathname = `/b/${type}/${key}-${size}.jpg`;
+  }
+  parsed.searchParams.set('default', 'false');
+  return parsed.toString();
+}
+
+// src/srcSet for a ~40px cover thumbnail: S at 1x, M on high-DPI screens.
+export function coverThumbnailProps(url) {
+  if (!parseOpenLibraryCoverUrl(url)) return { src: url };
+  const small = openLibraryCoverUrl(url, 'S');
+  return { src: small, srcSet: `${small} 1x, ${openLibraryCoverUrl(url, 'M')} 2x` };
+}
