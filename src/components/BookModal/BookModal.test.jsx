@@ -176,4 +176,14 @@ describe('BookModal cover', () => {
     expect(screen.queryByRole('img', { name: 'Kapak Önizleme' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Kapak Ekle/ })).toBeInTheDocument();
   });
+
+  it('returns to the URL input with the pasted text kept when a new cover URL fails to load', () => {
+    renderModal({ selectedBook: selectedBook() });
+
+    fireEvent.click(screen.getByRole('button', { name: /Kapak Ekle/ }));
+    fireEvent.change(screen.getByLabelText(/kapak/i), { target: { value: 'https://example.com/not-an-image' } });
+    fireEvent.error(screen.getByRole('img', { name: 'Kapak Önizleme' }));
+
+    expect(screen.getByLabelText(/kapak/i)).toHaveValue('https://example.com/not-an-image');
+  });
 });

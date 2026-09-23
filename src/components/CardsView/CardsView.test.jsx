@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import CardsView from './CardsView';
 
 const renderStars = () => null;
@@ -53,5 +53,17 @@ describe('CardsView', () => {
 
     expect(screen.queryByRole('img', { name: 'Dune' })).not.toBeInTheDocument();
     expect(screen.getByText('Kapak Ekle')).toBeInTheDocument();
+  });
+
+  it('retries failed covers when the connection comes back', () => {
+    const books = [{ id: '1', title: 'Dune', author: 'Frank Herbert', publisher: '', rating: 0, category: '', status: 'Okunuyor', coverImage: 'https://covers.openlibrary.org/b/id/1-L.jpg' }];
+    render(<CardsView books={books} onOpenBook={vi.fn()} onDeleteBook={vi.fn()} renderStars={renderStars} />);
+
+    fireEvent.error(screen.getByRole('img', { name: 'Dune' }));
+    expect(screen.queryByRole('img', { name: 'Dune' })).not.toBeInTheDocument();
+
+    act(() => { window.dispatchEvent(new Event('online')); });
+
+    expect(screen.getByRole('img', { name: 'Dune' })).toBeInTheDocument();
   });
 });

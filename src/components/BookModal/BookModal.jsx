@@ -307,7 +307,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
               <div style={{ display: 'flex', gap: '10px', width: '100%', maxWidth: '400px' }}>
                 <input
                   type="url" placeholder={t('bookModal.coverUrlPlaceholder')} aria-label={t('bookModal.coverUrlPlaceholder')} autoFocus
-                  onChange={(e) => setCoverImage(e.target.value)}
+                  value={coverImage} onChange={(e) => setCoverImage(e.target.value)}
                   className="form-input" style={{ flex: 1, fontSize: '12px' }}
                 />
                 <button type="button" onClick={() => setIsAddingCover(false)} className="chip-btn" style={{ padding: '8px 14px' }}>{t('toolbar.cancel')}</button>

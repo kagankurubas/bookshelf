@@ -160,6 +160,11 @@ describe('openLibraryCoverUrl', () => {
       .toBe('https://covers.openlibrary.org/b/id/12345-S.jpg?default=false');
   });
 
+  it('rewrites isbn-keyed covers too', () => {
+    expect(openLibraryCoverUrl('https://covers.openlibrary.org/b/isbn/9780553293357-L.jpg', 'M'))
+      .toBe('https://covers.openlibrary.org/b/isbn/9780553293357-M.jpg?default=false');
+  });
+
   it('keeps the stored size when no size is given', () => {
     expect(openLibraryCoverUrl('https://covers.openlibrary.org/b/isbn/9780553293357-L.jpg'))
       .toBe('https://covers.openlibrary.org/b/isbn/9780553293357-L.jpg?default=false');
