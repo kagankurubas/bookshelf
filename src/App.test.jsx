@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import App from './App';
 import { useAuth } from './hooks/useAuth';
 import { useOfflineBookQueue } from './hooks/useOfflineBookQueue';
@@ -33,6 +33,14 @@ function emptyQueryResult() {
   builder.order = vi.fn(self);
   builder.then = (resolve) => Promise.resolve({ data: [], error: null }).then(resolve);
   return builder;
+}
+
+// supabase.rpc(): awaited directly or via .single(), both resolving empty.
+function emptyRpcResult() {
+  return {
+    single: () => Promise.resolve({ data: null, error: null }),
+    then: (resolve) => Promise.resolve({ data: [], error: null }).then(resolve),
+  };
 }
 
 function mockAuth({ user = null, loading = false } = {}) {
@@ -134,5 +142,25 @@ describe('App', () => {
     expect(container.querySelector('.offline-banner').textContent).toContain(
       '3 kitap bağlantı gelince eklenecek.'
     );
+  });
+
+  it('opens the lazy-loaded Dashboard, Settings and AI chat from the logged-in app', async () => {
+    supabase.rpc.mockImplementation(emptyRpcResult);
+    // jsdom has no scrollIntoView; AiChatDrawer calls it on render.
+    Element.prototype.scrollIntoView = vi.fn();
+    mockAuth({ loading: false, user: { id: 'u1', email: 'test@example.com' } });
+    mockOnlineStatus({ isOnline: true });
+
+    render(<App />);
+    await screen.findByText('test@example.com');
+
+    fireEvent.click(screen.getByRole('button', { name: 'İstatistikler' }));
+    expect(await screen.findByRole('heading', { name: 'İstatistikler' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ayarlar' }));
+    expect(await screen.findByRole('heading', { name: 'Ayarlar' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Kitap Asistanı' }));
+    expect(await screen.findByRole('textbox', { name: 'Bir kitap hakkında soru sor...' })).toBeInTheDocument();
   });
 });
