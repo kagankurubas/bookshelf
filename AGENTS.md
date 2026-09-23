@@ -41,7 +41,14 @@ Production's migration history can silently disagree with what `supabase migrati
 
 ### Installing `.agents/skills`
 
-`.agents/skills/` is not tracked in git; `skills-lock.json` is its source of truth. When the folder is missing or incomplete (a fresh clone, or a pull that crossed the commit untracking it), restore it from the lockfile with `npx skills experimental_install`, which re-downloads each skill from its recorded source. That command does not recreate the `.claude/skills/` symlinks; if those are missing too, tell the user instead of improvising.
+`.agents/skills/` and the `.claude/skills/` links into it are not tracked in git; `skills-lock.json` is the source of truth. When either is missing or incomplete (a fresh clone, or a pull that crossed the commit untracking them), restore both from the lockfile with these two commands, in order:
+
+```bash
+npx skills@1.7.0 experimental_install
+npx skills@1.7.0 add mattpocock/skills -a claude-code -a codex -y --skill $(node -p "Object.keys(require('./skills-lock.json').skills).join(' ')")
+```
+
+The first restores `.agents/skills/`. The second links each skill into `.claude/skills/`; `-a codex` must stay because it shares `.agents/skills/`, and without a second directory the CLI copies instead of linking. Afterwards `skills-lock.json` differs only in line endings, so leave it uncommitted.
 
 ### implement-spec approval gate
 
