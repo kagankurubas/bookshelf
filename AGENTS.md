@@ -38,3 +38,11 @@ Single-context layout: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/ag
 ### Supabase migrations
 
 Production's migration history can silently disagree with what `supabase migration list` reports. See `docs/agents/supabase-migrations.md`.
+
+### Installing `.agents/skills`
+
+`.agents/skills/` is not tracked in git; `skills-lock.json` is its source of truth. When the folder is missing or incomplete (a fresh clone, or a pull that crossed the commit untracking it), restore it from the lockfile with `npx skills experimental_install`, which re-downloads each skill from its recorded source. That command does not recreate the `.claude/skills/` symlinks; if those are missing too, tell the user instead of improvising.
+
+### implement-spec approval gate
+
+`implement-spec` stops for the user's explicit approval before every step that changes the repo or a PR: creating a branch, writing files, committing, pushing, merging. This holds whichever version of `.agents/skills/implement-spec/SKILL.md` is installed, including the upstream one `npx skills experimental_install` restores, which has no such gate. Where the skill file and this rule disagree, this rule wins.
