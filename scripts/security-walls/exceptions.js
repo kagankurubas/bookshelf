@@ -17,5 +17,10 @@ export const exceptions = {
     { table: 'book_libraries', parents: ['books', 'libraries'], reason: 'Both linked rows must belong to the user (migration 011)' },
   ],
   // JWT `iss` values of Supabase CLI local demo keys, not leaks: { iss, reason }
-  localDemoJwtIssuers: [],
+  localDemoJwtIssuers: [
+    {
+      iss: 'supabase-demo',
+      reason: 'Supabase CLI local stack keys: public, identical on every install, only valid against a local instance',
+    },
+  ],
 }
