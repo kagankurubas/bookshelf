@@ -24,9 +24,8 @@ import { useLibrary } from './hooks/useLibrary';
 import { useOfflineBookQueue } from './hooks/useOfflineBookQueue';
 import './App.css';
 
-// Feature-specific UI that's only needed once its flow opens - code-split via
-// dynamic import to keep it (zxing-wasm, papaparse, html-to-image, charts) out
-// of the initial page load.
+// Feature-specific UI, only needed once its flow opens - kept out of the
+// initial page load.
 const BarcodeScanner = lazy(() => import('./components/BarcodeScanner/BarcodeScanner'));
 const BatchScanner = lazy(() => import('./components/BatchScanner/BatchScanner'));
 const SettingsModal = lazy(() => import('./components/SettingsModal/SettingsModal'));

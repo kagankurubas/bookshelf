@@ -3,10 +3,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import AiChatDrawer from './AiChatDrawer';
 import { supabase } from '../../lib/supabaseClient';
 
-// jsdom doesn't implement scrollIntoView - the component calls it on every
-// message list change (see AiChatDrawer.jsx).
-Element.prototype.scrollIntoView = vi.fn();
-
 vi.mock('../../lib/supabaseClient', () => ({
   supabase: {
     from: vi.fn(() => ({
