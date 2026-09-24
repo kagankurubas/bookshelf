@@ -122,14 +122,31 @@ export default defineConfig(({ mode }) => {
       host: true,
     },
     test: {
-      environment: 'jsdom',
-      setupFiles: './src/test/setup.js',
-      // RLS entegrasyon testleri (tests/integration/**, kendi
-      // vitest.integration.config.js'iyle "npm run test:integration"
-      // uzerinden calisir) bu suite'in disinda kalsin diye include'i
-      // src/ agaciyla sinirliyoruz - aksi halde Vitest'in varsayilan
-      // include deseni ikisini de tek komutta calistirmaya calisirdi.
-      include: ['src/**/*.{test,spec}.{js,jsx}'],
+      projects: [
+        {
+          extends: true,
+          test: {
+            name: 'app',
+            environment: 'jsdom',
+            setupFiles: './src/test/setup.js',
+            // RLS entegrasyon testleri (tests/integration/**, kendi
+            // vitest.integration.config.js'iyle "npm run test:integration"
+            // uzerinden calisir) bu suite'in disinda kalsin diye include'i
+            // src/ agaciyla sinirliyoruz - aksi halde Vitest'in varsayilan
+            // include deseni ikisini de tek komutta calistirmaya calisirdi.
+            include: ['src/**/*.{test,spec}.{js,jsx}'],
+          },
+        },
+        {
+          // Node-side tooling tests (e.g. security-walls); no jsdom or app setup.
+          extends: true,
+          test: {
+            name: 'scripts',
+            environment: 'node',
+            include: ['scripts/**/*.test.js'],
+          },
+        },
+      ],
     },
   }
 })
