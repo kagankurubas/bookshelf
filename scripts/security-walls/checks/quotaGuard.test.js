@@ -48,7 +48,7 @@ async function run(files) {
 
 const failures = (results) => results.filter((r) => r.status === 'fail')
 
-describe('Wall 5: quota guard', () => {
+describe('Gemini quota guard wall', () => {
   it('passes a guard that runs before any insert or Gemini fetch', async () => {
     const results = await run({})
     expect(failures(results)).toEqual([])

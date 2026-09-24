@@ -63,7 +63,7 @@ async function run(runner, { linked = true } = {}) {
 
 const failures = (results) => results.filter((r) => r.status === 'fail')
 
-describe('Wall 4: production migration history (--linked)', () => {
+describe('production migration history wall', () => {
   it('skips without --linked and never calls the CLI runner', async () => {
     const runner = fakeRunner()
     const results = await run(runner, { linked: false })

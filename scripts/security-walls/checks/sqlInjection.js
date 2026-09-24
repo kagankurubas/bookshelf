@@ -149,7 +149,7 @@ function scanStatement({ text, line, file }) {
 
 export const sqlInjection = {
   id: 'sql-injection',
-  title: 'SQL injection (static)',
+  title: 'SQL injection',
   run(ctx) {
     const files = ctx.trackedFiles.filter(isScannedFile)
     const findings = files.flatMap((file) => scanCode(file, ctx.readFile(file)))

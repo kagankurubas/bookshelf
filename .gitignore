@@ -28,5 +28,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-# Installed skills, reproducible from skills-lock.json (kept tracked as provenance)
-.agents/skills/
+# Installed skills, reproducible from skills-lock.json (kept tracked as provenance);
+# security-walls is a project skill with no upstream, so it is tracked
+.agents/skills/*
+!.agents/skills/security-walls/

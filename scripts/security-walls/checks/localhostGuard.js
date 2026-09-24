@@ -42,7 +42,7 @@ function referencesGuard(configSource) {
 
 export const localhostGuard = {
   id: 'localhost-guard',
-  title: 'RLS integration tests localhost guard',
+  title: 'Integration test localhost guard',
   run(ctx) {
     const results = []
     const guardPath = join(ctx.root, GUARD_FILE)

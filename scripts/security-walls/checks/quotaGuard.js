@@ -150,6 +150,6 @@ function checkEdgeFunction(ctx) {
 
 export const quotaGuard = {
   id: 'quota-guard',
-  title: 'Wall 5: Gemini quota guard',
+  title: 'Gemini quota guard',
   run: (ctx) => [...checkMigrations(ctx), ...checkEdgeFunction(ctx)],
 }

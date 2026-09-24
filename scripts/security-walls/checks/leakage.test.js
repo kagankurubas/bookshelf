@@ -28,7 +28,7 @@ async function run(files = {}, untracked = {}) {
 
 const failures = (results) => results.filter((r) => r.status === 'fail')
 
-describe('leakage wall', () => {
+describe('secret leakage wall', () => {
   it('passes a clean repo and skips sub-checks without inputs', async () => {
     const results = await run()
     expect(failures(results)).toEqual([])

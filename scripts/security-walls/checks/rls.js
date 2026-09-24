@@ -1,4 +1,4 @@
-// Wall 1: RLS and security definer, judged on the final state of the
+// RLS and security definer wall, judged on the final state of the
 // migrations (not schema.sql).
 
 const AUTH_UID = /\bauth\s*\.\s*uid\s*\(\s*\)/i
@@ -18,7 +18,8 @@ export function referencesTable(expression, table) {
 }
 
 // The policy set the migrations leave behind, each with the parent tables its
-// expressions must reference. Wall 4 compares production pg_policies to this.
+// expressions must reference. The production migration history wall compares
+// production pg_policies to this.
 // Shape: [{ table, name, command, using, withCheck, parents, file, line }]
 export function expectedPolicies({ migrations, exceptions }) {
   const parentsByTable = new Map(exceptions.ownershipChains.map((chain) => [chain.table, chain.parents]))
@@ -131,6 +132,6 @@ function run(ctx) {
 
 export const rlsCheck = {
   id: 'rls',
-  title: 'Wall 1: RLS and security definer',
+  title: 'RLS and security definer',
   run,
 }

@@ -1,5 +1,5 @@
-// Wall 4: production migration history and policies, read-only, only with
-// --linked. Every Supabase CLI call goes through the allow-list below.
+// Production migration history wall: production migration history and
+// policies, read-only, only with --linked. Every Supabase CLI call goes through the allow-list below.
 import { spawnSync } from 'node:child_process'
 import { expectedPolicies, policyProblems } from './rls.js'
 
@@ -125,7 +125,7 @@ function comparePolicies(ctx, rows) {
 export function createLinkedMigrationsCheck({ runner = defaultRunner } = {}) {
   return {
     id: 'linked-migrations',
-    title: 'Wall 4: production migration history (--linked)',
+    title: 'Production migration history (--linked)',
     async run(ctx) {
       if (!ctx.linked) return [{ status: 'skip', message: 'use --linked for the production check' }]
       try {

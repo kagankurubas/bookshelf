@@ -133,7 +133,7 @@ function checkEnvExample(ctx) {
 
 export const leakage = {
   id: 'leakage',
-  title: 'Leakage',
+  title: 'Secret leakage',
   run(ctx) {
     const demoIssuers = new Set(ctx.exceptions.localDemoJwtIssuers?.map((e) => e.iss) ?? [])
     const projectRef = readProjectRef(ctx.root)
