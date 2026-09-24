@@ -50,6 +50,20 @@ npx skills@1.7.0 add mattpocock/skills -a claude-code -a codex -y --skill $(node
 
 The first restores `.agents/skills/`. The second links each skill into `.claude/skills/`; `-a codex` must stay because it shares `.agents/skills/`, and without a second directory the CLI copies instead of linking. Afterwards `skills-lock.json` differs only in line endings, so leave it uncommitted.
 
+`.agents/skills/security-walls/` is the one exception: a project skill tracked in git, absent from `skills-lock.json`, so the commands above neither restore nor manage it. Keep it intact through a restore; if it is ever missing, `git checkout -- .agents/skills/security-walls` brings it back. Its only extra step is the `.claude/skills/` link, run from the repo root:
+
+```powershell
+# Windows: a directory junction
+New-Item -ItemType Junction -Path .claude\skills\security-walls -Target .agents\skills\security-walls
+```
+
+```bash
+# macOS/Linux
+ln -s ../../.agents/skills/security-walls .claude/skills/security-walls
+```
+
+Check that `.claude/skills/security-walls/SKILL.md` opens.
+
 ### implement-spec approval gate
 
 `implement-spec` stops for the user's explicit approval before every step that changes the repo or a PR: creating a branch, writing files, committing, pushing, merging. This holds whichever version of `.agents/skills/implement-spec/SKILL.md` is installed, including the upstream one `npx skills experimental_install` restores, which has no such gate. Where the skill file and this rule disagree, this rule wins.

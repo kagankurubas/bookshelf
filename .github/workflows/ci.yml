@@ -25,6 +25,9 @@ jobs:
 
       - run: npm run build
 
+      # Blocking; after build so dist/ gets the service_role scan. Never --linked: CI must not reach production.
+      - run: npm run check:security
+
   rls-integration-tests:
     runs-on: ubuntu-latest
     steps:
