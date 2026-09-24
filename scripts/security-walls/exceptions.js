@@ -9,5 +9,10 @@ export const exceptions = {
   // Expected parent tables for indirectly owned tables: { table, parents: [], reason }
   ownershipChains: [],
   // JWT `iss` values of Supabase CLI local demo keys, not leaks: { iss, reason }
-  localDemoJwtIssuers: [],
+  localDemoJwtIssuers: [
+    {
+      iss: 'supabase-demo',
+      reason: 'Supabase CLI local stack keys: public, identical on every install, only valid against a local instance',
+    },
+  ],
 }
