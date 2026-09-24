@@ -53,19 +53,48 @@ describe('secret leakage wall', () => {
     expect(failures(results)[0].message).not.toContain(line.split('=').pop())
   })
 
-  it('allows local demo JWTs', async () => {
+  it('allows a local demo anon JWT but not a local demo service_role JWT', async () => {
     const results = await run({
       'supabase/seed.env': `ANON=${fakeJwt({ iss: 'supabase-demo', role: 'anon' })}\nSERVICE=${fakeJwt({ iss: 'supabase-demo', role: 'service_role' })}\n`,
     })
-    expect(failures(results)).toEqual([])
+    expect(failures(results)).toEqual([
+      expect.objectContaining({ file: 'supabase/seed.env', line: 2, message: 'service_role JWT in a tracked file' }),
+    ])
   })
 
-  it('fails on a service_role JWT in build output but allows an anon one there', async () => {
-    const results = await run({}, {
-      'dist/assets/index.js': `const a="${fakeJwt({ iss: 'supabase', role: 'anon' })}";\nconst s="${fakeJwt({ iss: 'supabase', role: 'service_role' })}";`,
+  it('fails on a JWT with an undecodable payload or an unexpected role in a tracked file', async () => {
+    const undecodable = [{ alg: 'HS256' }, '{"role":']
+      .map((part) => Buffer.from(typeof part === 'string' ? part : JSON.stringify(part)).toString('base64url'))
+      .concat('signature')
+      .join('.')
+    const results = await run({
+      'src/keys.js': [
+        `a=${undecodable}`,
+        `b=${fakeJwt({ iss: 'supabase', role: 'authenticated' })}`,
+        `c=${fakeJwt({ iss: 'supabase-demo' })}`,
+      ].join('\n'),
     })
-    expect(failures(results)).toEqual([
-      expect.objectContaining({ file: 'dist/assets/index.js', line: 2, message: expect.stringContaining('service_role') }),
+    expect(failures(results).map((r) => [r.line, r.message])).toEqual([
+      [1, 'JWT-shaped token with an undecodable payload in a tracked file'],
+      [2, 'JWT whose role is neither anon nor service_role in a tracked file'],
+      [3, 'JWT whose role is neither anon nor service_role in a tracked file'],
+    ])
+  })
+
+  it('fails on service_role, demo service_role and unknown-role JWTs in build output but allows anon ones there', async () => {
+    const results = await run({}, {
+      'dist/assets/index.js': [
+        `const a="${fakeJwt({ iss: 'supabase', role: 'anon' })}";`,
+        `const s="${fakeJwt({ iss: 'supabase', role: 'service_role' })}";`,
+        `const d="${fakeJwt({ iss: 'supabase-demo', role: 'service_role' })}";`,
+        `const u="${fakeJwt({ iss: 'supabase', role: 'authenticated' })}";`,
+        `const l="${fakeJwt({ iss: 'supabase-demo', role: 'anon' })}";`,
+      ].join('\n'),
+    })
+    expect(failures(results).map((r) => [r.file, r.line, r.message])).toEqual([
+      ['dist/assets/index.js', 2, 'service_role JWT in build output'],
+      ['dist/assets/index.js', 3, 'service_role JWT in build output'],
+      ['dist/assets/index.js', 4, 'JWT whose role is neither anon nor service_role in build output'],
     ])
   })
 

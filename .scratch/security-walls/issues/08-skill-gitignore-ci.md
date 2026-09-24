@@ -14,5 +14,5 @@
 - [x] `.gitignore`'daki `.agents/skills/` kuralı `.agents/skills/*` + `!.agents/skills/security-walls/` olarak değiştirildi; `git check-ignore` ile upstream bir skill'in hâlâ ignore edildiği, `security-walls`'ın ise takip edildiği doğrulandı
 - [x] `AGENTS.md`'deki `.agents/skills` restore bölümüne bu proje skill'inin `.claude/skills` bağlantısının nasıl oluşturulacağı eklendi; adım gerçekten denendi
 - [x] `.github/workflows/ci.yml`'deki `build` job'ına `npm run check:security` adımı eklendi (`--linked` olmadan)
-- [ ] Draft PR'da CI'daki `build` job'ı bu adımla yeşil
+- [x] Draft PR'da CI'daki `build` job'ı bu adımla yeşil
 - [x] Duvar başlıkları normalize edildi: "Wall N:" numaralandırması kaldırıldı, altı başlık kısa, açıklayıcı ve sentence case (id'ler değişmedi); koddaki "Wall N" ifadeleri duvar adıyla değiştirildi

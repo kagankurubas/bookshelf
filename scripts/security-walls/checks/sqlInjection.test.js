@@ -34,6 +34,26 @@ const data = await supabase.rpc('get_stats', '{"p_year":' + year + '}')
     ])
   })
 
+  it('fails .rpc() arguments that are neither an object literal nor a variable', async () => {
+    const calls = [
+      `supabase.rpc('f', '{"p_year":2024}')`,
+      `supabase.rpc('f', buildArgs(year))`,
+      `supabase.rpc('f', state.args)`,
+      'supabase.rpc(\'f\', `{"p_year":2024}`)',
+      `supabase.rpc('f', a || b)`,
+      `supabase.rpc('f', ...rest)`,
+    ]
+    const results = await run({ 'src/hooks/useRpc.js': calls.join('\n') })
+    expect(failures(results).map((r) => [r.line, r.message])).toEqual([
+      [1, '.rpc() arguments must be an object literal or a variable, not Literal'],
+      [2, '.rpc() arguments must be an object literal or a variable, not CallExpression'],
+      [3, '.rpc() arguments must be an object literal or a variable, not MemberExpression'],
+      [4, '.rpc() arguments must be an object literal or a variable, not TemplateLiteral'],
+      [5, '.rpc() arguments must be an object literal or a variable, not LogicalExpression'],
+      [6, '.rpc() arguments must be an object literal or a variable, not SpreadElement'],
+    ])
+  })
+
   it('fails a migration building SQL with execute and ||', async () => {
     const results = await run({
       'supabase/migrations/001_dyn.sql': `
@@ -77,7 +97,8 @@ do $$ begin execute format('select %s', current_user); end $$;
 const read = books.filter((b) => b.status === 'read')
 const tagged = tags.filter((t) => t.startsWith(\`\${prefix}:\`))
 const { data } = await supabase.rpc('get_reading_stats', { p_year: year })
-const other = await supabase.rpc('get_reading_stats', args)
+const other = await supabase.rpc('get_reading_stats', args, { get: true })
+const years = await supabase.rpc('get_reading_years')
 await supabase.from('books').select('*').not('rating', 'is', null).filter('status', 'eq', status)
 `,
       'src/hooks/useBooks.test.js': 'await client.query(`select ${x}`)\n',
@@ -85,6 +106,7 @@ await supabase.from('books').select('*').not('rating', 'is', null).filter('statu
 create function f(t text) returns void language plpgsql as $$
 begin
   raise notice 'never execute ' || t;
+  /* outer /* nested */ execute 'select ' || t; */
   execute format('select %I from %L', t, t);
 end;
 $$;

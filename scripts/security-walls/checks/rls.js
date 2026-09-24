@@ -1,6 +1,8 @@
 // RLS and security definer wall, judged on the final state of the
 // migrations (not schema.sql).
 
+import { fail, passIfEmpty } from '../results.js'
+
 const AUTH_UID = /\bauth\s*\.\s*uid\s*\(\s*\)/i
 const ALTER_BLIND_SPOT = /^alter\s+(policy|function|routine)\b/i
 
@@ -56,15 +58,14 @@ export function policyProblems(policy) {
 function run(ctx) {
   const { migrations, exceptions } = ctx
   if (migrations.files.length === 0) {
-    return [{ status: 'fail', message: 'no migration files found; the RLS wall cannot see the schema' }]
+    return [fail({ message: 'no migration files found; the RLS wall cannot see the schema' })]
   }
   const results = []
-  const fail = (message, file, line) => results.push({ status: 'fail', message, file, line })
 
   for (const statement of migrations.statements) {
     const match = ALTER_BLIND_SPOT.exec(statement.text)
     if (match) {
-      fail(`alter ${match[1].toLowerCase()} is not understood by this wall; use drop + create instead`, statement.file, statement.line)
+      results.push(fail({ message: `alter ${match[1].toLowerCase()} is not understood by this wall; use drop + create instead`, file: statement.file, line: statement.line }))
     }
   }
 
@@ -77,19 +78,19 @@ function run(ctx) {
 
   for (const table of migrations.tables.values()) {
     if (!table.rls) {
-      fail(`table ${table.name} does not have row level security enabled`, table.rlsFile ?? table.file, table.rlsLine ?? table.line)
+      results.push(fail({ message: `table ${table.name} does not have row level security enabled`, file: table.rlsFile ?? table.file, line: table.rlsLine ?? table.line }))
       continue
     }
     const policies = policiesByTable.get(table.name) ?? []
     if (policies.length === 0 && !policyless.has(table.name)) {
-      fail(`table ${table.name} has RLS enabled but no policies and is not in exceptions.policylessTables`, table.file, table.line)
+      results.push(fail({ message: `table ${table.name} has RLS enabled but no policies and is not in exceptions.policylessTables`, file: table.file, line: table.line }))
     }
     if (policies.length > 0 && policyless.has(table.name)) {
-      fail(`table ${table.name} is in exceptions.policylessTables but has policies`, policies[0].file, policies[0].line)
+      results.push(fail({ message: `table ${table.name} is in exceptions.policylessTables but has policies`, file: policies[0].file, line: policies[0].line }))
     }
     for (const policy of policies) {
       for (const problem of policyProblems(policy)) {
-        fail(`policy "${policy.name}" on ${policy.table}: ${problem}`, policy.file, policy.line)
+        results.push(fail({ message: `policy "${policy.name}" on ${policy.table}: ${problem}`, file: policy.file, line: policy.line }))
       }
     }
   }
@@ -97,37 +98,31 @@ function run(ctx) {
   for (const table of policiesByTable.keys()) {
     if (!migrations.tables.has(table)) {
       const policy = policiesByTable.get(table)[0]
-      fail(`policy "${policy.name}" is on ${table}, which no migration creates`, policy.file, policy.line)
+      results.push(fail({ message: `policy "${policy.name}" is on ${table}, which no migration creates`, file: policy.file, line: policy.line }))
     }
   }
   for (const { table } of [...exceptions.ownershipChains, ...exceptions.policylessTables]) {
     if (!migrations.tables.has(table)) {
-      fail(`exceptions refer to table ${table}, which no migration creates`, 'scripts/security-walls/exceptions.js')
+      results.push(fail({ message: `exceptions refer to table ${table}, which no migration creates`, file: 'scripts/security-walls/exceptions.js' }))
     }
   }
 
   const allowedDefiners = new Set(exceptions.securityDefinerFunctions.map((entry) => entry.name))
   for (const fn of migrations.functions.values()) {
     if (!fn.securityDefiner) continue
-    if (!fn.searchPath) fail(`security definer function ${fn.name} does not set search_path`, fn.file, fn.line)
+    if (!fn.searchPath) results.push(fail({ message: `security definer function ${fn.name} does not set search_path`, file: fn.file, line: fn.line }))
     if (!allowedDefiners.has(fn.name)) {
-      fail(`security definer function ${fn.name} is not in exceptions.securityDefinerFunctions`, fn.file, fn.line)
+      results.push(fail({ message: `security definer function ${fn.name} is not in exceptions.securityDefinerFunctions`, file: fn.file, line: fn.line }))
     }
   }
   for (const name of allowedDefiners) {
     if (!migrations.functions.get(name)?.securityDefiner) {
-      fail(`exceptions allow security definer function ${name}, which no migration defines as security definer`, 'scripts/security-walls/exceptions.js')
+      results.push(fail({ message: `exceptions allow security definer function ${name}, which no migration defines as security definer`, file: 'scripts/security-walls/exceptions.js' }))
     }
   }
 
-  if (results.length === 0) {
-    const definers = [...migrations.functions.values()].filter((fn) => fn.securityDefiner).length
-    results.push({
-      status: 'pass',
-      message: `${migrations.tables.size} tables, ${migrations.policies.size} policies, ${definers} security definer functions checked`,
-    })
-  }
-  return results
+  const definers = [...migrations.functions.values()].filter((fn) => fn.securityDefiner).length
+  return passIfEmpty(results, `${migrations.tables.size} tables, ${migrations.policies.size} policies, ${definers} security definer functions checked`)
 }
 
 export const rlsCheck = {

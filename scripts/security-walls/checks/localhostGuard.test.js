@@ -64,6 +64,12 @@ describe('localhost guard wall', () => {
     expect(failures(results)).toEqual([expect.objectContaining({ file: GUARD_FILE, message: 'guard file is missing' })])
   })
 
+  it('does not treat comment markers inside strings as comments in the config', async () => {
+    const config = `export default { test: { name: 'a//b', globalSetup: './${GUARD_FILE}' } }\n`
+    const results = await run({ [GUARD_FILE]: realGuard, [CONFIG_FILE]: config })
+    expect(failures(results)).toEqual([])
+  })
+
   it('fails when the config no longer references the guard as globalSetup', async () => {
     const withoutGlobalSetup = realConfig.replace(/^\s*globalSetup:.*\r?\n/m, '')
     expect(withoutGlobalSetup).not.toContain('globalSetup:')

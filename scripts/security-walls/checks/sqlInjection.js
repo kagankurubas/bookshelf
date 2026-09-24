@@ -1,16 +1,18 @@
 import * as espree from 'espree'
+import { blankComments } from '../migrations.js'
+import { fail, passIfEmpty } from '../results.js'
 
 const SCANNED_DIRS = ['src/', 'supabase/functions/']
 const CODE_FILE = /\.(?:[cm]?js|jsx|[cm]?ts|tsx)$/
 const TEST_FILE = /\.test\.[^/]+$/
 const RAW_SQL_PACKAGES = new Set(['pg', 'postgres', 'postgresjs'])
 const FILTER_STRING_METHODS = new Set(['or', 'not', 'textSearch'])
+const RPC_ARGS_TYPES = new Set(['ObjectExpression', 'Identifier'])
 
 function isScannedFile(path) {
   return SCANNED_DIRS.some((dir) => path.startsWith(dir)) && CODE_FILE.test(path) && !TEST_FILE.test(path)
 }
 
-// Visits every AST node depth-first.
 function walk(node, visit) {
   visit(node)
   for (const key of espree.VisitorKeys[node.type] ?? []) {
@@ -67,68 +69,37 @@ function scanCode(file, code) {
       ecmaFeatures: { jsx: true },
     })
   } catch (error) {
-    return [{ status: 'fail', file, line: error.lineNumber, message: `could not be parsed (ayrıştırılamadı): ${error.message}` }]
+    return [fail({ file, line: error.lineNumber, message: `could not be parsed: ${error.message}` })]
   }
 
   const findings = []
-  const fail = (node, message) => findings.push({ status: 'fail', file, line: node.loc.start.line, message })
   walk(ast, (node) => {
     if (isRawSqlModule(moduleSource(node))) {
-      fail(node, `imports raw SQL client '${moduleSource(node)}'`)
+      findings.push(fail({ file, line: node.loc.start.line, message: `imports raw SQL client '${moduleSource(node)}'` }))
     }
     if (node.type === 'TaggedTemplateExpression' && node.tag.type === 'Identifier' && node.tag.name === 'sql') {
-      fail(node, 'sql`...` tagged template builds raw SQL')
+      findings.push(fail({ file, line: node.loc.start.line, message: 'sql`...` tagged template builds raw SQL' }))
     }
     if (node.type !== 'CallExpression') return
     const name = methodName(node.callee)
     const args = node.arguments
     if (name === 'query') {
-      fail(node, '.query() call runs raw SQL')
-    } else if (name === 'rpc' && isDynamicString(args[1])) {
-      fail(node, '.rpc() arguments are built by string concatenation; pass an object')
+      findings.push(fail({ file, line: node.loc.start.line, message: '.query() call runs raw SQL' }))
+    } else if (name === 'rpc' && args.length > 1 && !RPC_ARGS_TYPES.has(args[1].type)) {
+      findings.push(fail({ file, line: node.loc.start.line, message: `.rpc() arguments must be an object literal or a variable, not ${args[1].type}` }))
     } else if (FILTER_STRING_METHODS.has(name) || (name === 'filter' && args.length === 3)) {
       if (args.some(isDynamicString)) {
-        fail(node, `.${name}() gets a dynamically built PostgREST filter string`)
+        findings.push(fail({ file, line: node.loc.start.line, message: `.${name}() gets a dynamically built PostgREST filter string` }))
       }
     }
   })
   return findings
 }
 
-// Blanks comments and the contents of single-quoted literals (keeping length
-// and newlines) so keywords and operators are only matched in SQL code.
-function maskSql(sql) {
-  let out = ''
-  let i = 0
-  const blank = (text) => text.replace(/[^\n]/g, ' ')
-  while (i < sql.length) {
-    if (sql.startsWith('--', i)) {
-      const end = sql.indexOf('\n', i)
-      const stop = end === -1 ? sql.length : end
-      out += blank(sql.slice(i, stop))
-      i = stop
-    } else if (sql.startsWith('/*', i)) {
-      const end = sql.indexOf('*/', i + 2)
-      const stop = end === -1 ? sql.length : end + 2
-      out += blank(sql.slice(i, stop))
-      i = stop
-    } else if (sql[i] === "'") {
-      let j = i + 1
-      while (j < sql.length && !(sql[j] === "'" && sql[j + 1] !== "'")) j += sql[j] === "'" ? 2 : 1
-      out += `'${blank(sql.slice(i + 1, j))}'`
-      i = j + 1
-    } else {
-      out += sql[i]
-      i++
-    }
-  }
-  return out.slice(0, sql.length)
-}
-
 // Finds dynamic SQL in plpgsql `execute` statements. `grant execute on`,
 // `execute function/procedure` (triggers) are not dynamic SQL.
 function scanStatement({ text, line, file }) {
-  const masked = maskSql(text)
+  const masked = blankComments(text, { maskLiterals: true })
   const findings = []
   const executeKeyword = /\bexecute\b(?!\s+(?:on|function|procedure)\b)/gi
   let match
@@ -139,9 +110,9 @@ function scanStatement({ text, line, file }) {
     const original = text.slice(match.index, end)
     const at = line + text.slice(0, match.index).split('\n').length - 1
     if (code.includes('||')) {
-      findings.push({ status: 'fail', file, line: at, message: 'execute builds SQL with || concatenation; use format() with %I / %L' })
+      findings.push(fail({ file, line: at, message: 'execute builds SQL with || concatenation; use format() with %I / %L' }))
     } else if (/\bformat\s*\(/i.test(code) && /%s/.test(original)) {
-      findings.push({ status: 'fail', file, line: at, message: 'execute uses format() with %s; use %I / %L' })
+      findings.push(fail({ file, line: at, message: 'execute uses format() with %s; use %I / %L' }))
     }
   }
   return findings
@@ -155,10 +126,9 @@ export const sqlInjection = {
     const findings = files.flatMap((file) => scanCode(file, ctx.readFile(file)))
     const { statements } = ctx.migrations
     findings.push(...statements.flatMap(scanStatement))
-    if (findings.length) return findings
-    return [{
-      status: 'pass',
-      message: `no raw SQL or dynamic filter strings in ${files.length} code files; no dynamic execute in ${statements.length} migration statements`,
-    }]
+    return passIfEmpty(
+      findings,
+      `no raw SQL or dynamic filter strings in ${files.length} code files; no dynamic execute in ${statements.length} migration statements`,
+    )
   },
 }

@@ -60,6 +60,7 @@ Her kontrol PASS / FAIL / SKIP ve FAIL'lerde `dosya:satır` + kısa açıklama d
   - Oluşturulan her tabloda RLS açık olmalı.
   - İstisna listesinde olmayan, RLS'i açık her tablonun en az bir policy'si olmalı ve policy'nin `using` / `with check` ifadelerinden en az biri `auth.uid()` içermeli.
   - Beklenen sahiplik zinciri config'teki tablo başına beklentilere göre doğrulanır: `notes` → `books`, `ai_messages` → `ai_conversations`, `book_libraries` → hem `books` hem `libraries`.
+  - Uygulama bundan daha sıkıdır: her policy'nin her `using` / `with check` ifadesi `auth.uid()` ve beklenen üst tabloların hepsini içermelidir.
   - Her `security definer` fonksiyon `set search_path` içermeli ve istisna listesinde olmalı.
   - Kaynak migration dosyalarıdır; `schema.sql` bu kontrolün kaynağı değildir.
 - **Duvar 2 — Sızıntı**: Taranan küme `git ls-files` ile takip edilen dosyalardır; ayrıca varsa build çıktısı yalnızca `service_role` JWT'si için taranır. Kurallar:

@@ -56,8 +56,8 @@ function fakeRunner({ versions = ok(VERSIONS), policies = ok([BOOKS_ROW, NOTES_R
   })
 }
 
-async function run(runner, { linked = true } = {}) {
-  const root = createFixtureRepo(MIGRATIONS)
+async function run(runner, { linked = true, migrations = {} } = {}) {
+  const root = createFixtureRepo({ ...MIGRATIONS, ...migrations })
   return runChecks({ root, linked, checks: [createLinkedMigrationsCheck({ runner })], exceptions: EXCEPTIONS })
 }
 
@@ -115,15 +115,80 @@ describe('production migration history wall', () => {
     expect(orphan[0].file).toBe('supabase/migrations/002_notes.sql')
   })
 
-  it('skips with a how-to when the CLI is not linked, logged in or installed', async () => {
+  it('fails with one clear result when local and production versions share no format', async () => {
+    for (const versions of [[{ version: 1 }, { version: 2 }], [{ version: '20260101000000' }, { version: '20260102000000' }]]) {
+      const results = failures(await run(fakeRunner({ versions: ok(versions) })))
+      expect(results).toHaveLength(1)
+      expect(results[0].message).toMatch(/local migration versions \(3-digit, e\.g\. 001\) and production .* share no common format/)
+    }
+  })
+
+  it('fails when two local migration files share a version prefix', async () => {
+    const results = failures(await run(fakeRunner(), { migrations: { 'supabase/migrations/002_other.sql': 'select 1;\n' } }))
+    expect(results.map((r) => [r.message, r.file])).toEqual([
+      ['migration version 002 is used by more than one local file (also supabase/migrations/002_notes.sql)', 'supabase/migrations/002_other.sql'],
+    ])
+  })
+
+  it('fails when a production policy has a different command than the migrations', async () => {
+    const results = failures(await run(fakeRunner({ policies: ok([BOOKS_ROW, { ...NOTES_ROW, cmd: 'SELECT' }]) })))
+    expect(results.map((r) => [r.message, r.file])).toEqual([
+      ['production policy "own notes" on notes: command is SELECT, the migrations define ALL', 'supabase/migrations/002_notes.sql'],
+    ])
+  })
+
+  it('skips with a how-to only when the CLI is missing, not logged in or not linked', async () => {
     const notLinked = await run(fakeRunner({ versions: { code: 1, stdout: '', stderr: 'Cannot find project ref. Have you run supabase link?' } }))
     expect(notLinked.map((r) => r.status)).toEqual(['skip'])
     expect(notLinked[0].message).toContain('Have you run supabase link?')
     expect(notLinked[0].message).toContain('npx supabase link')
 
+    const notLoggedIn = await run(fakeRunner({
+      versions: {
+        code: 1,
+        stdout: '',
+        stderr: 'Access token not provided. Supply an access token by running supabase login or setting the SUPABASE_ACCESS_TOKEN environment variable.',
+      },
+    }))
+    expect(notLoggedIn.map((r) => r.status)).toEqual(['skip'])
+    expect(notLoggedIn[0].message).toContain('npx supabase login')
+
     const missing = await run(fakeRunner({ versions: () => { throw new Error('spawn npx ENOENT') } }))
     expect(missing.map((r) => r.status)).toEqual(['skip'])
     expect(missing[0].message).toContain('npx supabase login')
+
+    const noShim = await run(fakeRunner({
+      versions: { code: 1, stdout: '', stderr: "'npx.cmd' is not recognized as an internal or external command,\r\noperable program or batch file.\r\n" },
+    }))
+    expect(noShim.map((r) => r.status)).toEqual(['skip'])
+  })
+
+  it.each([
+    ['a permission error', 'ERROR: permission denied for schema supabase_migrations (SQLSTATE 42501)'],
+    ['a missing supabase_migrations schema', 'ERROR: relation "supabase_migrations.schema_migrations" does not exist (SQLSTATE 42P01)'],
+    ['a SQL error', 'ERROR: syntax error at or near "selec" (SQLSTATE 42601)'],
+    ['an unknown error', 'unexpected failure talking to the Management API'],
+  ])('fails with the stderr excerpt on %s', async (_, stderr) => {
+    const results = await run(fakeRunner({ policies: { code: 1, stdout: '', stderr: `Connecting to remote database...\n${stderr}\n` } }))
+    expect(results).toEqual([
+      expect.objectContaining({ status: 'fail', message: expect.stringContaining(stderr) }),
+    ])
+    expect(results[0].message).toContain('exit 1')
+  })
+
+  it('fails when the runner throws for a reason other than a missing CLI, and redacts credentials', async () => {
+    const thrown = await run(fakeRunner({ versions: () => { throw new Error('spawnSync npx.cmd ETIMEDOUT') } }))
+    expect(thrown).toEqual([expect.objectContaining({ status: 'fail', message: expect.stringContaining('ETIMEDOUT') })])
+
+    const password = ['hun', 'ter2'].join('')
+    const host = `${'q'.repeat(20)}.supabase` + '.co'
+    const leaky = await run(fakeRunner({
+      versions: { code: 1, stdout: '', stderr: `failed to connect to postgresql://postgres:${password}@db.${host}:5432/postgres` },
+    }))
+    expect(leaky.map((r) => r.status)).toEqual(['fail'])
+    expect(leaky[0].message).toContain('postgresql://postgres:<redacted>@db.<ref>.supabase.co')
+    expect(leaky[0].message).not.toContain(password)
+    expect(leaky[0].message).not.toContain('q'.repeat(20))
   })
 
   it('reads rows wrapped in an object with surrounding noise, and fails on unparseable output', async () => {

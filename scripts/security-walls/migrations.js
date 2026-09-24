@@ -4,8 +4,10 @@ import { join } from 'node:path'
 export const MIGRATIONS_DIR = 'supabase/migrations'
 
 // Replaces SQL comments with spaces (keeping newlines) so offsets and line
-// numbers still match the original file.
-function blankComments(sql) {
+// numbers still match the original file. With `maskLiterals`, it also blanks
+// the contents of single-quoted literals and scans into dollar-quoted bodies,
+// leaving only plpgsql code to match against.
+export function blankComments(sql, { maskLiterals = false } = {}) {
   let out = ''
   let i = 0
   while (i < sql.length) {
@@ -34,9 +36,10 @@ function blankComments(sql) {
       } while (depth > 0 && i < sql.length)
     } else if (ch === "'" || ch === '"') {
       const end = skipQuoted(sql, i)
-      out += sql.slice(i, end)
+      const literal = sql.slice(i, end)
+      out += maskLiterals && ch === "'" ? maskLiteral(literal) : literal
       i = end
-    } else if (ch === '$') {
+    } else if (ch === '$' && !maskLiterals) {
       const end = skipDollarQuoted(sql, i)
       out += sql.slice(i, end)
       i = end
@@ -46,6 +49,13 @@ function blankComments(sql) {
     }
   }
   return out
+}
+
+// Keeps a single-quoted literal's quotes and newlines and blanks the rest.
+function maskLiteral(literal) {
+  const closed = literal.length > 1 && literal.endsWith("'")
+  const body = literal.slice(1, closed ? -1 : undefined)
+  return `'${body.replace(/[^\n]/g, ' ')}${closed ? "'" : ''}`
 }
 
 function skipQuoted(sql, start) {

@@ -5,6 +5,8 @@ import { checks as registeredChecks } from './registry.js'
 import { exceptions as configuredExceptions } from './exceptions.js'
 import { readMigrations } from './migrations.js'
 
+export { fail, pass, passIfEmpty, skip } from './results.js'
+
 const STATUSES = new Set(['pass', 'fail', 'skip'])
 
 function lazy(compute) {
@@ -41,6 +43,16 @@ export function createContext({ root, linked = false, exceptions = configuredExc
     },
     readFile(relativePath) {
       return readFileSync(join(absoluteRoot, relativePath), 'utf8')
+    },
+    // UTF-8 text of the file, or null when it is missing, unreadable or binary.
+    readText(relativePath) {
+      let buffer
+      try {
+        buffer = readFileSync(join(absoluteRoot, relativePath))
+      } catch {
+        return null
+      }
+      return buffer.includes(0) ? null : buffer.toString('utf8')
     },
   }
 }
