@@ -5,8 +5,8 @@
 // tutmamak icin tum Gemini cagrisi burada, sunucu tarafinda yapiliyor.
 //
 // Gerekli secret: GEMINI_API_KEY (Dashboard > Edge Functions > Secrets)
-// SUPABASE_URL, SUPABASE_ANON_KEY ve SUPABASE_SERVICE_ROLE_KEY Supabase
-// tarafindan otomatik saglanir.
+// SUPABASE_URL, SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY are
+// provided by Supabase automatically.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 

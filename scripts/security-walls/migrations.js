@@ -182,11 +182,21 @@ const patterns = {
   createFunction: new RegExp(String.raw`^create\s+(?:or\s+replace\s+)?function\s+${NAME}\s*\(`, 'i'),
   dropFunction: /^drop\s+function\s+(?:if\s+exists\s+)?(.+?)(?:\s+(?:cascade|restrict))?$/is,
   functionPrivilege: /^(grant|revoke)\s+(?:grant\s+option\s+for\s+)?(?:execute|all(?:\s+privileges)?)\s+on\s+function\s+(.+?)\s+(?:to|from)\s+(.+?)(?:\s+(?:cascade|restrict|with\s+grant\s+option|granted\s+by\s+.+))?$/is,
+  schemaFunctionPrivilege: /^(grant|revoke)\s+(?:grant\s+option\s+for\s+)?(?:execute|all(?:\s+privileges)?)\s+on\s+all\s+(?:functions|routines)\s+in\s+schema\s+(.+?)\s+(?:to|from)\s+(.+?)(?:\s+(?:cascade|restrict|with\s+grant\s+option|granted\s+by\s+.+))?$/is,
 }
 
 // Roles Postgres (public) and Supabase's default privileges (anon,
 // authenticated, service_role) grant EXECUTE to on a newly created function.
+// Every client role is already in here, so `alter default privileges` can
+// only narrow what a new function gets; it is deliberately not tracked.
 export const DEFAULT_FUNCTION_GRANTEES = ['public', 'anon', 'authenticated', 'service_role']
+
+function applyPrivilege(grantees, verb, roleList) {
+  for (const role of roleList.split(',').map((r) => normalizeName(r.trim()))) {
+    if (verb.toLowerCase() === 'grant') grantees.add(role)
+    else grantees.delete(role)
+  }
+}
 
 function parsePolicy(statement, match, file) {
   const rest = statement.text.slice(match[0].length)
@@ -259,8 +269,9 @@ export function listMigrationFiles(root) {
 // policies and functions. Functions are keyed by name only (overloads are
 // not distinguished). Each entry records the file/line that last defined it
 // and `executeGrantees`, the roles that can still execute it: a new function
-// starts with DEFAULT_FUNCTION_GRANTEES, `create or replace` keeps the
-// existing set, and grant/revoke statements add or remove roles.
+// starts with DEFAULT_FUNCTION_GRANTEES, `create or replace` of the same
+// signature keeps the existing set, and grant/revoke statements (per function
+// or `on all functions in schema public`) add or remove roles.
 // `otherSignatures` lists parameter lists of earlier definitions that a
 // different-signature create left in place (Postgres adds an overload rather
 // than replacing it); any `drop function` of the name clears them.
@@ -302,23 +313,21 @@ export function readMigrations(root) {
       } else if ((m = patterns.createFunction.exec(text))) {
         const fn = parseFunction(statement, m, file)
         const previous = functions.get(fn.name)
-        fn.executeGrantees = new Set(previous?.executeGrantees ?? DEFAULT_FUNCTION_GRANTEES)
+        const replacesSameSignature = previous && normalizeParams(previous.params) === normalizeParams(fn.params)
+        fn.executeGrantees = new Set(replacesSameSignature ? previous.executeGrantees : DEFAULT_FUNCTION_GRANTEES)
         fn.otherSignatures = previous?.otherSignatures ?? []
-        if (previous && normalizeParams(previous.params) !== normalizeParams(fn.params)) {
-          fn.otherSignatures = [...fn.otherSignatures, previous.params]
-        }
+        if (previous && !replacesSameSignature) fn.otherSignatures = [...fn.otherSignatures, previous.params]
         functions.set(fn.name, fn)
       } else if ((m = patterns.dropFunction.exec(text))) {
         for (const name of splitNameList(m[1])) functions.delete(name)
       } else if ((m = patterns.functionPrivilege.exec(text))) {
-        const roles = m[3].split(',').map((role) => normalizeName(role.trim()))
         for (const name of splitNameList(m[2])) {
           const grantees = functions.get(name)?.executeGrantees
-          if (!grantees) continue
-          for (const role of roles) {
-            if (m[1].toLowerCase() === 'grant') grantees.add(role)
-            else grantees.delete(role)
-          }
+          if (grantees) applyPrivilege(grantees, m[1], m[3])
+        }
+      } else if ((m = patterns.schemaFunctionPrivilege.exec(text))) {
+        if (splitNameList(m[2]).includes('public')) {
+          for (const fn of functions.values()) applyPrivilege(fn.executeGrantees, m[1], m[3])
         }
       }
     }

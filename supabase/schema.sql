@@ -290,10 +290,8 @@ alter table ai_daily_usage enable row level security;
 -- Atomically increments today's counter (Pacific time, when Google resets
 -- the quota); returns false without incrementing once the limit is
 -- reached. Because it's a single UPDATE statement, Postgres row locking
--- makes it race-free even under concurrent calls. It takes no arguments
--- and only service_role may execute it, so no client can call it directly
--- or pick the limit; the ai-chat Edge Function calls it with a
--- service-role client.
+-- makes it race-free even under concurrent calls. The ai-chat Edge
+-- Function calls it with a service-role client.
 create or replace function try_consume_ai_quota()
 returns boolean
 language plpgsql

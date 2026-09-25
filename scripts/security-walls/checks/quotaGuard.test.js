@@ -152,6 +152,53 @@ revoke execute on function try_consume_ai_quota() from public, anon, authenticat
     ])
   })
 
+  it('fails when a schema-wide grant reopens the quota function to clients', async () => {
+    const results = failures(await run({
+      'supabase/migrations/002_blanket.sql': 'grant execute on all functions in schema public to anon, authenticated;',
+    }))
+    expect(results).toEqual([expect.objectContaining({ message: expect.stringContaining('executable by anon, authenticated') })])
+
+    const revokedAgain = failures(await run({
+      'supabase/migrations/002_blanket.sql': `
+grant all on all functions in schema public to authenticated;
+revoke execute on all functions in schema public from authenticated;
+`,
+    }))
+    expect(revokedAgain).toEqual([])
+  })
+
+  it('does not let a schema-wide grant in another schema affect the quota function', async () => {
+    const results = failures(await run({
+      'supabase/migrations/002_other.sql': 'grant execute on all functions in schema extensions to authenticated;',
+    }))
+    expect(results).toEqual([])
+  })
+
+  it('fails when the function is recreated after new default privileges without a revoke', async () => {
+    const results = failures(await run({
+      'supabase/migrations/002_recreate.sql': `
+alter default privileges in schema public grant execute on functions to authenticated;
+drop function try_consume_ai_quota();
+create function try_consume_ai_quota()
+returns boolean language plpgsql security definer set search_path = public as $$ begin return true; end; $$;
+`,
+    }))
+    expect(results).toEqual([expect.objectContaining({ message: expect.stringContaining('executable by public, anon, authenticated') })])
+  })
+
+  it('gives a new overload the default grants instead of the old signature\'s', async () => {
+    const results = failures(await run({
+      'supabase/migrations/002_overload.sql': `
+create function try_consume_ai_quota(p_note text)
+returns boolean language plpgsql security definer set search_path = public as $$ begin return true; end; $$;
+`,
+    }))
+    expect(results).toEqual(expect.arrayContaining([
+      expect.objectContaining({ message: expect.stringContaining('try_consume_ai_quota() is still defined') }),
+      expect.objectContaining({ message: expect.stringContaining('executable by public, anon, authenticated') }),
+    ]))
+  })
+
   it('fails when ai_daily_usage gets a policy or loses RLS', async () => {
     const withPolicy = failures(await run({
       'supabase/migrations/002_policy.sql': 'create policy "read usage" on ai_daily_usage for select using (true);',

@@ -1,12 +1,13 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { blankJsComments } from '../jsComments.js'
+import { DEFAULT_FUNCTION_GRANTEES } from '../migrations.js'
 import { fail, pass, passIfEmpty } from '../results.js'
 
 const AI_CHAT = 'supabase/functions/ai-chat/index.ts'
 const QUOTA_FUNCTION = 'try_consume_ai_quota'
 const USAGE_TABLE = 'ai_daily_usage'
-const CLIENT_ROLES = ['public', 'anon', 'authenticated']
+const CLIENT_ROLES = DEFAULT_FUNCTION_GRANTEES.filter((role) => role !== 'service_role')
 
 const lineOf = (src, index) => src.slice(0, index).split('\n').length
 

@@ -57,6 +57,7 @@ describe('try_consume_ai_quota access', () => {
     const { data, error } = await fixture.anonClient.rpc('try_consume_ai_quota');
     expect(data).toBeNull();
     expect(error).toMatchObject({ code: '42501' });
+    expect(await todayCount()).toBe(0);
   });
 
   it('no longer accepts a caller-supplied limit', async () => {
