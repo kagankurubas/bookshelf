@@ -4,7 +4,7 @@
 export const exceptions = {
   // Tables with RLS enabled but intentionally no policies: { table, reason }
   policylessTables: [
-    { table: 'ai_daily_usage', reason: 'Quota counter; only try_consume_ai_quota (security definer) touches it, never the client' },
+    { table: 'ai_daily_usage', reason: 'Quota counter; only try_consume_ai_quota (security definer, service_role only, called by ai-chat) touches it, never the client' },
   ],
   // Functions allowed to be `security definer`: { name, reason }
   securityDefinerFunctions: [

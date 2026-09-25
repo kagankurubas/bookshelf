@@ -1,11 +1,13 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { blankJsComments } from '../jsComments.js'
+import { DEFAULT_FUNCTION_GRANTEES } from '../migrations.js'
 import { fail, pass, passIfEmpty } from '../results.js'
 
 const AI_CHAT = 'supabase/functions/ai-chat/index.ts'
 const QUOTA_FUNCTION = 'try_consume_ai_quota'
 const USAGE_TABLE = 'ai_daily_usage'
+const CLIENT_ROLES = DEFAULT_FUNCTION_GRANTEES.filter((role) => role !== 'service_role')
 
 const lineOf = (src, index) => src.slice(0, index).split('\n').length
 
@@ -26,6 +28,7 @@ function checkMigrations(ctx) {
         ? fail({ message: `last definition of ${QUOTA_FUNCTION} lacks ${missing.join(' and ')}`, file: fn.file, line: fn.line })
         : pass({ message: `${QUOTA_FUNCTION} is security definer with a pinned search_path`, file: fn.file, line: fn.line }),
     )
+    results.push(...checkCallerSurface(fn))
   }
 
   const table = tables.get(USAGE_TABLE)
@@ -42,6 +45,23 @@ function checkMigrations(ctx) {
     results.push(pass({ message: `${USAGE_TABLE} has RLS enabled and no policies`, file: table.rlsFile, line: table.rlsLine }))
   }
   return results
+}
+
+// The limit and the caller must both be out of the client's hands.
+function checkCallerSurface(fn) {
+  const at = { file: fn.file, line: fn.line }
+  const results = []
+  if (/\bp_max_requests\b/i.test(fn.params)) {
+    results.push(fail({ message: `${QUOTA_FUNCTION} takes p_max_requests from the caller; the limit must be fixed inside the function`, ...at }))
+  }
+  for (const params of fn.otherSignatures) {
+    results.push(fail({ message: `${QUOTA_FUNCTION}(${params}) is still defined; drop the old signature before creating the new one`, ...at }))
+  }
+  const exposed = CLIENT_ROLES.filter((role) => fn.executeGrantees.has(role))
+  if (exposed.length) {
+    results.push(fail({ message: `${QUOTA_FUNCTION} is executable by ${exposed.join(', ')}; revoke execute so only service_role can call it`, ...at }))
+  }
+  return passIfEmpty(results, `${QUOTA_FUNCTION} takes no limit from the caller and only service_role can execute it`, at)
 }
 
 function checkEdgeFunction(ctx) {

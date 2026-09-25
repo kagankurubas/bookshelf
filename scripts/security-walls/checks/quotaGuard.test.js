@@ -10,16 +10,15 @@ const AI_CHAT = 'supabase/functions/ai-chat/index.ts'
 const MIGRATION = `
 create table if not exists ai_daily_usage (usage_date date primary key, request_count integer not null default 0);
 alter table ai_daily_usage enable row level security;
-create or replace function try_consume_ai_quota(p_usage_date date, p_max_requests integer)
+create or replace function try_consume_ai_quota()
 returns boolean language plpgsql security definer set search_path = public
 as $$ begin return true; end; $$;
+revoke execute on function try_consume_ai_quota() from public, anon, authenticated;
+grant execute on function try_consume_ai_quota() to service_role;
 `
 
 const QUOTA = `
-  const { data: quotaOk, error: quotaError } = await supabase.rpc('try_consume_ai_quota', {
-    p_usage_date: usageDate,
-    p_max_requests: DAILY_QUOTA_LIMIT,
-  });
+  const { data: quotaOk, error: quotaError } = await quotaClient.rpc('try_consume_ai_quota');
   if (quotaError) throw quotaError;
   if (!quotaOk) {
     // polite limit message
@@ -52,7 +51,7 @@ describe('Gemini quota guard wall', () => {
   it('passes a guard that runs before any insert or Gemini fetch', async () => {
     const results = await run({})
     expect(failures(results)).toEqual([])
-    expect(results.filter((r) => r.status === 'pass')).toHaveLength(3)
+    expect(results.filter((r) => r.status === 'pass')).toHaveLength(4)
   })
 
   it('fails when the quota call is moved after the Gemini fetch', async () => {
@@ -93,7 +92,7 @@ describe('Gemini quota guard wall', () => {
   it('fails when a later migration drops security definer from the quota function', async () => {
     const results = failures(await run({
       'supabase/migrations/002_regress.sql': `
-create or replace function try_consume_ai_quota(p_usage_date date, p_max_requests integer)
+create or replace function try_consume_ai_quota()
 returns boolean language plpgsql as $$ begin return true; end; $$;
 `,
     }))
@@ -103,6 +102,101 @@ returns boolean language plpgsql as $$ begin return true; end; $$;
         message: expect.stringContaining('security definer and set search_path'),
       }),
     ])
+  })
+
+  it('fails when the limit comes back as a caller-supplied parameter', async () => {
+    const results = failures(await run({
+      'supabase/migrations/002_regress.sql': `
+drop function try_consume_ai_quota();
+create function try_consume_ai_quota(p_max_requests integer)
+returns boolean language plpgsql security definer set search_path = public as $$ begin return true; end; $$;
+revoke execute on function try_consume_ai_quota(integer) from public, anon, authenticated;
+`,
+    }))
+    expect(results).toEqual([
+      expect.objectContaining({ file: 'supabase/migrations/002_regress.sql', message: expect.stringContaining('p_max_requests') }),
+    ])
+  })
+
+  it('fails when a new signature is created without dropping the old one', async () => {
+    const results = failures(await run({
+      'supabase/migrations/001_quota.sql': `
+create table if not exists ai_daily_usage (usage_date date primary key, request_count integer not null default 0);
+alter table ai_daily_usage enable row level security;
+create or replace function try_consume_ai_quota(p_usage_date date, p_max_requests integer)
+returns boolean language plpgsql security definer set search_path = public as $$ begin return true; end; $$;
+revoke execute on function try_consume_ai_quota(date, integer) from public, anon, authenticated;
+`,
+      'supabase/migrations/002_new.sql': `
+create or replace function try_consume_ai_quota()
+returns boolean language plpgsql security definer set search_path = public as $$ begin return true; end; $$;
+revoke execute on function try_consume_ai_quota() from public, anon, authenticated;
+`,
+    }))
+    expect(results).toEqual([
+      expect.objectContaining({ message: expect.stringContaining('try_consume_ai_quota(p_usage_date date, p_max_requests integer) is still defined') }),
+    ])
+  })
+
+  it('fails when a client role can still execute the quota function', async () => {
+    const granted = failures(await run({
+      'supabase/migrations/002_grant.sql': 'grant execute on function try_consume_ai_quota() to authenticated;',
+    }))
+    expect(granted).toEqual([expect.objectContaining({ message: expect.stringContaining('executable by authenticated') })])
+
+    const neverRevoked = failures(await run({
+      'supabase/migrations/001_quota.sql': MIGRATION.replace(/^revoke .*$/m, ''),
+    }))
+    expect(neverRevoked).toEqual([
+      expect.objectContaining({ message: expect.stringContaining('executable by public, anon, authenticated') }),
+    ])
+  })
+
+  it('fails when a schema-wide grant reopens the quota function to clients', async () => {
+    const results = failures(await run({
+      'supabase/migrations/002_blanket.sql': 'grant execute on all functions in schema public to anon, authenticated;',
+    }))
+    expect(results).toEqual([expect.objectContaining({ message: expect.stringContaining('executable by anon, authenticated') })])
+
+    const revokedAgain = failures(await run({
+      'supabase/migrations/002_blanket.sql': `
+grant all on all functions in schema public to authenticated;
+revoke execute on all functions in schema public from authenticated;
+`,
+    }))
+    expect(revokedAgain).toEqual([])
+  })
+
+  it('does not let a schema-wide grant in another schema affect the quota function', async () => {
+    const results = failures(await run({
+      'supabase/migrations/002_other.sql': 'grant execute on all functions in schema extensions to authenticated;',
+    }))
+    expect(results).toEqual([])
+  })
+
+  it('fails when the function is recreated after new default privileges without a revoke', async () => {
+    const results = failures(await run({
+      'supabase/migrations/002_recreate.sql': `
+alter default privileges in schema public grant execute on functions to authenticated;
+drop function try_consume_ai_quota();
+create function try_consume_ai_quota()
+returns boolean language plpgsql security definer set search_path = public as $$ begin return true; end; $$;
+`,
+    }))
+    expect(results).toEqual([expect.objectContaining({ message: expect.stringContaining('executable by public, anon, authenticated') })])
+  })
+
+  it('gives a new overload the default grants instead of the old signature\'s', async () => {
+    const results = failures(await run({
+      'supabase/migrations/002_overload.sql': `
+create function try_consume_ai_quota(p_note text)
+returns boolean language plpgsql security definer set search_path = public as $$ begin return true; end; $$;
+`,
+    }))
+    expect(results).toEqual(expect.arrayContaining([
+      expect.objectContaining({ message: expect.stringContaining('try_consume_ai_quota() is still defined') }),
+      expect.objectContaining({ message: expect.stringContaining('executable by public, anon, authenticated') }),
+    ]))
   })
 
   it('fails when ai_daily_usage gets a policy or loses RLS', async () => {
