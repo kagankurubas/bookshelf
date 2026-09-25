@@ -5,7 +5,8 @@
 // tutmamak icin tum Gemini cagrisi burada, sunucu tarafinda yapiliyor.
 //
 // Gerekli secret: GEMINI_API_KEY (Dashboard > Edge Functions > Secrets)
-// SUPABASE_URL ve SUPABASE_ANON_KEY Supabase tarafindan otomatik saglanir.
+// SUPABASE_URL, SUPABASE_ANON_KEY ve SUPABASE_SERVICE_ROLE_KEY Supabase
+// tarafindan otomatik saglanir.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -13,14 +14,15 @@ const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const GEMINI_MODEL = 'gemini-3.6-flash';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-// Gemini ucretsiz katmaninda bu modelin gunluk istek kotasi (RPD) 20 - ve
-// bu, TUM kullanicilar arasinda PAYLASILAN tek bir sinir, kullanici basina
-// degil. O gercek sinira carpip Google'dan beklenmedik hatalar almamak
-// icin kendi ic kotamizi kasten daha dusuk tutuyoruz; asagida
-// try_consume_ai_quota RPC'siyle (bkz. migrations/012_ai_daily_quota.sql)
-// bu sayiya ulasilinca Gemini'yi hic cagirmadan nazik bir hata donuyoruz.
-const DAILY_QUOTA_LIMIT = 15;
+// Only service_role may execute try_consume_ai_quota, which fixes the daily
+// limit and the day itself (see migrations/014_ai_quota_lockdown.sql). This
+// client is used for that one call; everything else goes through the
+// user's own RLS-bound client.
+const quotaClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,8 +47,8 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Missing Authorization header' }, 401);
     }
 
-    // Kullanicinin kendi oturumuyla bir Supabase client - boylece tum
-    // sorgular RLS'e tabi olur, service-role anahtarina gerek kalmaz.
+    // A client on the user's own session, so every query except the quota
+    // call is subject to RLS.
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -65,19 +67,8 @@ Deno.serve(async (req) => {
 
     // Gunluk kota kontrolu - herhangi bir konusma/mesaj kaydi olusturmadan
     // ONCE yapiliyor ki kota dolduğunda veritabaninda yarim kalan kayit
-    // birikmesin. Google'in kotasi Pasifik saatiyle gece yarisi
-    // sifirlandigi icin gun sinirini da ayni saat dilimine gore hesapliyoruz.
-    const usageDate = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/Los_Angeles',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date());
-
-    const { data: quotaOk, error: quotaError } = await supabase.rpc('try_consume_ai_quota', {
-      p_usage_date: usageDate,
-      p_max_requests: DAILY_QUOTA_LIMIT,
-    });
+    // birikmesin.
+    const { data: quotaOk, error: quotaError } = await quotaClient.rpc('try_consume_ai_quota');
     if (quotaError) throw quotaError;
     if (!quotaOk) {
       // 200 doneriz ki supabase-js data.error yolunu kullansin - boylece
