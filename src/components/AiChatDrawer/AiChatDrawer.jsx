@@ -17,6 +17,12 @@ const SendIcon = () => (
   </svg>
 );
 
+// Error codes with their own message; anything else shows aiChat.error.
+const ERROR_MESSAGE_KEYS = {
+  [AI_CHAT_ERROR_CODES.DAILY_LIMIT]: 'aiChat.dailyLimitReached',
+  [AI_CHAT_ERROR_CODES.BUSY]: 'aiChat.busy',
+};
+
 function AiChatDrawer({ userId, onClose }) {
   const { t } = useTranslation();
   useEscapeKey(onClose);
@@ -56,11 +62,7 @@ function AiChatDrawer({ userId, onClose }) {
   // gentler message than the generic error and disable the composer, since
   // retrying wouldn't help.
   const isDailyLimitReached = error?.code === AI_CHAT_ERROR_CODES.DAILY_LIMIT;
-  const errorText = isDailyLimitReached
-    ? t('aiChat.dailyLimitReached')
-    : error?.code === AI_CHAT_ERROR_CODES.BUSY
-      ? t('aiChat.busy')
-      : t('aiChat.error');
+  const errorText = error && t(ERROR_MESSAGE_KEYS[error.code] ?? 'aiChat.error');
 
   return (
     <div className="ai-chat-overlay" onClick={onClose}>

@@ -32,7 +32,7 @@ const corsHeaders = {
 };
 
 // Gemini's transient errors (503 high demand, 429 rate limit) are retried
-// with a short exponential backoff: at most 3 attempts, ~1s then ~2s apart.
+// with a short, jittered exponential backoff.
 const MAX_GEMINI_ATTEMPTS = 3;
 const BACKOFF_MS = [1000, 2000];
 const MAX_RETRY_DELAY_MS = 5000;
@@ -40,11 +40,21 @@ const BUSY_STATUSES = [429, 503];
 
 const withJitter = (ms) => Math.round(ms * (0.8 + Math.random() * 0.4));
 
+// A Gemini call that produced no reply; `busy` marks Google's transient
+// 503/429, which the client is told about as AI_BUSY.
+class GeminiError extends Error {
+  constructor(status, errText) {
+    super(`Gemini API error: ${status} ${errText}`);
+    this.busy = BUSY_STATUSES.includes(status);
+  }
+}
+
 // How long to wait before retrying a failed Gemini call, or null when it
 // isn't worth retrying. A 429 for the per-day quota only clears at midnight
 // Pacific; otherwise its RetryInfo.retryDelay (e.g. "3s") is honoured.
 function retryDelayMs(status, errText, attempt) {
-  if (status === 503) return withJitter(BACKOFF_MS[attempt - 1]);
+  const backoff = withJitter(BACKOFF_MS[attempt - 1]);
+  if (status === 503) return backoff;
   if (status !== 429) return null;
   let details = [];
   try {
@@ -55,7 +65,7 @@ function retryDelayMs(status, errText, attempt) {
   const isPerDay = details.some((d) => d.violations?.some((v) => /PerDay/.test(v.quotaId ?? '')));
   if (isPerDay) return null;
   const hinted = parseFloat(details.find((d) => d.retryDelay)?.retryDelay) * 1000;
-  if (Number.isNaN(hinted)) return withJitter(BACKOFF_MS[attempt - 1]);
+  if (Number.isNaN(hinted)) return backoff;
   return hinted <= MAX_RETRY_DELAY_MS ? hinted : null;
 }
 
@@ -71,6 +81,8 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  let quotaConsumed = false;
+  let geminiData = null;
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -110,6 +122,7 @@ Deno.serve(async (req) => {
       // ile elle senkron tutulmali - biri degisirse digeri de degismeli.
       return jsonResponse({ error: 'DAILY_LIMIT_REACHED' }, 200);
     }
+    quotaConsumed = true;
 
     // Nothing is written until Gemini has replied, so a failed attempt
     // leaves no half-saved conversation or message behind.
@@ -163,8 +176,6 @@ ${bookContext || '(no books added yet)'}`;
       { role: 'user', parts: [{ text: message }] },
     ];
 
-    let geminiData = null;
-    let geminiFailure = null;
     for (let attempt = 1; ; attempt++) {
       let geminiRes;
       try {
@@ -180,8 +191,7 @@ ${bookContext || '(no books added yet)'}`;
           }
         );
       } catch (err) {
-        geminiFailure = { status: null, errText: String(err) };
-        break;
+        throw new GeminiError('network error', String(err));
       }
       if (geminiRes.ok) {
         geminiData = await geminiRes.json();
@@ -189,24 +199,9 @@ ${bookContext || '(no books added yet)'}`;
       }
       const errText = await geminiRes.text();
       const delay = attempt < MAX_GEMINI_ATTEMPTS ? retryDelayMs(geminiRes.status, errText, attempt) : null;
-      if (delay === null) {
-        geminiFailure = { status: geminiRes.status, errText };
-        break;
-      }
+      if (delay === null) throw new GeminiError(geminiRes.status, errText);
       console.warn(`Gemini API ${geminiRes.status}, retrying in ${delay}ms (attempt ${attempt + 1}/${MAX_GEMINI_ATTEMPTS})`);
       await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-
-    if (!geminiData) {
-      // Gemini produced no reply, so the quota slot is given back.
-      const { error: refundError } = await quotaClient.rpc('refund_ai_quota');
-      if (refundError) console.error(refundError);
-      const geminiError = new Error(`Gemini API error: ${geminiFailure.status} ${geminiFailure.errText}`);
-      if (!BUSY_STATUSES.includes(geminiFailure.status)) throw geminiError;
-      console.error(geminiError);
-      // Like DAILY_LIMIT_REACHED above, 'AI_BUSY' must stay in sync with
-      // AI_CHAT_WIRE_ERRORS in src/lib/aiChatErrors.js.
-      return jsonResponse({ error: 'AI_BUSY' }, 200);
     }
 
     const replyText =
@@ -238,7 +233,18 @@ ${bookContext || '(no books added yet)'}`;
 
     return jsonResponse({ conversationId: convoId, reply: replyText });
   } catch (err) {
+    // Any failure after the quota was spent but before Gemini replied gives
+    // the slot back; later failures (saving the reply) keep it spent.
+    if (quotaConsumed && !geminiData) {
+      const { error: refundError } = await quotaClient.rpc('refund_ai_quota');
+      if (refundError) console.error(refundError);
+    }
     console.error(err);
+    if (err instanceof GeminiError && err.busy) {
+      // Like DAILY_LIMIT_REACHED above, 'AI_BUSY' must stay in sync with
+      // AI_CHAT_WIRE_ERRORS in src/lib/aiChatErrors.js.
+      return jsonResponse({ error: 'AI_BUSY' }, 200);
+    }
     const message = err instanceof Error ? err.message : String(err);
     return jsonResponse({ error: message || 'Internal error' }, 500);
   }

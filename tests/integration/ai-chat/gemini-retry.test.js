@@ -24,6 +24,21 @@ const perDayLimit = {
   },
 };
 const badRequest = { status: 400, body: { error: { code: 400, status: 'INVALID_ARGUMENT' } } };
+const rateLimited = (retryDelay) => ({
+  status: 429,
+  body: {
+    error: {
+      code: 429,
+      status: 'RESOURCE_EXHAUSTED',
+      details: [
+        { '@type': 'type.googleapis.com/google.rpc.QuotaFailure', violations: [{ quotaId: 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier' }] },
+        { '@type': 'type.googleapis.com/google.rpc.RetryInfo', retryDelay },
+      ],
+    },
+  },
+});
+const dropConnection = { drop: true };
+const malformedReply = { status: 200, raw: '{"candidates": [' };
 
 // Answers each Gemini request with the next scripted response.
 function startFakeGemini() {
@@ -33,8 +48,12 @@ function startFakeGemini() {
     req.on('end', () => {
       state.hits++;
       const next = state.responses.shift() ?? reply('fallback');
+      if (next.drop) {
+        req.socket.destroy();
+        return;
+      }
       res.writeHead(next.status, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(next.body));
+      res.end(next.raw ?? JSON.stringify(next.body));
     });
   });
   return new Promise((resolve) => {
@@ -92,7 +111,10 @@ describe('ai-chat with a flaky Gemini', () => {
       await fixture.adminClient.from('ai_daily_usage').delete().eq('usage_date', todayInPacific());
       await fixture.cleanup();
     }
-    await new Promise((resolve) => fake?.server.close(resolve));
+    if (fake) {
+      fake.server.closeAllConnections();
+      await new Promise((resolve) => fake.server.close(resolve));
+    }
   });
 
   beforeEach(async () => {
@@ -139,6 +161,48 @@ describe('ai-chat with a flaky Gemini', () => {
 
     expect(data).toEqual({ error: 'AI_BUSY' });
     expect(fake.state.hits).toBe(1);
+    expect(await savedRows()).toEqual({ conversations: 0, messages: [] });
+    expect(await todayCount()).toBe(0);
+  });
+
+  it('waits out a short 429 retryDelay and retries', async () => {
+    fake.state.responses = [rateLimited('1s'), reply('Tekrar denendi.')];
+
+    const { data } = await send({ message: 'Merhaba' });
+
+    expect(data).toMatchObject({ reply: 'Tekrar denendi.' });
+    expect(fake.state.hits).toBe(2);
+    expect(await todayCount()).toBe(1);
+  });
+
+  it('does not retry a 429 whose retryDelay is longer than 5s', async () => {
+    fake.state.responses = [rateLimited('30s')];
+
+    const { data } = await send({ message: 'Merhaba' });
+
+    expect(data).toEqual({ error: 'AI_BUSY' });
+    expect(fake.state.hits).toBe(1);
+    expect(await todayCount()).toBe(0);
+  });
+
+  it('does not retry a dropped Gemini connection, returns a generic error and refunds the quota', async () => {
+    fake.state.responses = [dropConnection];
+
+    const { error } = await send({ message: 'Merhaba' });
+
+    expect(await error.context.json()).toEqual({ error: expect.stringContaining('Gemini API error: network error') });
+    expect(fake.state.hits).toBe(1);
+    expect(await savedRows()).toEqual({ conversations: 0, messages: [] });
+    expect(await todayCount()).toBe(0);
+  });
+
+  it('refunds the quota when Gemini answers 200 with an unreadable body', async () => {
+    fake.state.responses = [malformedReply];
+
+    const { error } = await send({ message: 'Merhaba' });
+
+    expect(error).not.toBeNull();
+    expect(await savedRows()).toEqual({ conversations: 0, messages: [] });
     expect(await todayCount()).toBe(0);
   });
 
@@ -147,7 +211,7 @@ describe('ai-chat with a flaky Gemini', () => {
 
     const { error } = await send({ message: 'Merhaba' });
 
-    expect(error).not.toBeNull();
+    expect(await error.context.json()).toEqual({ error: expect.stringContaining('Gemini API error: 400') });
     expect(fake.state.hits).toBe(1);
     expect(await savedRows()).toEqual({ conversations: 0, messages: [] });
     expect(await todayCount()).toBe(0);
