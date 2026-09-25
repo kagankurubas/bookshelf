@@ -82,4 +82,38 @@ describe('try_consume_ai_quota access', () => {
     expect(data).toBe(false);
     expect(await todayCount()).toBe(DAILY_LIMIT);
   });
+
+  it('denies refund_ai_quota to signed-in and anonymous clients', async () => {
+    await resetTodayUsage();
+    await fixture.adminClient.rpc('try_consume_ai_quota');
+
+    for (const client of [fixture.userA.client, fixture.anonClient]) {
+      const { error } = await client.rpc('refund_ai_quota');
+      expect(error).toMatchObject({ code: '42501' });
+    }
+    expect(await todayCount()).toBe(1);
+  });
+
+  it('lets service_role give one slot back, never going below zero', async () => {
+    await resetTodayUsage();
+    await fixture.adminClient.rpc('try_consume_ai_quota');
+    await fixture.adminClient.rpc('try_consume_ai_quota');
+
+    expect((await fixture.adminClient.rpc('refund_ai_quota')).error).toBeNull();
+    expect(await todayCount()).toBe(1);
+
+    await fixture.adminClient.rpc('refund_ai_quota');
+    await fixture.adminClient.rpc('refund_ai_quota');
+    expect(await todayCount()).toBe(0);
+  });
+
+  it('reopens exactly one request once the limit is reached and a slot is refunded', async () => {
+    await resetTodayUsage();
+    for (let i = 0; i < DAILY_LIMIT; i++) await fixture.adminClient.rpc('try_consume_ai_quota');
+    expect((await fixture.adminClient.rpc('try_consume_ai_quota')).data).toBe(false);
+
+    await fixture.adminClient.rpc('refund_ai_quota');
+    expect((await fixture.adminClient.rpc('try_consume_ai_quota')).data).toBe(true);
+    expect((await fixture.adminClient.rpc('try_consume_ai_quota')).data).toBe(false);
+  });
 });

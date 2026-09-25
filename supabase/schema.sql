@@ -319,3 +319,21 @@ $$;
 
 revoke execute on function try_consume_ai_quota() from public, anon, authenticated;
 grant execute on function try_consume_ai_quota() to service_role;
+
+-- Gives back one quota slot when Gemini produced no reply, so a failed
+-- attempt doesn't use up the shared daily quota. Floors at 0.
+create or replace function refund_ai_quota()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update ai_daily_usage
+  set request_count = greatest(request_count - 1, 0)
+  where usage_date = (now() at time zone 'America/Los_Angeles')::date;
+end;
+$$;
+
+revoke execute on function refund_ai_quota() from public, anon, authenticated;
+grant execute on function refund_ai_quota() to service_role;

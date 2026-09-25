@@ -27,6 +27,7 @@
     "typing": "Yazıyor...",
     "error": "Bir şeyler ters gitti, tekrar dener misin?",
     "dailyLimitReached": "Bugünkü Kitap Asistanı kullanım hakkın doldu, yarın tekrar deneyebilirsin.",
+    "busy": "Kitap Asistanı şu an çok yoğun. Birkaç dakika sonra tekrar dener misin? Bu deneme günlük hakkından düşmedi.",
     "conversationSelectLabel": "Sohbet seç",
     "close": "Kapat",
     "sendLabel": "Gönder"

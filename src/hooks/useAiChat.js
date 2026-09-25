@@ -56,11 +56,14 @@ export function useAiChat(userId) {
     setError(null);
   }, []);
 
+  // Resolves to false when the message wasn't sent; the server saves nothing
+  // in that case, so the optimistic message is taken back out.
   const sendMessage = useCallback(
     async (text) => {
       setIsSending(true);
       setError(null);
-      setMessages((prev) => [...prev, { id: `temp-${Date.now()}`, role: 'user', content: text }]);
+      const tempId = `temp-${Date.now()}`;
+      setMessages((prev) => [...prev, { id: tempId, role: 'user', content: text }]);
 
       try {
         const { data, error: invokeError } = await supabase.functions.invoke('ai-chat', {
@@ -74,9 +77,12 @@ export function useAiChat(userId) {
           fetchConversations();
         }
         setMessages((prev) => [...prev, { id: `reply-${Date.now()}`, role: 'assistant', content: data.reply }]);
+        return true;
       } catch (err) {
         console.error(err);
         setError(parseAiChatError(err));
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        return false;
       } finally {
         setIsSending(false);
       }

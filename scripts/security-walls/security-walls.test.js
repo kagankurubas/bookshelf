@@ -166,6 +166,9 @@ create or replace function plain() returns int language sql security invoker as 
     const quota = migrations.functions.get('try_consume_ai_quota')
     expect(quota).toMatchObject({ securityDefiner: true, searchPath: true, params: '', otherSignatures: [] })
     expect([...quota.executeGrantees]).toEqual(['service_role'])
+    const refund = migrations.functions.get('refund_ai_quota')
+    expect(refund).toMatchObject({ securityDefiner: true, searchPath: true, params: '' })
+    expect([...refund.executeGrantees]).toEqual(['service_role'])
     expect(migrations.functions.get('get_reading_stats')).toMatchObject({
       securityDefiner: false,
       file: 'supabase/migrations/009_dashboard_stats.sql',

@@ -7,6 +7,11 @@ describe('parseAiChatError', () => {
     expect(result).toEqual({ code: AI_CHAT_ERROR_CODES.DAILY_LIMIT, message: 'DAILY_LIMIT_REACHED' });
   });
 
+  it('maps the Gemini-busy wire error to a busy code', () => {
+    const result = parseAiChatError(new Error('AI_BUSY'));
+    expect(result).toEqual({ code: AI_CHAT_ERROR_CODES.BUSY, message: 'AI_BUSY' });
+  });
+
   it('maps any other error to an unknown code, preserving the original message', () => {
     const result = parseAiChatError(new Error('Gemini API error: 500 internal error'));
     expect(result).toEqual({ code: AI_CHAT_ERROR_CODES.UNKNOWN, message: 'Gemini API error: 500 internal error' });

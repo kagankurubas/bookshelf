@@ -37,11 +37,12 @@ function AiChatDrawer({ userId, onClose }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = (text) => {
+  const handleSend = async (text) => {
     const trimmed = text.trim();
     if (!trimmed || isSending) return;
     setInput('');
-    sendMessage(trimmed);
+    const sent = await sendMessage(trimmed);
+    if (!sent) setInput((current) => current || trimmed);
   };
 
   const handleSubmit = (e) => {
@@ -55,6 +56,11 @@ function AiChatDrawer({ userId, onClose }) {
   // gentler message than the generic error and disable the composer, since
   // retrying wouldn't help.
   const isDailyLimitReached = error?.code === AI_CHAT_ERROR_CODES.DAILY_LIMIT;
+  const errorText = isDailyLimitReached
+    ? t('aiChat.dailyLimitReached')
+    : error?.code === AI_CHAT_ERROR_CODES.BUSY
+      ? t('aiChat.busy')
+      : t('aiChat.error');
 
   return (
     <div className="ai-chat-overlay" onClick={onClose}>
@@ -106,7 +112,7 @@ function AiChatDrawer({ userId, onClose }) {
           {isSending && <div className="ai-chat-typing">{t('aiChat.typing')}</div>}
           {error && (
             <p className="ai-chat-error">
-              {isDailyLimitReached ? t('aiChat.dailyLimitReached') : t('aiChat.error')}
+              {errorText}
             </p>
           )}
           <div ref={messagesEndRef} />
