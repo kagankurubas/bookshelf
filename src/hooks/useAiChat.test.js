@@ -77,9 +77,8 @@ describe('useAiChat', () => {
 
     expect(result.current.error).toEqual({ code: 'unknown', message: 'Unauthorized' });
     expect(result.current.isSending).toBe(false);
-    // The optimistic user message stays, but no assistant reply is added.
-    expect(result.current.messages).toHaveLength(1);
-    expect(result.current.messages[0].role).toBe('user');
+    // Nothing was saved, so the optimistic user message is taken back out.
+    expect(result.current.messages).toEqual([]);
   });
 
   it('sets the error state when the edge function responds 200 but with a structured API error', async () => {
@@ -95,7 +94,7 @@ describe('useAiChat', () => {
     await act(async () => result.current.sendMessage('Merhaba'));
 
     expect(result.current.error).toEqual({ code: 'unknown', message: 'Gemini API error: 500 internal error' });
-    expect(result.current.messages).toHaveLength(1);
+    expect(result.current.messages).toEqual([]);
     expect(result.current.activeConversationId).toBeNull();
   });
 
@@ -112,5 +111,25 @@ describe('useAiChat', () => {
     await act(async () => result.current.sendMessage('Merhaba'));
 
     expect(result.current.error).toEqual({ code: 'daily_limit', message: AI_CHAT_WIRE_ERRORS.DAILY_LIMIT_REACHED });
+  });
+
+  it('sets a busy coded error and reports the message as unsent when Gemini stays busy', async () => {
+    supabase.from.mockReturnValue(queryResult({ data: [], error: null }));
+    supabase.functions.invoke.mockResolvedValueOnce({
+      data: { error: AI_CHAT_WIRE_ERRORS.AI_BUSY },
+      error: null,
+    });
+
+    const { result } = renderHook(() => useAiChat('user-1'));
+    await waitFor(() => expect(result.current.conversations).toEqual([]));
+
+    let sent;
+    await act(async () => {
+      sent = await result.current.sendMessage('Merhaba');
+    });
+
+    expect(sent).toBe(false);
+    expect(result.current.error).toEqual({ code: 'busy', message: AI_CHAT_WIRE_ERRORS.AI_BUSY });
+    expect(result.current.messages).toEqual([]);
   });
 });

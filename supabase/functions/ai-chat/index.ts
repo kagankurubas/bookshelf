@@ -12,6 +12,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const GEMINI_MODEL = 'gemini-3.6-flash';
+// Only overridden by the integration tests, which point it at a fake Gemini.
+const GEMINI_API_BASE_URL = Deno.env.get('GEMINI_API_BASE_URL') ?? 'https://generativelanguage.googleapis.com';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -29,6 +31,44 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Gemini's transient errors (503 high demand, 429 rate limit) are retried
+// with a short, jittered exponential backoff.
+const MAX_GEMINI_ATTEMPTS = 3;
+const BACKOFF_MS = [1000, 2000];
+const MAX_RETRY_DELAY_MS = 5000;
+const BUSY_STATUSES = [429, 503];
+
+const withJitter = (ms) => Math.round(ms * (0.8 + Math.random() * 0.4));
+
+// A Gemini call that produced no reply; `busy` marks Google's transient
+// 503/429, which the client is told about as AI_BUSY.
+class GeminiError extends Error {
+  constructor(status, errText) {
+    super(`Gemini API error: ${status} ${errText}`);
+    this.busy = BUSY_STATUSES.includes(status);
+  }
+}
+
+// How long to wait before retrying a failed Gemini call, or null when it
+// isn't worth retrying. A 429 for the per-day quota only clears at midnight
+// Pacific; otherwise its RetryInfo.retryDelay (e.g. "3s") is honoured.
+function retryDelayMs(status, errText, attempt) {
+  const backoff = withJitter(BACKOFF_MS[attempt - 1]);
+  if (status === 503) return backoff;
+  if (status !== 429) return null;
+  let details = [];
+  try {
+    details = JSON.parse(errText)?.error?.details ?? [];
+  } catch {
+    // Not JSON; fall back to the default backoff.
+  }
+  const isPerDay = details.some((d) => d.violations?.some((v) => /PerDay/.test(v.quotaId ?? '')));
+  if (isPerDay) return null;
+  const hinted = parseFloat(details.find((d) => d.retryDelay)?.retryDelay) * 1000;
+  if (Number.isNaN(hinted)) return backoff;
+  return hinted <= MAX_RETRY_DELAY_MS ? hinted : null;
+}
+
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -41,6 +81,8 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  let quotaConsumed = false;
+  let geminiData = null;
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -80,27 +122,20 @@ Deno.serve(async (req) => {
       // ile elle senkron tutulmali - biri degisirse digeri de degismeli.
       return jsonResponse({ error: 'DAILY_LIMIT_REACHED' }, 200);
     }
+    quotaConsumed = true;
 
-    // Sohbeti bul, yoksa olustur.
-    let convoId = conversationId;
-    if (!convoId) {
-      const title = message.slice(0, 60);
-      const { data: newConvo, error: convoError } = await supabase
-        .from('ai_conversations')
-        .insert({ user_id: userId, title })
-        .select()
-        .single();
-      if (convoError) throw convoError;
-      convoId = newConvo.id;
+    // Nothing is written until Gemini has replied, so a failed attempt
+    // leaves no half-saved conversation or message behind.
+    let history = [];
+    if (conversationId) {
+      const { data, error: historyError } = await supabase
+        .from('ai_messages')
+        .select('role, content')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+      if (historyError) throw historyError;
+      history = data;
     }
-
-    // Onceki mesajlari (baglam icin) cek.
-    const { data: history, error: historyError } = await supabase
-      .from('ai_messages')
-      .select('role, content')
-      .eq('conversation_id', convoId)
-      .order('created_at', { ascending: true });
-    if (historyError) throw historyError;
 
     // Kisisel oneri icin kullanicinin kitaplarini baglam olarak ekle.
     const { data: books } = await supabase
@@ -118,12 +153,6 @@ Deno.serve(async (req) => {
         return parts.join(', ');
       })
       .join('\n');
-
-    // Kullanicinin mesajini kaydet.
-    const { error: insertUserMsgError } = await supabase
-      .from('ai_messages')
-      .insert({ conversation_id: convoId, role: 'user', content: message });
-    if (insertUserMsgError) throw insertUserMsgError;
 
     // Uygulama TR/EN iki dilli kullaniliyor ve kullanicilar arayuz dilinden
     // bagimsiz olarak istedikleri dilde yazabiliyor - bu yuzden yanit dilini
@@ -147,27 +176,55 @@ ${bookContext || '(no books added yet)'}`;
       { role: 'user', parts: [{ text: message }] },
     ];
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents,
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-        }),
+    for (let attempt = 1; ; attempt++) {
+      let geminiRes;
+      try {
+        geminiRes = await fetch(
+          `${GEMINI_API_BASE_URL}/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents,
+              systemInstruction: { parts: [{ text: systemPrompt }] },
+            }),
+          }
+        );
+      } catch (err) {
+        throw new GeminiError('network error', String(err));
       }
-    );
-
-    if (!geminiRes.ok) {
+      if (geminiRes.ok) {
+        geminiData = await geminiRes.json();
+        break;
+      }
       const errText = await geminiRes.text();
-      throw new Error(`Gemini API error: ${geminiRes.status} ${errText}`);
+      const delay = attempt < MAX_GEMINI_ATTEMPTS ? retryDelayMs(geminiRes.status, errText, attempt) : null;
+      if (delay === null) throw new GeminiError(geminiRes.status, errText);
+      console.warn(`Gemini API ${geminiRes.status}, retrying in ${delay}ms (attempt ${attempt + 1}/${MAX_GEMINI_ATTEMPTS})`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
 
-    const geminiData = await geminiRes.json();
     const replyText =
       geminiData?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ||
       (lang === 'en' ? "Sorry, I couldn't generate a reply." : 'Üzgünüm, bir yanıt oluşturamadım.');
+
+    let convoId = conversationId;
+    if (!convoId) {
+      const { data: newConvo, error: convoError } = await supabase
+        .from('ai_conversations')
+        .insert({ user_id: userId, title: message.slice(0, 60) })
+        .select()
+        .single();
+      if (convoError) throw convoError;
+      convoId = newConvo.id;
+    }
+
+    // Separate inserts so the two rows get distinct created_at values and
+    // keep their order.
+    const { error: insertUserMsgError } = await supabase
+      .from('ai_messages')
+      .insert({ conversation_id: convoId, role: 'user', content: message });
+    if (insertUserMsgError) throw insertUserMsgError;
 
     const { error: insertAiMsgError } = await supabase
       .from('ai_messages')
@@ -176,7 +233,18 @@ ${bookContext || '(no books added yet)'}`;
 
     return jsonResponse({ conversationId: convoId, reply: replyText });
   } catch (err) {
+    // Any failure after the quota was spent but before Gemini replied gives
+    // the slot back; later failures (saving the reply) keep it spent.
+    if (quotaConsumed && !geminiData) {
+      const { error: refundError } = await quotaClient.rpc('refund_ai_quota');
+      if (refundError) console.error(refundError);
+    }
     console.error(err);
+    if (err instanceof GeminiError && err.busy) {
+      // Like DAILY_LIMIT_REACHED above, 'AI_BUSY' must stay in sync with
+      // AI_CHAT_WIRE_ERRORS in src/lib/aiChatErrors.js.
+      return jsonResponse({ error: 'AI_BUSY' }, 200);
+    }
     const message = err instanceof Error ? err.message : String(err);
     return jsonResponse({ error: message || 'Internal error' }, 500);
   }

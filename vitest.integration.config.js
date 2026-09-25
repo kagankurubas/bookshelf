@@ -23,5 +23,8 @@ export default defineConfig({
     // yapiyor (createUser + signInWithPassword + insert/select) - jsdom
     // testlerinden daha yavas, varsayilan timeout'u biraz genislet.
     testTimeout: 15000,
+    // The quota and ai-chat tests share one global counter (today's
+    // ai_daily_usage row), so test files must not run in parallel.
+    fileParallelism: false,
   },
 });

@@ -42,6 +42,9 @@ create policy "own ai_messages" on ai_messages for all
 create or replace function try_consume_ai_quota(p_max_requests int) returns boolean
 language plpgsql security definer set search_path = public
 as $$ begin return true; end; $$;
+create or replace function refund_ai_quota() returns void
+language plpgsql security definer set search_path = public
+as $$ begin end; $$;
 `
 
 async function rlsResults(extraMigration, { schema = GOOD_SCHEMA } = {}) {

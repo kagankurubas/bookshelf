@@ -15,6 +15,11 @@ returns boolean language plpgsql security definer set search_path = public
 as $$ begin return true; end; $$;
 revoke execute on function try_consume_ai_quota() from public, anon, authenticated;
 grant execute on function try_consume_ai_quota() to service_role;
+create or replace function refund_ai_quota()
+returns void language plpgsql security definer set search_path = public
+as $$ begin end; $$;
+revoke execute on function refund_ai_quota() from public, anon, authenticated;
+grant execute on function refund_ai_quota() to service_role;
 `
 
 const QUOTA = `
@@ -34,12 +39,18 @@ const FETCH = `
     method: 'POST',
   });
 `
+const REFUND = `
+  if (!geminiData) {
+    const { error: refundError } = await quotaClient.rpc('refund_ai_quota');
+    return jsonResponse({ error: 'AI_BUSY' }, 200);
+  }
+`
 const handler = (...parts) => `Deno.serve(async (req) => {\n  try {\n${parts.join('')}\n  } catch (err) {\n    return jsonResponse({ error: String(err) }, 500);\n  }\n});\n`
 
 async function run(files) {
   const root = createFixtureRepo({
     'supabase/migrations/001_quota.sql': MIGRATION,
-    [AI_CHAT]: handler(QUOTA, INSERT, FETCH),
+    [AI_CHAT]: handler(QUOTA, FETCH, REFUND, INSERT),
     ...files,
   })
   return runChecks({ root, checks: [quotaGuard], exceptions: {} })
@@ -51,35 +62,38 @@ describe('Gemini quota guard wall', () => {
   it('passes a guard that runs before any insert or Gemini fetch', async () => {
     const results = await run({})
     expect(failures(results)).toEqual([])
-    expect(results.filter((r) => r.status === 'pass')).toHaveLength(4)
+    expect(results.filter((r) => r.status === 'pass')).toHaveLength(7)
   })
 
   it('fails when the quota call is moved after the Gemini fetch', async () => {
-    const results = failures(await run({ [AI_CHAT]: handler(FETCH, QUOTA, INSERT) }))
+    const results = failures(await run({ [AI_CHAT]: handler(FETCH, QUOTA, REFUND, INSERT) }))
     expect(results).toEqual([
       expect.objectContaining({ file: AI_CHAT, message: expect.stringContaining('after the first fetch(') }),
     ])
   })
 
   it('fails when the quota call comes after the first insert', async () => {
-    const results = failures(await run({ [AI_CHAT]: handler(INSERT, QUOTA, FETCH) }))
-    expect(results).toEqual([expect.objectContaining({ message: expect.stringContaining('after the first .insert(') })])
+    const results = failures(await run({ [AI_CHAT]: handler(INSERT, QUOTA, FETCH, REFUND) }))
+    expect(results).toEqual([
+      expect.objectContaining({ message: expect.stringContaining('after the first .insert(') }),
+      expect.objectContaining({ message: expect.stringContaining("saving must wait for Gemini's reply") }),
+    ])
   })
 
   it('fails when the !quotaOk early return is removed', async () => {
     const withoutReturn = QUOTA.replace(/ {2}if \(!quotaOk\) \{[\s\S]*?\n {2}\}\n/, '')
-    const results = failures(await run({ [AI_CHAT]: handler(withoutReturn, INSERT, FETCH) }))
+    const results = failures(await run({ [AI_CHAT]: handler(withoutReturn, FETCH, REFUND, INSERT) }))
     expect(results).toEqual([expect.objectContaining({ file: AI_CHAT, message: expect.stringContaining('!quotaOk') })])
   })
 
   it('fails when quotaError is no longer thrown', async () => {
-    const results = failures(await run({ [AI_CHAT]: handler(QUOTA.replace('if (quotaError) throw quotaError;', ''), INSERT, FETCH) }))
+    const results = failures(await run({ [AI_CHAT]: handler(QUOTA.replace('if (quotaError) throw quotaError;', ''), FETCH, REFUND, INSERT) }))
     expect(results).toEqual([expect.objectContaining({ message: expect.stringContaining('quotaError') })])
   })
 
   it('ignores a quota call that only survives in a comment', async () => {
     const commented = QUOTA.split('\n').map((line) => `// ${line}`).join('\n')
-    const results = failures(await run({ [AI_CHAT]: handler(`/* ${commented} */`, INSERT, FETCH) }))
+    const results = failures(await run({ [AI_CHAT]: handler(`/* ${commented} */`, FETCH, REFUND, INSERT) }))
     expect(results).toEqual([expect.objectContaining({ message: expect.stringContaining("no rpc('try_consume_ai_quota'") })])
   })
 
@@ -126,6 +140,9 @@ alter table ai_daily_usage enable row level security;
 create or replace function try_consume_ai_quota(p_usage_date date, p_max_requests integer)
 returns boolean language plpgsql security definer set search_path = public as $$ begin return true; end; $$;
 revoke execute on function try_consume_ai_quota(date, integer) from public, anon, authenticated;
+create function refund_ai_quota()
+returns void language plpgsql security definer set search_path = public as $$ begin end; $$;
+revoke execute on function refund_ai_quota() from public, anon, authenticated;
 `,
       'supabase/migrations/002_new.sql': `
 create or replace function try_consume_ai_quota()
@@ -156,7 +173,10 @@ revoke execute on function try_consume_ai_quota() from public, anon, authenticat
     const results = failures(await run({
       'supabase/migrations/002_blanket.sql': 'grant execute on all functions in schema public to anon, authenticated;',
     }))
-    expect(results).toEqual([expect.objectContaining({ message: expect.stringContaining('executable by anon, authenticated') })])
+    expect(results).toEqual([
+      expect.objectContaining({ message: expect.stringContaining('try_consume_ai_quota is executable by anon, authenticated') }),
+      expect.objectContaining({ message: expect.stringContaining('refund_ai_quota is executable by anon, authenticated') }),
+    ])
 
     const revokedAgain = failures(await run({
       'supabase/migrations/002_blanket.sql': `
@@ -197,6 +217,41 @@ returns boolean language plpgsql security definer set search_path = public as $$
       expect.objectContaining({ message: expect.stringContaining('try_consume_ai_quota() is still defined') }),
       expect.objectContaining({ message: expect.stringContaining('executable by public, anon, authenticated') }),
     ]))
+  })
+
+  it('fails when a failed Gemini call does not give the quota back', async () => {
+    const results = failures(await run({ [AI_CHAT]: handler(QUOTA, FETCH, INSERT) }))
+    expect(results).toEqual([expect.objectContaining({ message: expect.stringContaining("no rpc('refund_ai_quota')") })])
+  })
+
+  it('fails when the refund comes before the Gemini fetch', async () => {
+    const results = failures(await run({ [AI_CHAT]: handler(QUOTA, REFUND, FETCH, INSERT) }))
+    expect(results).toEqual([expect.objectContaining({ message: expect.stringContaining('refund_ai_quota is called before the Gemini fetch(') })])
+  })
+
+  it('fails when a message is saved before Gemini replies', async () => {
+    const results = failures(await run({ [AI_CHAT]: handler(QUOTA, INSERT, FETCH, REFUND) }))
+    expect(results).toEqual([expect.objectContaining({ file: AI_CHAT, message: expect.stringContaining("saving must wait for Gemini's reply") })])
+  })
+
+  it('holds the refund function to the same rules as the quota function', async () => {
+    const missing = failures(await run({ 'supabase/migrations/002_drop.sql': 'drop function refund_ai_quota();' }))
+    expect(missing).toEqual([expect.objectContaining({ message: 'refund_ai_quota is not defined by the migrations' })])
+
+    const exposed = failures(await run({
+      'supabase/migrations/002_grant.sql': 'grant execute on function refund_ai_quota() to authenticated;',
+    }))
+    expect(exposed).toEqual([expect.objectContaining({ message: expect.stringContaining('refund_ai_quota is executable by authenticated') })])
+
+    const withArgs = failures(await run({
+      'supabase/migrations/002_args.sql': `
+drop function refund_ai_quota();
+create function refund_ai_quota(p_usage_date date)
+returns void language plpgsql security definer set search_path = public as $$ begin end; $$;
+revoke execute on function refund_ai_quota(date) from public, anon, authenticated;
+`,
+    }))
+    expect(withArgs).toEqual([expect.objectContaining({ message: expect.stringContaining('refund_ai_quota(p_usage_date date) takes arguments') })])
   })
 
   it('fails when ai_daily_usage gets a policy or loses RLS', async () => {

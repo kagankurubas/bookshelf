@@ -268,6 +268,13 @@ Prerequisites:
   SUPABASE_ANON_KEY=<ANON_KEY from supabase start>
   SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY from supabase start>
   ```
+- In a second terminal, serve the Edge Functions for the `ai-chat` tests
+  under `tests/integration/ai-chat/`, which point it at a fake Gemini the
+  tests start on port 54399 (the env file holds no real key):
+
+  ```bash
+  npx supabase functions serve --env-file tests/integration/ai-chat/functions.env
+  ```
 
 ```bash
 npm run test:integration
@@ -293,6 +300,7 @@ supabase/
   functions/ai-chat/  Gemini proxy (pasted manually into the Supabase Dashboard)
 tests/
   integration/rls/   RLS integration tests against local Supabase (see above)
+  integration/ai-chat/  ai-chat end-to-end tests against a fake Gemini (see above)
 ```
 
 ### Roadmap
@@ -545,6 +553,14 @@ başka kullanıcıdan izole ettiğini kanıtlamak.
   SUPABASE_ANON_KEY=<supabase start çıktısındaki ANON_KEY>
   SUPABASE_SERVICE_ROLE_KEY=<supabase start çıktısındaki SERVICE_ROLE_KEY>
   ```
+- İkinci bir terminalde, `tests/integration/ai-chat/` altındaki `ai-chat`
+  testleri için Edge Function'ları servis et. Bu, fonksiyonu testlerin 54399
+  portunda açtığı sahte Gemini'ye yönlendirir (env dosyasında gerçek anahtar
+  yok):
+
+  ```bash
+  npx supabase functions serve --env-file tests/integration/ai-chat/functions.env
+  ```
 
 ```bash
 npm run test:integration
@@ -570,6 +586,7 @@ supabase/
   functions/ai-chat/  Gemini proxy'si (Supabase Dashboard'a manuel yapıştırılır)
 tests/
   integration/rls/  Local Supabase'e karşı RLS entegrasyon testleri (yukarı bkz.)
+  integration/ai-chat/  Sahte Gemini'ye karşı ai-chat uçtan uca testleri (yukarı bkz.)
 ```
 
 ### Yol haritası

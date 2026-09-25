@@ -4,11 +4,12 @@
 export const exceptions = {
   // Tables with RLS enabled but intentionally no policies: { table, reason }
   policylessTables: [
-    { table: 'ai_daily_usage', reason: 'Quota counter; only try_consume_ai_quota (security definer, service_role only, called by ai-chat) touches it, never the client' },
+    { table: 'ai_daily_usage', reason: 'Quota counter; only try_consume_ai_quota and refund_ai_quota (security definer, service_role only, called by ai-chat) touch it, never the client' },
   ],
   // Functions allowed to be `security definer`: { name, reason }
   securityDefinerFunctions: [
     { name: 'try_consume_ai_quota', reason: 'Must write ai_daily_usage, which has no client policies' },
+    { name: 'refund_ai_quota', reason: 'Gives a quota slot back in ai_daily_usage when Gemini fails; same reason as try_consume_ai_quota' },
   ],
   // Expected parent tables for indirectly owned tables: { table, parents: [], reason }
   // Stricter than "one expression matches": every using and with check

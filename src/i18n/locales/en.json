@@ -27,6 +27,7 @@
     "typing": "Typing...",
     "error": "Something went wrong, want to try again?",
     "dailyLimitReached": "You've used up today's Book Assistant quota — please try again tomorrow.",
+    "busy": "The Book Assistant is very busy right now. Could you try again in a few minutes? This attempt didn't count against today's quota.",
     "conversationSelectLabel": "Select conversation",
     "close": "Close",
     "sendLabel": "Send"

@@ -66,6 +66,18 @@ jobs:
           echo "SUPABASE_ANON_KEY=$(extract ANON_KEY)" >> "$GITHUB_ENV"
           echo "SUPABASE_SERVICE_ROLE_KEY=$(extract SERVICE_ROLE_KEY)" >> "$GITHUB_ENV"
 
+      # ai-chat's integration tests call the served function, which talks to
+      # a fake Gemini the tests start on the runner (see functions.env).
+      - name: Serve Edge Functions
+        run: |
+          npx supabase@latest functions serve --env-file tests/integration/ai-chat/functions.env > /tmp/functions-serve.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -s -o /dev/null -X OPTIONS -w '%{http_code}' http://127.0.0.1:54321/functions/v1/ai-chat | grep -q 200 && exit 0
+            sleep 2
+          done
+          cat /tmp/functions-serve.log
+          exit 1
+
       - run: npm run test:integration
 
       - name: Stop local Supabase
