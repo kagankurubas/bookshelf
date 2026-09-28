@@ -26,7 +26,7 @@
   <a href="https://github.com/kagankurubas/bookshelf/actions/workflows/ci.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status">
   </a>
-  <img src="https://img.shields.io/badge/tests-213_passing-3ECF8E?style=for-the-badge" alt="213 tests passing">
+  <img src="https://img.shields.io/badge/tests-385_passing-3ECF8E?style=for-the-badge" alt="385 tests passing">
 </p>
 
 <p align="center">
@@ -116,10 +116,11 @@ library and lets you chat about what you're reading.
   Functions)
 - **AI**: Google Gemini API, called from a server-side Edge Function
   (the key never reaches the browser)
-- **Barcode scanning**: `html5-qrcode`
+- **Barcode scanning**: `zxing-wasm`
 - **Book search/ISBN lookup**: Open Library API
 - **Testing**: Vitest + React Testing Library
-- **CI**: GitHub Actions (lint, test, build on every push)
+- **CI**: GitHub Actions (lint, test, build, static security checks and
+  RLS/ai-chat integration tests on every push and PR to `main`)
 
 Designed to run entirely on free tiers (Supabase free tier + Gemini
 API free tier).
@@ -223,7 +224,7 @@ Use **Sign Up** on the screen that opens to create your first account.
 
 ### Tests
 
-![213 tests passing](https://img.shields.io/badge/tests-213_passing-3ECF8E?style=flat-square)
+![385 tests passing](https://img.shields.io/badge/tests-385_passing-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
 A real Vitest + React Testing Library suite covering the app's core
@@ -234,11 +235,14 @@ shelf-spine sizing math, the dashboard's colorblind-safe category
 color mapping, the Open Library API wrapper (response mapping and
 caching, with `fetch` mocked), the CSV/JSON export builders and the
 Goodreads/StoryGraph CSV import parsers (column mapping, status
-mapping, duplicate detection, malformed-row handling), and a couple of
-presentational components (rendering, click handlers, translated
-labels). Modest but real coverage, not exhaustive.
+mapping, duplicate detection, malformed-row handling), UI components such as the book, settings, import preview and AI chat
+modals (rendering, click handlers, translated labels), and the
+security-walls static checks under `scripts/security-walls/`. Modest
+but real coverage, not exhaustive.
 
-Every push to `main` also runs lint + test + build in
+Every push and PR to `main` also runs lint + test + build + the
+security-walls checks (`npm run check:security`), plus the RLS/ai-chat
+integration suite against a local Supabase, in
 [GitHub Actions](https://github.com/kagankurubas/bookshelf/actions).
 
 ```bash
@@ -298,6 +302,8 @@ supabase/
   schema.sql          Target schema for a brand-new project
   migrations/         Ordered SQL files for upgrading an existing project
   functions/ai-chat/  Gemini proxy (pasted manually into the Supabase Dashboard)
+scripts/
+  security-walls/    Static security checks (npm run check:security)
 tests/
   integration/rls/   RLS integration tests against local Supabase (see above)
   integration/ai-chat/  ai-chat end-to-end tests against a fake Gemini (see above)
@@ -393,10 +399,11 @@ dahil.
   Functions)
 - **AI**: Google Gemini API (sunucu tarafında bir Edge Function
   üzerinden çağrılıyor — anahtar hiçbir zaman tarayıcıya inmiyor)
-- **Barkod tarama**: `html5-qrcode`
+- **Barkod tarama**: `zxing-wasm`
 - **Kitap arama/ISBN**: Open Library API
 - **Test**: Vitest + React Testing Library
-- **CI**: GitHub Actions (her push'ta lint, test, build)
+- **CI**: GitHub Actions (`main`'e her push ve PR'da lint, test, build,
+  statik güvenlik kontrolleri ve RLS/ai-chat entegrasyon testleri)
 
 Proje tamamen ücretsiz katmanlarla çalışacak şekilde tasarlandı
 (Supabase free tier + Gemini API free tier).
@@ -504,7 +511,7 @@ Açılan sayfadan **Kayıt Ol** ile ilk hesabını oluştur.
 
 ### Testler
 
-![213 test geçiyor](https://img.shields.io/badge/testler-213_ge%C3%A7iyor-3ECF8E?style=flat-square)
+![385 test geçiyor](https://img.shields.io/badge/testler-385_ge%C3%A7iyor-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
 Uygulamanın temel mantığını kapsayan gerçek bir Vitest + React Testing
@@ -516,12 +523,16 @@ dashboard'daki renk-körlüğü güvenli kategori renk eşlemesi, Open Library
 API sarmalayıcısı (yanıt eşleme ve önbellekleme, `fetch` mock'lanarak),
 CSV/JSON export üreticileri ve Goodreads/StoryGraph CSV import
 parser'ları (sütun eşleme, durum eşleme, çift kayıt tespiti, bozuk
-satır ele alımı), ve birkaç sunum bileşeni (render, tıklama davranışı,
-çevrilen etiketler). Mütevazı ama gerçek bir coverage, kapsamlı değil.
+satır ele alımı), kitap, ayarlar, import önizleme ve AI sohbet modalları gibi UI
+bileşenleri (render, tıklama davranışı, çevrilen etiketler) ve
+`scripts/security-walls/` altındaki statik güvenlik kontrolleri.
+Mütevazı ama gerçek bir coverage, kapsamlı değil.
 
-`main`'e her push'ta ayrıca
+`main`'e her push ve PR'da ayrıca
 [GitHub Actions](https://github.com/kagankurubas/bookshelf/actions)
-lint + test + build'i otomatik çalıştırıyor.
+lint + test + build'i, security-walls kontrollerini
+(`npm run check:security`) ve local Supabase'e karşı RLS/ai-chat
+entegrasyon paketini otomatik çalıştırıyor.
 
 ```bash
 npm run test
@@ -584,6 +595,8 @@ supabase/
   schema.sql        Yeni bir proje için sıfırdan hedef şema
   migrations/       Var olan bir projeyi güncellemek için sıralı SQL dosyaları
   functions/ai-chat/  Gemini proxy'si (Supabase Dashboard'a manuel yapıştırılır)
+scripts/
+  security-walls/   Statik güvenlik kontrolleri (npm run check:security)
 tests/
   integration/rls/  Local Supabase'e karşı RLS entegrasyon testleri (yukarı bkz.)
   integration/ai-chat/  Sahte Gemini'ye karşı ai-chat uçtan uca testleri (yukarı bkz.)
