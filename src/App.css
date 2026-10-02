@@ -924,16 +924,16 @@ html, body, #root {
   z-index: 1;
 }
 
-.shelf-book.category-klasik    { background: linear-gradient(160deg, oklch(66% 0.17 15) 0%, oklch(54% 0.16 9) 55%, oklch(40% 0.14 5) 100%); }
-.shelf-book.category-fantastik { background: linear-gradient(160deg, oklch(66% 0.17 35) 0%, oklch(54% 0.16 29) 55%, oklch(40% 0.14 25) 100%); }
-.shelf-book.category-bilimkurgu{ background: linear-gradient(160deg, oklch(66% 0.17 235) 0%, oklch(54% 0.16 229) 55%, oklch(40% 0.14 225) 100%); }
-.shelf-book.category-distopya  { background: linear-gradient(160deg, oklch(66% 0.09 260) 0%, oklch(54% 0.08 254) 55%, oklch(40% 0.07 250) 100%); }
-.shelf-book.category-kurgu     { background: linear-gradient(160deg, oklch(66% 0.17 165) 0%, oklch(54% 0.16 159) 55%, oklch(40% 0.14 155) 100%); }
-.shelf-book.category-tarih     { background: linear-gradient(160deg, oklch(66% 0.15 70) 0%, oklch(54% 0.14 64) 55%, oklch(40% 0.12 60) 100%); }
-.shelf-book.category-felsefe   { background: linear-gradient(160deg, oklch(66% 0.15 320) 0%, oklch(54% 0.14 314) 55%, oklch(40% 0.12 310) 100%); }
-.shelf-book.category-biyografi { background: linear-gradient(160deg, oklch(66% 0.09 240) 0%, oklch(54% 0.08 234) 55%, oklch(40% 0.07 230) 100%); }
-.shelf-book.category-bilim     { background: linear-gradient(160deg, oklch(66% 0.15 200) 0%, oklch(54% 0.14 194) 55%, oklch(40% 0.12 190) 100%); }
-.shelf-book.category-default   { background: linear-gradient(160deg, oklch(66% 0.03 90) 0%, oklch(54% 0.03 90) 55%, oklch(40% 0.02 90) 100%); }
+.shelf-book.category-klasik, .calendar-tile.category-klasik    { background: linear-gradient(160deg, oklch(66% 0.17 15) 0%, oklch(54% 0.16 9) 55%, oklch(40% 0.14 5) 100%); }
+.shelf-book.category-fantastik, .calendar-tile.category-fantastik { background: linear-gradient(160deg, oklch(66% 0.17 35) 0%, oklch(54% 0.16 29) 55%, oklch(40% 0.14 25) 100%); }
+.shelf-book.category-bilimkurgu, .calendar-tile.category-bilimkurgu{ background: linear-gradient(160deg, oklch(66% 0.17 235) 0%, oklch(54% 0.16 229) 55%, oklch(40% 0.14 225) 100%); }
+.shelf-book.category-distopya, .calendar-tile.category-distopya  { background: linear-gradient(160deg, oklch(66% 0.09 260) 0%, oklch(54% 0.08 254) 55%, oklch(40% 0.07 250) 100%); }
+.shelf-book.category-kurgu, .calendar-tile.category-kurgu     { background: linear-gradient(160deg, oklch(66% 0.17 165) 0%, oklch(54% 0.16 159) 55%, oklch(40% 0.14 155) 100%); }
+.shelf-book.category-tarih, .calendar-tile.category-tarih     { background: linear-gradient(160deg, oklch(66% 0.15 70) 0%, oklch(54% 0.14 64) 55%, oklch(40% 0.12 60) 100%); }
+.shelf-book.category-felsefe, .calendar-tile.category-felsefe   { background: linear-gradient(160deg, oklch(66% 0.15 320) 0%, oklch(54% 0.14 314) 55%, oklch(40% 0.12 310) 100%); }
+.shelf-book.category-biyografi, .calendar-tile.category-biyografi { background: linear-gradient(160deg, oklch(66% 0.09 240) 0%, oklch(54% 0.08 234) 55%, oklch(40% 0.07 230) 100%); }
+.shelf-book.category-bilim, .calendar-tile.category-bilim     { background: linear-gradient(160deg, oklch(66% 0.15 200) 0%, oklch(54% 0.14 194) 55%, oklch(40% 0.12 190) 100%); }
+.shelf-book.category-default, .calendar-tile.category-default   { background: linear-gradient(160deg, oklch(66% 0.03 90) 0%, oklch(54% 0.03 90) 55%, oklch(40% 0.02 90) 100%); }
 
 /* ===== Dokunarak-tasima (mobil surukle-birak alternatifi) =====
    Native HTML5 drag&drop dokunmatik ekranlarda calismadigi icin: kitabin

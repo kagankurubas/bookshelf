@@ -84,7 +84,16 @@
     "shareTitle": "Okuma Özetim",
     "shareText": "{{period}}: {{count}} kitap okudum!",
     "shareError": "Görsel oluşturulurken bir hata oluştu. Lütfen tekrar dene.",
-    "filenamePrefix": "okuma-ozeti"
+    "filenamePrefix": "okuma-ozeti",
+    "styleLabel": "Görsel stili",
+    "styleShelf": "Raf",
+    "styleCalendar": "Takvim",
+    "weekdaysShort": ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"],
+    "calendarEmpty": "Bu ay için kayıtlı okuma günü yok.",
+    "calendarSkipped_one": "Tarihi eksik ya da hatalı {{count}} kitap takvimde gösterilmiyor.",
+    "calendarSkipped_other": "Tarihi eksik ya da hatalı {{count}} kitap takvimde gösterilmiyor.",
+    "calendarShareText_one": "{{period}}: {{count}} gün kitap okudum!",
+    "calendarShareText_other": "{{period}}: {{count}} gün kitap okudum!"
   },
   "cards": {
     "empty": "Bu kitaplıkta henüz kitap yok.",

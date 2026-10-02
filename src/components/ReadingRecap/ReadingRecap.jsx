@@ -1,16 +1,21 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toBlob } from 'html-to-image';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { getFinishedBooksInPeriod, getRecapYearOptions, splitForDisplay } from '../../lib/readingRecap';
+import {
+  buildReadingCalendar,
+  countBooksSkippedForDates,
+  getCalendarYearOptions,
+  resolveCalendarCoverUrl,
+} from '../../lib/readingCalendar';
+import { loadCoverDataUrl } from '../../lib/coverDataUrl';
+import { toLocalDateString } from '../../lib/localDate';
 import { getSpineSize, getSpineFilter, getCategoryEmblem, getCategoryColorClass } from '../../lib/shelfSpine';
 import CustomSelect from '../CustomSelect/CustomSelect';
+import CalendarCard from './CalendarCard';
 import { ShareIcon, DownloadIcon } from '../icons/Icons';
 import './ReadingRecap.css';
-
-const now = new Date();
-const CURRENT_YEAR = now.getFullYear();
-const CURRENT_MONTH = now.getMonth() + 1;
 
 const supportsNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
@@ -48,19 +53,52 @@ function RecapSpine({ book, language }) {
   );
 }
 
+// Resolves every cover shown in the calendar to a data URL (or null) before
+// the card can be exported. `ready` turns true once all of them have settled.
+function useCalendarCovers(urls) {
+  const [loaded, setLoaded] = useState(() => new Map());
+  const key = urls.join('\n');
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(urls.map((url) => loadCoverDataUrl(url).then((dataUrl) => [url, dataUrl]))).then((entries) => {
+      if (!cancelled) setLoaded(new Map(entries));
+    });
+    return () => {
+      cancelled = true;
+    };
+    // urls is rebuilt every render; key captures its contents.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  return { covers: loaded, ready: urls.every((url) => loaded.has(url)) };
+}
+
 function ReadingRecap({ books, onClose }) {
   const { t, i18n } = useTranslation();
   useEscapeKey(onClose);
 
+  const [today] = useState(() => toLocalDateString());
+  const currentYear = Number(today.slice(0, 4));
+  const currentMonth = Number(today.slice(5, 7));
+
+  const [style, setStyle] = useState('shelf');
   const [mode, setMode] = useState('month');
-  const [year, setYear] = useState(CURRENT_YEAR);
-  const [month, setMonth] = useState(CURRENT_MONTH);
+  const [year, setYear] = useState(currentYear);
+  const [month, setMonth] = useState(currentMonth);
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareError, setShareError] = useState(null);
   const cardRef = useRef(null);
 
-  const yearOptions = useMemo(() => getRecapYearOptions(books, CURRENT_YEAR), [books]);
+  const isCalendar = style === 'calendar';
+  const isMonthly = isCalendar || mode === 'month';
+
+  const shelfYearOptions = useMemo(() => getRecapYearOptions(books, currentYear), [books, currentYear]);
+  const calendarYearOptions = useMemo(() => getCalendarYearOptions(books, currentYear), [books, currentYear]);
+  const yearOptions = isCalendar ? calendarYearOptions : shelfYearOptions;
   const monthLongLabels = t('dashboard.monthsLong', { returnObjects: true });
+  // The calendar can't show a month that hasn't started yet.
+  const selectableMonths = isCalendar && year === currentYear ? currentMonth : 12;
 
   const periodBooks = useMemo(
     () => getFinishedBooksInPeriod(books, mode, year, mode === 'month' ? month : null),
@@ -68,16 +106,59 @@ function ReadingRecap({ books, onClose }) {
   );
   const { visible, overflowCount } = useMemo(() => splitForDisplay(periodBooks), [periodBooks]);
 
-  const periodLabel = mode === 'month' ? `${monthLongLabels[month - 1]} ${year}` : String(year);
-  const isEmpty = periodBooks.length === 0;
+  const calendar = useMemo(
+    () => (isCalendar ? buildReadingCalendar({ books, year, month, today }) : null),
+    [isCalendar, books, year, month, today]
+  );
+  const readDays = useMemo(
+    () => (calendar ? calendar.weeks.flat().filter((cell) => cell.type === 'read') : []),
+    [calendar]
+  );
+  const skippedCount = useMemo(() => (isCalendar ? countBooksSkippedForDates(books) : 0), [isCalendar, books]);
+
+  const coverUrlByBookId = useMemo(() => {
+    const map = new Map();
+    readDays.forEach((cell) => cell.books.slice(0, 2).forEach(({ book }) => {
+      const url = resolveCalendarCoverUrl(book);
+      if (url) map.set(book.id, url);
+    }));
+    return map;
+  }, [readDays]);
+  const coverUrls = useMemo(() => Array.from(new Set(coverUrlByBookId.values())), [coverUrlByBookId]);
+  const { covers, ready: coversReady } = useCalendarCovers(coverUrls);
+  const coverFor = (book) => covers.get(coverUrlByBookId.get(book.id)) ?? null;
+
+  const periodLabel = isCalendar
+    ? new Intl.DateTimeFormat(i18n.language, { month: 'long', year: 'numeric' }).format(new Date(year, month - 1, 1))
+    : mode === 'month' ? `${monthLongLabels[month - 1]} ${year}` : String(year);
+  const isEmpty = isCalendar ? readDays.length === 0 : periodBooks.length === 0;
+  const isPreparing = isCalendar && !coversReady;
 
   const handleModeChange = (newMode) => {
     setMode(newMode);
     setShareError(null);
   };
 
+  const handleStyleChange = (newStyle) => {
+    setStyle(newStyle);
+    setShareError(null);
+    if (newStyle === 'calendar') {
+      if (year > currentYear || (year === currentYear && month > currentMonth)) {
+        setYear(currentYear);
+        setMonth(currentMonth);
+      }
+    } else if (!shelfYearOptions.includes(year)) {
+      setYear(currentYear);
+    }
+  };
+
+  const handleYearChange = (newYear) => {
+    setYear(newYear);
+    if (isCalendar && newYear === currentYear && month > currentMonth) setMonth(currentMonth);
+  };
+
   const handleExport = async () => {
-    if (!cardRef.current || isEmpty || isGenerating) return;
+    if (!cardRef.current || isEmpty || isGenerating || isPreparing) return;
     setIsGenerating(true);
     setShareError(null);
     try {
@@ -86,11 +167,15 @@ function ReadingRecap({ books, onClose }) {
       // (SecurityError) - this both pollutes the console and is slow enough
       // to blow past the "user gesture" window navigator.share requires,
       // causing a NotAllowedError. The custom font isn't critical on the card anyway.
-      const blob = await toBlob(cardRef.current, { pixelRatio: 2, cacheBust: true, skipFonts: true });
+      // The calendar card holds only data URLs, so it needs no cacheBust.
+      const blob = await toBlob(cardRef.current, { pixelRatio: 2, cacheBust: !isCalendar, skipFonts: true });
       if (!blob) throw new Error('toBlob returned null');
 
-      const filename = `${t('readingRecap.filenamePrefix')}-${mode === 'month' ? `${year}-${String(month).padStart(2, '0')}` : year}.png`;
-      const shareText = t('readingRecap.shareText', { period: periodLabel, count: periodBooks.length });
+      const period = isMonthly ? `${year}-${String(month).padStart(2, '0')}` : year;
+      const filename = `${t('readingRecap.filenamePrefix')}-${isCalendar ? 'calendar-' : ''}${period}.png`;
+      const shareText = isCalendar
+        ? t('readingRecap.calendarShareText', { period: periodLabel, count: readDays.length })
+        : t('readingRecap.shareText', { period: periodLabel, count: periodBooks.length });
 
       if (supportsNativeShare) {
         try {
@@ -133,22 +218,33 @@ function ReadingRecap({ books, onClose }) {
 
         <div className="modal-body recap-modal-body">
           <div className="recap-controls">
-            <div className="dashboard-metric-toggle">
-              <button type="button" className={mode === 'month' ? 'active' : ''} onClick={() => handleModeChange('month')}>
-                {t('readingRecap.modeMonth')}
+            <div className="dashboard-metric-toggle" role="group" aria-label={t('readingRecap.styleLabel')}>
+              <button type="button" className={style === 'shelf' ? 'active' : ''} aria-pressed={style === 'shelf'} onClick={() => handleStyleChange('shelf')}>
+                {t('readingRecap.styleShelf')}
               </button>
-              <button type="button" className={mode === 'year' ? 'active' : ''} onClick={() => handleModeChange('year')}>
-                {t('readingRecap.modeYear')}
+              <button type="button" className={isCalendar ? 'active' : ''} aria-pressed={isCalendar} onClick={() => handleStyleChange('calendar')}>
+                {t('readingRecap.styleCalendar')}
               </button>
             </div>
 
-            {mode === 'month' && (
+            {!isCalendar && (
+              <div className="dashboard-metric-toggle">
+                <button type="button" className={mode === 'month' ? 'active' : ''} onClick={() => handleModeChange('month')}>
+                  {t('readingRecap.modeMonth')}
+                </button>
+                <button type="button" className={mode === 'year' ? 'active' : ''} onClick={() => handleModeChange('year')}>
+                  {t('readingRecap.modeYear')}
+                </button>
+              </div>
+            )}
+
+            {isMonthly && (
               <CustomSelect
                 className="recap-select"
                 ariaLabel={t('readingRecap.monthSelectLabel')}
                 value={month}
                 onChange={setMonth}
-                options={monthLongLabels.map((label, i) => ({ value: i + 1, label }))}
+                options={monthLongLabels.slice(0, selectableMonths).map((label, i) => ({ value: i + 1, label }))}
               />
             )}
 
@@ -156,31 +252,39 @@ function ReadingRecap({ books, onClose }) {
               className="recap-select"
               ariaLabel={t('readingRecap.yearSelectLabel')}
               value={year}
-              onChange={setYear}
+              onChange={handleYearChange}
               options={yearOptions.map((y) => ({ value: y, label: String(y) }))}
             />
           </div>
 
-          <div className="recap-card" ref={cardRef}>
-            <span className="recap-card-watermark">{t('app.name')}</span>
-            <span className="recap-card-period">{periodLabel}</span>
+          {skippedCount > 0 && (
+            <p className="recap-skipped-note">{t('readingRecap.calendarSkipped', { count: skippedCount })}</p>
+          )}
 
-            {isEmpty ? (
-              <p className="recap-card-empty">{t('readingRecap.empty')}</p>
-            ) : (
-              <>
-                <div className="recap-card-shelf">
-                  {visible.map((book) => (
-                    <RecapSpine key={book.id} book={book} language={i18n.language} />
-                  ))}
-                  {overflowCount > 0 && (
-                    <div className="recap-overflow-badge">{t('readingRecap.overflowBadge', { count: overflowCount })}</div>
-                  )}
-                </div>
-                <span className="recap-card-count">{t('readingRecap.bookCount', { count: periodBooks.length })}</span>
-              </>
-            )}
-          </div>
+          {isCalendar ? (
+            <CalendarCard cardRef={cardRef} calendar={calendar} periodLabel={periodLabel} isEmpty={isEmpty} coverFor={coverFor} />
+          ) : (
+            <div className="recap-card" ref={cardRef}>
+              <span className="recap-card-watermark">{t('app.name')}</span>
+              <span className="recap-card-period">{periodLabel}</span>
+
+              {isEmpty ? (
+                <p className="recap-card-empty">{t('readingRecap.empty')}</p>
+              ) : (
+                <>
+                  <div className="recap-card-shelf">
+                    {visible.map((book) => (
+                      <RecapSpine key={book.id} book={book} language={i18n.language} />
+                    ))}
+                    {overflowCount > 0 && (
+                      <div className="recap-overflow-badge">{t('readingRecap.overflowBadge', { count: overflowCount })}</div>
+                    )}
+                  </div>
+                  <span className="recap-card-count">{t('readingRecap.bookCount', { count: periodBooks.length })}</span>
+                </>
+              )}
+            </div>
+          )}
 
           {shareError && <p className="recap-error">{shareError}</p>}
 
@@ -188,10 +292,10 @@ function ReadingRecap({ books, onClose }) {
             type="button"
             className="btn-primary recap-action-btn"
             onClick={handleExport}
-            disabled={isEmpty || isGenerating}
+            disabled={isEmpty || isGenerating || isPreparing}
           >
             {supportsNativeShare ? <ShareIcon /> : <DownloadIcon />}
-            {isGenerating ? t('readingRecap.generating') : t(supportsNativeShare ? 'readingRecap.share' : 'readingRecap.download')}
+            {isGenerating || isPreparing ? t('readingRecap.generating') : t(supportsNativeShare ? 'readingRecap.share' : 'readingRecap.download')}
           </button>
         </div>
       </div>
