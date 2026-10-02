@@ -4,7 +4,7 @@
 
 **Blocked by:** —
 
-**Status:** ready-for-agent
+**Status:** resolved — karar B1 + C, bkz. spec → Further Notes → Prototip sonucu
 
 - [ ] Throwaway prototip, `monthly-reading-calendar-share`'den dallanan ayrı bir branch'te; push edilmez, iş bitince silinir
 - [ ] Prototip, mevcut raf kartına birkaç kapak `<img>`'i ekleyip mevcut `handleExport` akışıyla PNG üretiyor

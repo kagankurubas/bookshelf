@@ -10,7 +10,9 @@
 - [ ] Takvim'de Ay/Yıl toggle'ı gizli; ay varsayılanı geçerli ay; gelecek aylar seçilemiyor; yıl seçicisi takvim yıl seçeneklerini kullanıyor
 - [ ] Takvim kartı: başlık (format kullanıcının açık kararına göre; karar yoksa sor), Pzt–Paz başlık satırı, hücre türleri (`read` tek/ikiye bölünmüş/+N, `empty`, `future`, `outside`) görsel olarak ayırt edilebilir; `future` grisi `empty`'den açıkça farklı
 - [ ] Biten kitabın kapağı üzerinde 1–5 yıldız; kapak bulunamazsa kategori renkli başlık karosu
-- [ ] Kapak hazırlığı 01'deki karara göre yapılıyor; hazırlık bitmeden Paylaş "hazırlanıyor" durumunda; export ekranda görünenle aynı (sessizce boş kapak yok)
+- [ ] Kapak hazırlığı B1'e göre: her kapak CORS'lu `fetch` → data URL (object URL değil); başarısızlar kategori renkli karo; kart uzak URL render etmiyor, böylece tek bozuk kapak export'u düşüremiyor; takvim export'unda `cacheBust` yok; hazırlık bitmeden Paylaş "hazırlanıyor" durumunda; export ekranda görünenle aynı
+- [ ] Aynı kapak oturum içinde tekrar fetch edilmiyor (ay değişince önceki data URL/başarısızlık sonucu yeniden kullanılıyor)
+- [ ] Merge sonrası, release öncesi HTTPS (Netlify) smoke test'i yapıldı (spec → Testing Decisions): telefonda SW'li export ve gerçek paylaşım menüsü, mümkünse iOS Safari dahil
 - [ ] Paylaş akışı iki stil için tek yerde: Web Share, AbortError'da sessiz çıkış, indirme fallback'i, hata mesajı; takvim dosya adı `<prefix>-calendar-YYYY-MM.png`
 - [ ] Boş ay → boş-durum mesajı + Paylaş pasif
 - [ ] Tarihi eksik/hatalı olduğu için atlanan kitap sayısı > 0 ise, export edilen kartın **dışında**, seçicilerin olduğu alanda kısa bir not gösteriliyor; 0 ise not yok

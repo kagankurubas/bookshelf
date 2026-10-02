@@ -46,7 +46,7 @@ Takvim kartı:
 21. Kullanıcı olarak, yarıda bıraktığım ve henüz başlamadığım kitapların takvimde görünmemesini istiyorum, ki takvim yalnızca gerçek okumalarımı göstersin.
 22. Kullanıcı olarak, kapak URL'si kayıtlı olmayan ama ISBN'i olan bir kitabın kapağının ISBN'den bulunmasını istiyorum, ki barkodsuz/elle eklediğim kitaplar da kapaklı görünsün.
 23. Kullanıcı olarak, kapağı hiç bulunamayan bir kitabın hücresinin yine de dolu (okundu) görünmesini istiyorum, ki kapak eksikliği okuma günümü silmesin.
-24. Kullanıcı olarak, ekranda gördüğüm takvimle paylaştığım PNG'nin birebir aynı olmasını istiyorum, ki ekranda görünen kapakların görselde sessizce boş çıkmasıyla karşılaşmayayım.
+24. Kullanıcı olarak, ekranda gördüğüm takvimle paylaştığım PNG'nin birebir aynı olmasını istiyorum, ki ekranda görünen bir kapak görselde eksik çıkmasın ya da tek bozuk kapak yüzünden görsel hiç üretilememesin.
 25. Kullanıcı olarak, mobilde "Paylaş" butonuna bastığımda telefonumun paylaşım menüsünün açılmasını istiyorum, ki görseli doğrudan Instagram/WhatsApp'a gönderebileyim.
 26. Kullanıcı olarak, masaüstünde aynı butonun görseli indirmesini istiyorum, ki dosyayı istediğim yere yükleyebileyim.
 27. Kullanıcı olarak, paylaşım menüsünü iptal ettiğimde dosyanın indirilmemesini istiyorum, ki istemediğim bir indirmeyle karşılaşmayayım.
@@ -79,8 +79,8 @@ Takvim kartı:
 
 ### Kapak export: bilinenler ve risk
 - Mevcut Okuma Özeti kartı `html-to-image` (`toBlob`, `pixelRatio: 2`, `cacheBust: true`, `skipFonts: true`) ile PNG'ye çevriliyor; bugüne kadar karta hiç uzak görsel konmadı, kapak export'u bu kodda denenmemiş bir yol.
-- `html-to-image`, `<img>` kaynaklarını `fetch` ile data URL'ye çevirip gömüyor. CORS başarısız olursa **hata fırlatmıyor, görseli sessizce boş bırakıyor** (`imagePlaceholder` verilmediyse). Yani risk "tainted canvas" istisnasından çok, export'un başarılı görünüp kapakların eksik çıkmasıdır.
-- Ön test (curl, `Origin` başlığıyla): `covers.openlibrary.org` `Access-Control-Allow-Origin: *` dönüyor; `/b/id/...` URL'leri archive.org'a iki adımlı 302 yönlendirmesi yapıyor ve zincirin her adımı CORS başlığı içeriyor. Tarayıcıda henüz doğrulanmadı.
+- `html-to-image`, `<img>` kaynaklarını `fetch` ile data URL'ye çevirip gömüyor. Fetch başarısız olursa (CORS, 404, SW'nin opak yanıtı) kaynağı boş string'le değiştiriyor; klonlanan `<img>` bu yüzden yüklenemiyor ve **`toBlob` hata fırlatıyor: tek bir bozuk kapak export'un tamamını düşürür, PNG hiç üretilmez** (prototipte doğrulandı). Ayrıca `html-to-image` sonucu modül düzeyindeki bellek cache'inde, sorgu parametresi atılmış URL'yi anahtar alarak saklıyor; başarısız sonuç da cache'lendiği için **aynı sayfa oturumunda sonraki denemeler (cacheBust açık olsa bile) aynı şekilde başarısız olur**. Risk "tainted canvas" değil, export'un tamamen düşmesidir.
+- Ön test (curl, `Origin` başlığıyla): `covers.openlibrary.org` `Access-Control-Allow-Origin: *` dönüyor; `/b/id/...` URL'leri archive.org'a iki adımlı 302 yönlendirmesi yapıyor ve zincirin her adımı CORS başlığı içeriyor. Tarayıcıda da doğrulandı (prototip).
 - **Service worker riski:** PWA, Open Library isteklerini `CacheFirst` ile ve `cacheableResponse: { statuses: [0, 200] }` ile cache'liyor; normal görünümlerdeki `<img>` (no-cors) yüklemeleri **opak** yanıt olarak cache'e girer. Aynı URL'ye sonradan yapılan CORS'lu `fetch`'e SW opak yanıtı dönerse istek başarısız olur → kapak boş. Mevcut `cacheBust: true` URL'yi benzersizleştirip bunu atlatıyor ama her export'ta `openlibrary-cache`'e yeni kayıtlar yazıp (maks. 200) gerçek kapakları tahliye ediyor. Prototip bu yüzden SW aktifken (production build + preview) test edilmeli; `npm run dev` bu riski göstermez.
 - `cover_image` her zaman Open Library değil: BookModal'da kullanıcı rastgele bir URL yapıştırabiliyor. CORS vermeyen bu tür kaynaklar hangi yöntem seçilirse seçilsin (proxy hariç) export'ta kullanılamaz.
 
@@ -94,6 +94,8 @@ Takvim kartı:
 | D. Netlify proxy (aynı origin'de `/covers/*` → `covers.openlibrary.org`, status 200 rewrite) | Netlify free tier bant genişliğinden yer (güncel limit doğrulanmalı) | archive.org 302'si istemciye geri dönebilir → zincir yine cross-origin olur (doğrulanmadı). Rastgele host'ları kapsamaz. |
 | E. Supabase Edge Function proxy | Free tier invocation + egress kotasından yer (güncel limitler doğrulanmalı; Gemini AI kotasıyla paylaşılan proje bütçesi) | Yeni sunucu yüzeyi: açık proxy/SSRF riski, host allowlist + JWT şart, security-walls kapsamına girer; ADR 0001'in "sunucu yüzeyi açma" gerekçesiyle gerilim. Son çare. |
 | F. Kapak yoksa fallback hücre | 0 | Her senaryoda son katman olarak gerekli (bkz. aşağı). |
+
+**Karar (kullanıcı onaylı, prototip sonrası): B1 + C. Proxy (D/E) yok, yeni dependency yok.** B1 = CORS'lu fetch ile kapakları data URL'ye ön-yükleme; C = ticket 02. Ayrıntı ve kanıt: Further Notes → Prototip sonucu.
 
 Prototipin çıktısı: hangi seçeneğin (muhtemelen B + C, gerekirse D) kullanılacağı ve gerekçesi, bu spec'in "Further Notes" bölümüne ve gerekirse yeni bir ADR'ye yazılır. D seçilirse yeni yapılandırma olduğu için kullanıcı onayı alınır. **E (Edge Function proxy) gerekirse iş durur, kullanıcıya sorulur, uygulanmaz.**
 
@@ -136,7 +138,7 @@ Seçenek C (SW kapak cache düzeltmesi) 01'den ayrıdır: kendi ticket'ında (02
 - Mevcut export/paylaşım mantığı (toBlob → Web Share / indirme, AbortError'da sessiz çıkış, hata mesajı) iki stil tarafından ortak kullanılacak şekilde bileşen içinde tek yerde kalır; yalnızca dosya adı, paylaşım metni ve export öncesi kapak hazırlığı stile göre değişir.
 - Takvim kartı ayrı bir alt bileşen (raf kartının yanında). Kapak hücresi: tek kitapta tam hücre, iki kitapta ikiye bölünmüş, üç ve üzerinde iki kapak + `+N` rozeti. Biten kitabın kapağı üzerinde 1–5 yıldız. Kapak yüklenemezse hücre, raf sırtlarındaki kategori rengiyle dolu ve başlık kısaltması içeren bir karo olur (`shelfSpine` lib'inin renk eşlemesi yeniden kullanılır).
 - `future` hücreleri `empty` hücrelerinden farklı, açıkça ayırt edilir bir gri tonla; renkler mevcut tasarım token'larından (App.css değişkenleri).
-- Export, ekranda görünenle birebir aynı olmalı: kapak hazırlığı (prototipte seçilen yöntem) bitmeden Paylaş butonu "hazırlanıyor" durumunda kalır; export sırasında yüklenemeyen kapak sessizce boş değil, fallback karosu olarak çıkar.
+- Export, ekranda görünenle birebir aynı olmalı: kart açılırken/ay değişince her kapak CORS'lu `fetch` ile alınıp **data URL**'ye çevrilir (object URL değil: `cacheBust` `blob:` URL'sine sorgu ekleyince fetch kırılıyor, prototipte doğrulandı); kart yalnızca data URL'leri ya da fallback karosunu render eder, böylece `html-to-image` hiçbir uzak kaynağa fetch atmaz ve tek bozuk kapak export'u düşüremez. Hazırlık bitmeden Paylaş "hazırlanıyor" durumunda kalır. Takvim export'unda `cacheBust` kullanılmaz. Aynı kapak oturum içinde tekrar fetch edilmez (ay değiştirince önceki sonuç yeniden kullanılır).
 - Seçilen ayda hiç `read` hücre yoksa kart boş-durum mesajı gösterir ve Paylaş pasif olur (mevcut raf davranışıyla tutarlı).
 - Dosya adı: `<prefix>-calendar-YYYY-MM.png` (prefix mevcut `readingRecap.filenamePrefix`).
 - Başlık formatı: açık karar (bkz. Açık kararlar).
@@ -155,6 +157,7 @@ Seçenek C (SW kapak cache düzeltmesi) 01'den ayrıdır: kendi ticket'ında (02
 - **Seam 2: `ReadingRecap` bileşeni (RTL)** — `html-to-image` mock'lanır. Kapsam: stil geçişi (Takvim'de Ay/Yıl toggle'ı gizli, Raf'a dönünce geri gelir), Takvim'de boş ay → mesaj + pasif Paylaş, atlanan kitap notu (sayı > 0 iken görünür, 0 iken yok, export edilen kartın içinde değil), Paylaş → `toBlob` çağrılır ve indirme/Web Share yolu çalışır. Hücre görsel detayları (bölünmüş hücre piksel düzeni, gri tonlar) testle değil elle doğrulanır.
   - Önceki örnek: mevcut bileşen testleri (ör. `CardsView`, `SettingsModal`), `CoverImage` testi.
 - Kapak export'unun gerçek CORS/SW davranışı jsdom'da test edilemez; prototip ticket'ında ve PR doğrulamasında gerçek tarayıcıda (masaüstü Chrome + mobil Safari/Chrome, SW aktif production build) elle doğrulanır.
+- **Release öncesi smoke test (merge sonrası, Netlify HTTPS'te):** LAN http'de telefon güvenli bağlamda olmadığı için SW kayıt olmaz ve `navigator.share` yoktur; gerçek paylaşım menüsü ve telefonda SW'li export yalnızca HTTPS'te denenebilir. Netlify deploy'unda telefonda (mümkünse iOS Safari ve Android Chrome): uygulama bir kez açılıp SW'nin sayfayı kontrol ettiği doğrulanır, kapaklı kitapların olduğu bir ay Takvim stilinde açılır, Paylaş ile native paylaşım menüsü açılır, paylaşılan/kaydedilen PNG'de kapakların dolu ve kapaksızların fallback olduğu gözle doğrulanır; menüyü iptal etmenin indirme tetiklemediği kontrol edilir.
 
 ## Out of Scope
 
@@ -170,4 +173,25 @@ Seçenek C (SW kapak cache düzeltmesi) 01'den ayrıdır: kendi ticket'ında (02
 
 - Domain terimleri CONTEXT.md'ye uygun: Tamamlandı / Okunuyor / Başlanmadı / Yarıda Bırakıldı, Okuma Özeti. Takvim, Okuma Özeti'nin bir stilidir; CONTEXT.md'ye "Takvim stili" eklenmesi uygulama sırasında değerlendirilebilir.
 - Takvim, Dashboard gibi aktif kütüphanenin kitaplarını gösterir.
-- Prototip kararı buraya eklenecek: _(ticket 01 sonucu)_.
+### Prototip sonucu (ticket 01, 2026-10-02)
+
+Prototip throwaway branch'te yapıldı ve silindi (push edilmedi). Ölçüt, export edilen PNG'nin gözle (bir yerde piksel örneklemesiyle) kontrolüydü. Test kapakları: Open Library ISBN `-M`, archive.org'a 302 yapan Open Library `/b/id/-L`, `default=false` ile 404 dönen ISBN, CORS başlığı vermeyen bir host.
+
+**Masaüstü Chrome, `vite build` + `vite preview --host`, localhost, SW aktif ve sayfayı kontrol ediyor:**
+- Normal görünümdeki (no-cors) kapak `<img>`'leri `openlibrary-cache`'e **opak (status 0)** girdi; 404 dönen kapak da opak olduğu için 30 günlüğüne cache'lendi.
+- A1 (bugünkü Okuma Özeti ayarı, `cacheBust: true`), yalnız iyi kapaklarla: kapaklar PNG'de dolu, ama her export `openlibrary-cache`'e cache-bust'lı yeni kayıtlar ekledi.
+- A1, kartta tek bir 404 veya CORS'suz kapak varken: `toBlob` hata fırlattı, PNG üretilmedi.
+- A2 (`cacheBust: false`), iyi kapaklarla bile: SW opak yanıt döndü, `toBlob` hata fırlattı.
+- B1 (CORS'lu fetch → data URL ön-yükleme): SW opak yanıt dönünce fetch başarısız oldu ama **tespit edildi**, kart fallback gösterdi, export başarılı.
+- B2 (object URL + `cacheBust: true`): `toBlob` hata fırlattı (`blob:` URL'ye sorgu eklenmesi).
+- C simülasyonu (kapak `<img>`'leri `crossOrigin="anonymous"`, cache temizlenmiş): kayıtlar `cors`/200 olarak saklandı, 404 cache'lenmedi; A2 cacheBust'sız kapakları dolu üretti. **B1 + C: iki iyi kapak dolu, 404 ve CORS'suz kapak fallback; PNG ekrandaki önizlemeyle birebir aynı.**
+- `crossOrigin="anonymous"` CORS'suz bir host'ta normal görünümde de görseli kırıyor → C yalnızca Open Library host'una uygulanmalı.
+
+**Android Chrome, LAN http (`secureContext: false`, SW yok, `navigator.share` yok), kullanıcı testi:** B1: ilk iki kapak dolu, son ikisi fallback; indirilen PNG önizlemeyle aynı. A1: `toBlob` hata fırlattı, PNG üretilmedi; ikinci denemede de aynı (bellek cache'i). Masaüstüyle tutarlı.
+
+**Mevcut Raf export'u (kod değiştirilmedi):** gerçek Okuma Özeti bileşeni, 3 tamamlanmış kitaptan 2'sinin kapağı bozukken (404 ve CORS'suz) masaüstünde SW aktifken export edildi: hata yok, konsolda hiçbir kaynak fetch denemesi yok. Sebep: Raf kartı yalnızca CSS ile çizilen sırtlardan oluşuyor; kartta `<img>` ya da CSS `url()` yok, kapak alanı Raf export'una hiç girmiyor. Açık yalnızca karta uzak görsel konunca (Takvim) ortaya çıkıyor.
+
+**Bilinen açıklar** (release öncesi HTTPS smoke test'iyle kapatılacak, bkz. Testing Decisions):
+- iOS Safari hiç test edilmedi.
+- Telefonda SW'li senaryo test edilmedi (yalnızca masaüstünde doğrulandı); LAN http'de SW kayıt olmuyor.
+- Gerçek native paylaşım menüsüyle export telefonda test edilmedi (http'de `navigator.share` yok).
