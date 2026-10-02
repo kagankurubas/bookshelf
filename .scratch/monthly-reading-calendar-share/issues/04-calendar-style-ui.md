@@ -8,7 +8,7 @@
 
 - [ ] `ReadingRecap` genişletildi (yeniden yazılmadı): `style` durumu, varsayılan Raf; Raf davranışı birebir korunuyor
 - [ ] Takvim'de Ay/Yıl toggle'ı gizli; ay varsayılanı geçerli ay; gelecek aylar seçilemiyor; yıl seçicisi takvim yıl seçeneklerini kullanıyor
-- [ ] Takvim kartı: başlık (format kullanıcının açık kararına göre; karar yoksa sor), Pzt–Paz başlık satırı, hücre türleri (`read` tek/ikiye bölünmüş/+N, `empty`, `future`, `outside`) görsel olarak ayırt edilebilir; `future` grisi `empty`'den açıkça farklı
+- [ ] Takvim kartı: başlık ay adı + yıl (`Eylül 2026` / `September 2026`), `Intl.DateTimeFormat` ile aktif dilde, Pzt–Paz başlık satırı, hücre türleri (`read` tek/ikiye bölünmüş/+N, `empty`, `future`, `outside`) görsel olarak ayırt edilebilir; `future` grisi `empty`'den açıkça farklı
 - [ ] Biten kitabın kapağı üzerinde 1–5 yıldız; kapak bulunamazsa kategori renkli başlık karosu
 - [ ] Kapak hazırlığı B1'e göre: her kapak CORS'lu `fetch` → data URL (object URL değil); başarısızlar kategori renkli karo; kart uzak URL render etmiyor, böylece tek bozuk kapak export'u düşüremiyor; takvim export'unda `cacheBust` yok; hazırlık bitmeden Paylaş "hazırlanıyor" durumunda; export ekranda görünenle aynı
 - [ ] Aynı kapak oturum içinde tekrar fetch edilmiyor (ay değişince önceki data URL/başarısızlık sonucu yeniden kullanılıyor)

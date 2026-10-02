@@ -11,7 +11,7 @@
 - [ ] Değişiklik kendi commit'inde; takvim UI'ı veya util'iyle aynı commit'te değil
 - [ ] `crossOrigin="anonymous"` **yalnızca Open Library kapak host'u** (`covers.openlibrary.org`) için ekleniyor; kullanıcının yapıştırdığı diğer host'lardaki `<img>`'lere eklenmiyor (CORS vermeyen bir host'ta normal görünümü kırdığı prototipte görüldü). Kapak görüntüleyen tüm yerler (ortak kapak bileşeni + BookModal önizlemesi) kapsanıyor
 - [ ] Kapaklar için Open Library JSON API'sinden (ISBN/arama) ayrı, yeni adlı bir runtime cache; `cacheableResponse` yalnızca `statuses: [200]` (opak/0 ve 404 saklanmaz)
-- [ ] Eski opak kayıtları içeren eski kapak cache'i SW `activate` olayında siliniyor. Not: `generateSW` runtime cache'leri kendiliğinden temizlemiyor (`cleanupOutdatedCaches` yalnızca precache içindir); `importScripts` ile küçük bir ek script mi yoksa `injectManifest`'e geçiş mi gerektiği uygulamada seçilir, yeni dependency eklenmez
+- [ ] Eski opak kayıtları içeren eski kapak cache'i SW `activate` olayında siliniyor. Not: `generateSW` runtime cache'leri kendiliğinden temizlemiyor (`cleanupOutdatedCaches` yalnızca precache içindir); bu yüzden workbox `importScripts` ile yüklenen küçük bir ek script (`activate`'te eski kapak cache'ini silen) kullanılır; **`injectManifest`'e geçilmez** (kullanıcı kararı), yeni dependency eklenmez
 
 ## Testler / doğrulama
 

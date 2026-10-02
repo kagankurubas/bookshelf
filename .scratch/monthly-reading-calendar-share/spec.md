@@ -13,7 +13,7 @@ Okuma Özeti bugün yalnızca "o dönemde hangi kitapları tamamladım" sorusunu
 Okuma Özeti ekranına bir **stil seçici** eklenir: **Raf** (bugünkü kart) / **Takvim**. Takvim stili yalnızca aylık çalışır (Takvim seçilince Ay/Yıl modu gizlenir); varsayılan olarak geçerli ayı açar, ay/yıl seçicisi gelecek ayları sunmaz.
 
 Takvim kartı:
-- Başlıkta ay (format açık karar, bkz. Implementation Decisions → Açık kararlar), altında Pazartesi→Pazar sütunlu bir ay ızgarası.
+- Başlıkta ay adı ve yıl (örn. `Eylül 2026` / `September 2026`), altında Pazartesi→Pazar sütunlu bir ay ızgarası.
 - Okunan her günün hücresinde o gün okunan kitabın kapağı; aynı gün iki kitap okunuyorsa hücre ikiye bölünür, üç ve üzeri kitapta iki kapak + `+N` rozeti.
 - Bir kitabın bittiği günün hücresinde (kapağın üzerinde) yıldız puanı (puan 0 ise yıldız yok).
 - Okunan kitap olmayan geçmiş günler boş hücre.
@@ -74,8 +74,7 @@ Takvim kartı:
 - **Takvim, Okuma Özeti'ne Raf/Takvim stil seçicisi olarak girer** (kullanıcı kararı).
 - **Edge Function proxy (seçenek E) kullanıcı onayı olmadan uygulanmaz.** 01'in sonucu E'yi gerektirirse iş durur ve kullanıcıya sorulur.
 
-### Açık kararlar (kullanıcı seçecek)
-- **Takvim başlık formatı:** sayısal `M/YYYY` (örn. `9/2026`, referans görseldeki gibi) mi, ay adlı (örn. `Eylül 2026` / `September 2026`, mevcut Raf kartındaki gibi) mı? Ticket 04 bu karar verilmeden başlık kısmını bitiremez.
+- **Takvim başlık formatı: ay adı + yıl** (`Eylül 2026` / `September 2026`), `Intl.DateTimeFormat` ile uygulamanın aktif diliyle (`{ month: 'long', year: 'numeric' }`) üretilir (kullanıcı kararı; referans görseldeki sayısal `9/2026` yerine). Ay adları için i18n dosyalarına yeni anahtar eklenmez.
 
 ### Kapak export: bilinenler ve risk
 - Mevcut Okuma Özeti kartı `html-to-image` (`toBlob`, `pixelRatio: 2`, `cacheBust: true`, `skipFonts: true`) ile PNG'ye çevriliyor; bugüne kadar karta hiç uzak görsel konmadı, kapak export'u bu kodda denenmemiş bir yol.
@@ -141,7 +140,7 @@ Seçenek C (SW kapak cache düzeltmesi) 01'den ayrıdır: kendi ticket'ında (02
 - Export, ekranda görünenle birebir aynı olmalı: kart açılırken/ay değişince her kapak CORS'lu `fetch` ile alınıp **data URL**'ye çevrilir (object URL değil: `cacheBust` `blob:` URL'sine sorgu ekleyince fetch kırılıyor, prototipte doğrulandı); kart yalnızca data URL'leri ya da fallback karosunu render eder, böylece `html-to-image` hiçbir uzak kaynağa fetch atmaz ve tek bozuk kapak export'u düşüremez. Hazırlık bitmeden Paylaş "hazırlanıyor" durumunda kalır. Takvim export'unda `cacheBust` kullanılmaz. Aynı kapak oturum içinde tekrar fetch edilmez (ay değiştirince önceki sonuç yeniden kullanılır).
 - Seçilen ayda hiç `read` hücre yoksa kart boş-durum mesajı gösterir ve Paylaş pasif olur (mevcut raf davranışıyla tutarlı).
 - Dosya adı: `<prefix>-calendar-YYYY-MM.png` (prefix mevcut `readingRecap.filenamePrefix`).
-- Başlık formatı: açık karar (bkz. Açık kararlar).
+- Başlık: `Intl.DateTimeFormat(<aktif dil>, { month: 'long', year: 'numeric' })` ile ay adı + yıl (bkz. Kayıtlı kararlar). Tarih nesnesi seçilen yıl/ayın 1'inden yerel saatle kurulur; saat dilimi kayması olmaz.
 - Tarihi eksik veya hatalı olduğu için takvimden atlanan kitap sayısı (Tamamlandı ama tarihi eksik / `start > finish`; Okunuyor ama başlangıç tarihi yok), **görselin dışında**, seçicilerin bulunduğu ekran alanında kısa bir notla gösterilir (örn. "Tarihi eksik 2 kitap takvimde gösterilmiyor"). Yalnızca seçilen aya denk gelebilecek değil, kütüphanedeki bu tür kitapların hepsi sayılır, çünkü eksik tarihli bir kitabın hangi aya ait olduğu bilinemez. Sayı 0 ise not gösterilmez. Bu sayıyı saf modülün ayrı bir fonksiyonu üretir; Yarıda Bırakıldı ve Başlanmadı kitaplar bu sayıya girmez (tarihleri yüzünden değil, kural gereği atlanırlar).
 - Yeni dependency yok; schema değişikliği yok.
 
