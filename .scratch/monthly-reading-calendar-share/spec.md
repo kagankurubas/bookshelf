@@ -13,7 +13,7 @@ Okuma Özeti bugün yalnızca "o dönemde hangi kitapları tamamladım" sorusunu
 Okuma Özeti ekranına bir **stil seçici** eklenir: **Raf** (bugünkü kart) / **Takvim**. Takvim stili yalnızca aylık çalışır (Takvim seçilince Ay/Yıl modu gizlenir); varsayılan olarak geçerli ayı açar, ay/yıl seçicisi gelecek ayları sunmaz.
 
 Takvim kartı:
-- Başlıkta ay (örn. `9/2026`), altında Pazartesi→Pazar sütunlu bir ay ızgarası.
+- Başlıkta ay (format açık karar, bkz. Implementation Decisions → Açık kararlar), altında Pazartesi→Pazar sütunlu bir ay ızgarası.
 - Okunan her günün hücresinde o gün okunan kitabın kapağı; aynı gün iki kitap okunuyorsa hücre ikiye bölünür, üç ve üzeri kitapta iki kapak + `+N` rozeti.
 - Bir kitabın bittiği günün hücresinde (kapağın üzerinde) yıldız puanı (puan 0 ise yıldız yok).
 - Okunan kitap olmayan geçmiş günler boş hücre.
@@ -61,10 +61,21 @@ Takvim kartı:
 ## Implementation Decisions
 
 ### Milestone sırası
-1. Kapak export prototipi (karar üretir, kalıcı kod üretmez).
-2. Saf gün eşleme util'i + testleri.
-3. UI/stil entegrasyonu.
-4. i18n.
+1. Kapak export prototipi (karar üretir, kalıcı kod üretmez) — ticket 01.
+2. Service worker kapak cache düzeltmesi (kendi ticket'ı, kendi commit'i) — ticket 02.
+3. Saf gün eşleme util'i + testleri — ticket 03.
+4. UI/stil entegrasyonu — ticket 04.
+5. i18n — ticket 05.
+
+### Kayıtlı kararlar
+- **Yarıda Bırakıldı kitaplar takvimde atlanır** (kullanıcı kararı). Gerekçe: CONTEXT.md'ye göre Yarıda Bırakıldı okuma istatistiklerinde ve Okuma Özeti'nde "okunmuş" sayılmaz; takvim aynı kuralı izler. Başlanmadı kitaplar da atlanır.
+- **Paralel okuma bölünmüş hücreyle gösterilir** (en fazla 2 kapak + `+N`; kullanıcı kararı).
+- **Kapak çözümleme sırası** `cover_image` → ISBN'den türetilen Open Library URL'si → kategori renkli karo (kullanıcı kararı).
+- **Takvim, Okuma Özeti'ne Raf/Takvim stil seçicisi olarak girer** (kullanıcı kararı).
+- **Edge Function proxy (seçenek E) kullanıcı onayı olmadan uygulanmaz.** 01'in sonucu E'yi gerektirirse iş durur ve kullanıcıya sorulur.
+
+### Açık kararlar (kullanıcı seçecek)
+- **Takvim başlık formatı:** sayısal `M/YYYY` (örn. `9/2026`, referans görseldeki gibi) mi, ay adlı (örn. `Eylül 2026` / `September 2026`, mevcut Raf kartındaki gibi) mı? Ticket 04 bu karar verilmeden başlık kısmını bitiremez.
 
 ### Kapak export: bilinenler ve risk
 - Mevcut Okuma Özeti kartı `html-to-image` (`toBlob`, `pixelRatio: 2`, `cacheBust: true`, `skipFonts: true`) ile PNG'ye çevriliyor; bugüne kadar karta hiç uzak görsel konmadı, kapak export'u bu kodda denenmemiş bir yol.
@@ -84,7 +95,17 @@ Takvim kartı:
 | E. Supabase Edge Function proxy | Free tier invocation + egress kotasından yer (güncel limitler doğrulanmalı; Gemini AI kotasıyla paylaşılan proje bütçesi) | Yeni sunucu yüzeyi: açık proxy/SSRF riski, host allowlist + JWT şart, security-walls kapsamına girer; ADR 0001'in "sunucu yüzeyi açma" gerekçesiyle gerilim. Son çare. |
 | F. Kapak yoksa fallback hücre | 0 | Her senaryoda son katman olarak gerekli (bkz. aşağı). |
 
-Prototipin çıktısı: hangi seçeneğin (muhtemelen B + C, gerekirse D) kullanılacağı ve gerekçesi, bu spec'in "Further Notes" bölümüne ve gerekirse yeni bir ADR'ye yazılır. D veya E seçilirse yeni dependency/altyapı değil ama yeni yapılandırma/yüzey olduğu için kullanıcı onayı alınır.
+Prototipin çıktısı: hangi seçeneğin (muhtemelen B + C, gerekirse D) kullanılacağı ve gerekçesi, bu spec'in "Further Notes" bölümüne ve gerekirse yeni bir ADR'ye yazılır. D seçilirse yeni yapılandırma olduğu için kullanıcı onayı alınır. **E (Edge Function proxy) gerekirse iş durur, kullanıcıya sorulur, uygulanmaz.**
+
+Prototipin başarı ölçütü "hata fırlatmadı" değildir: **export edilen PNG dosyası açılıp kapakların gerçekten dolu olduğu gözle doğrulanır.** Test, `vite build` + `vite preview --host` ile, service worker aktif ve kontrol ediyorken, hem masaüstünde hem de aynı ağdaki **gerçek bir telefonda (iOS Safari dahil)** yapılır.
+
+Seçenek C (SW kapak cache düzeltmesi) 01'den ayrıdır: kendi ticket'ında (02) ve kendi commit'inde yapılır; 01 yalnızca sorunun gerçekleşip gerçekleşmediğini ve hangi düzeltmenin gerektiğini belirler.
+
+### Tarih tipi ve saat dilimi
+- `books.date_started` ve `books.date_finished` Postgres'te **`date`** tipinde (`timestamptz` değil; saat ve saat dilimi bilgisi yok). Supabase bunları `'YYYY-MM-DD'` string'i olarak döner; `useBooks` boş değeri `''`'ye çevirir.
+- Util tüm günleri **takvim günü** olarak, string'i `-` ile parçalayarak işler; hiçbir tarihi `Date` nesnesine çevirip UTC'ye ya da yerel saate dönüştürmez. Dolayısıyla util'in kendisinde UTC/yerel ayrımı yoktur; kayıtlı tarih hangi günse hücre o gündür. Ay uzunluğu ve haftanın günü, yalnızca yıl/ay/gün tamsayılarından hesaplanır (saat dilimi etkisi olmayan bir yöntemle, örn. `Date.UTC` + `getUTCDay`).
+- **`today` çağrıldığı yerde (UI) kullanıcının yerel saatinden üretilir**: `getFullYear()`/`getMonth()`/`getDate()` ile `'YYYY-MM-DD'`. `toISOString()` kullanılmaz (UTC'ye çevirir; Türkiye'de 00:00–03:00 arası önceki günü verir).
+- Bilinen tutarsızlık (bu spec'in kapsamı dışında, ayrı ticket adayı): BookModal, durum Okunuyor/Tamamlandı'ya çevrildiğinde boş tarihi `new Date().toISOString().split('T')[0]` ile, yani **UTC** günüyle dolduruyor. Türkiye'de gece 00:00–03:00 arasında işaretlenen kitap bir önceki güne kaydedilir; takvim bu kayıtlı günü olduğu gibi gösterir.
 
 ### Saf gün eşleme modülü
 - Okuma Özeti'nin mevcut saf mantığının (`readingRecap` lib) yanında, UI/DOM/Supabase'den bağımsız yeni bir saf modül. Tek dış arayüz:
@@ -118,7 +139,8 @@ Prototipin çıktısı: hangi seçeneğin (muhtemelen B + C, gerekirse D) kullan
 - Export, ekranda görünenle birebir aynı olmalı: kapak hazırlığı (prototipte seçilen yöntem) bitmeden Paylaş butonu "hazırlanıyor" durumunda kalır; export sırasında yüklenemeyen kapak sessizce boş değil, fallback karosu olarak çıkar.
 - Seçilen ayda hiç `read` hücre yoksa kart boş-durum mesajı gösterir ve Paylaş pasif olur (mevcut raf davranışıyla tutarlı).
 - Dosya adı: `<prefix>-calendar-YYYY-MM.png` (prefix mevcut `readingRecap.filenamePrefix`).
-- Başlık formatı referanstaki gibi sayısal `M/YYYY` (örn. `9/2026`).
+- Başlık formatı: açık karar (bkz. Açık kararlar).
+- Tarihi eksik veya hatalı olduğu için takvimden atlanan kitap sayısı (Tamamlandı ama tarihi eksik / `start > finish`; Okunuyor ama başlangıç tarihi yok), **görselin dışında**, seçicilerin bulunduğu ekran alanında kısa bir notla gösterilir (örn. "Tarihi eksik 2 kitap takvimde gösterilmiyor"). Yalnızca seçilen aya denk gelebilecek değil, kütüphanedeki bu tür kitapların hepsi sayılır, çünkü eksik tarihli bir kitabın hangi aya ait olduğu bilinemez. Sayı 0 ise not gösterilmez. Bu sayıyı saf modülün ayrı bir fonksiyonu üretir; Yarıda Bırakıldı ve Başlanmadı kitaplar bu sayıya girmez (tarihleri yüzünden değil, kural gereği atlanırlar).
 - Yeni dependency yok; schema değişikliği yok.
 
 ### i18n
@@ -128,9 +150,9 @@ Prototipin çıktısı: hangi seçeneğin (muhtemelen B + C, gerekirse D) kullan
 ## Testing Decisions
 
 - İyi test: yalnızca dış davranışı doğrular (verilen kitaplar/ay/bugün → hücre durumları; kullanıcı etkileşimi → görünen çıktı ve paylaşım çağrısı), iç yardımcı fonksiyonları veya ara veri yapılarını doğrulamaz. Kritik akışlara odaklanılır, sayı şişirmek için test yazılmaz.
-- **Seam 1 (ana seam): saf takvim modülü** — mock'suz birim testleri. Kapsam: ızgara şekli (ayın ilk günü Pazartesi olmayan aylar, 28/29/30/31 günlük aylar, artık yıl Şubat), her durum kuralı (Tamamlandı tam aralık, eksik tarih atlanır, Okunuyor bugüne kadar / ay sonuna kadar, gelecek başlangıç atlanır, Yarıda Bırakıldı/Başlanmadı atlanır, `start > finish` atlanır), ay sınırına kırpma (önceki aydan devreden kitap), Kural 1 (aynı gün bitiş/başlangıç kayması ve aynı gün başlayıp biten istisna), paralel okuma listesi ve sıralaması, yıldız (`rating 0` → yok), `future` yalnızca geçerli ayda, `today` parametresinin tek zaman kaynağı olması. Ayrıca kapak çözümleme fonksiyonu (coverImage → ISBN → null) ve takvim yıl seçenekleri.
+- **Seam 1 (ana seam): saf takvim modülü** — mock'suz birim testleri. Kapsam: ızgara şekli (ayın ilk günü Pazartesi olmayan aylar, 28/29/30/31 günlük aylar, artık yıl Şubat), her durum kuralı (Tamamlandı tam aralık, eksik tarih atlanır, Okunuyor bugüne kadar / ay sonuna kadar, gelecek başlangıç atlanır, Yarıda Bırakıldı/Başlanmadı atlanır, `start > finish` atlanır), ay sınırına kırpma (önceki aydan devreden kitap), Kural 1 (aynı gün bitiş/başlangıç kayması ve aynı gün başlayıp biten istisna), paralel okuma listesi ve sıralaması, yıldız (`rating 0` → yok), `future` yalnızca geçerli ayda, `today` parametresinin tek zaman kaynağı olması, tarihlerin saat diliminden bağımsız işlenmesi (test ortamı `TZ` değiştiğinde aynı sonuç). Atlanan kitap sayısı fonksiyonu. Ayrıca kapak çözümleme fonksiyonu (coverImage → ISBN → null) ve takvim yıl seçenekleri.
   - Önceki örnek: Okuma Özeti'nin saf lib testleri, `shelfSpine` testleri.
-- **Seam 2: `ReadingRecap` bileşeni (RTL)** — `html-to-image` mock'lanır. Kapsam: stil geçişi (Takvim'de Ay/Yıl toggle'ı gizli, Raf'a dönünce geri gelir), Takvim'de boş ay → mesaj + pasif Paylaş, Paylaş → `toBlob` çağrılır ve indirme/Web Share yolu çalışır. Hücre görsel detayları (bölünmüş hücre piksel düzeni, gri tonlar) testle değil elle doğrulanır.
+- **Seam 2: `ReadingRecap` bileşeni (RTL)** — `html-to-image` mock'lanır. Kapsam: stil geçişi (Takvim'de Ay/Yıl toggle'ı gizli, Raf'a dönünce geri gelir), Takvim'de boş ay → mesaj + pasif Paylaş, atlanan kitap notu (sayı > 0 iken görünür, 0 iken yok, export edilen kartın içinde değil), Paylaş → `toBlob` çağrılır ve indirme/Web Share yolu çalışır. Hücre görsel detayları (bölünmüş hücre piksel düzeni, gri tonlar) testle değil elle doğrulanır.
   - Önceki örnek: mevcut bileşen testleri (ör. `CardsView`, `SettingsModal`), `CoverImage` testi.
 - Kapak export'unun gerçek CORS/SW davranışı jsdom'da test edilemez; prototip ticket'ında ve PR doğrulamasında gerçek tarayıcıda (masaüstü Chrome + mobil Safari/Chrome, SW aktif production build) elle doğrulanır.
 
@@ -148,4 +170,4 @@ Prototipin çıktısı: hangi seçeneğin (muhtemelen B + C, gerekirse D) kullan
 
 - Domain terimleri CONTEXT.md'ye uygun: Tamamlandı / Okunuyor / Başlanmadı / Yarıda Bırakıldı, Okuma Özeti. Takvim, Okuma Özeti'nin bir stilidir; CONTEXT.md'ye "Takvim stili" eklenmesi uygulama sırasında değerlendirilebilir.
 - Takvim, Dashboard gibi aktif kütüphanenin kitaplarını gösterir.
-- Prototip kararı buraya eklenecek: _(01 numaralı ticket sonucu)_.
+- Prototip kararı buraya eklenecek: _(ticket 01 sonucu)_.
