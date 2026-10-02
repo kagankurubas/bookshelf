@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { resolveTagCasing } from '../../lib/tagCasing';
-import { openLibraryCoverUrl } from '../../lib/openLibrary';
+import { coverCrossOrigin, openLibraryCoverUrl } from '../../lib/openLibrary';
 import { toLocalDateString } from '../../lib/localDate';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import './BookModal.css';
@@ -290,7 +290,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
 
           {showCover ? (
             <div style={{ width: '100%', height: '100%', position: 'relative', userSelect: 'none', touchAction: 'none' }} onMouseDown={handleMouseDown} onTouchStart={handleTouchStart}>
-              <img src={openLibraryCoverUrl(coverImage)} alt={t('bookModal.coverPreviewAlt')} draggable="false" onError={() => setFailedCover(coverImage)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `center ${coverPosition}%`, pointerEvents: 'none' }} />
+              <img src={openLibraryCoverUrl(coverImage)} crossOrigin={coverCrossOrigin(coverImage)} alt={t('bookModal.coverPreviewAlt')} draggable="false" onError={() => setFailedCover(coverImage)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `center ${coverPosition}%`, pointerEvents: 'none' }} />
               <div style={{ position: 'absolute', bottom: '10px', left: '15px', background: 'rgba(0,0,0,0.6)', padding: '3px 8px', borderRadius: '4px', pointerEvents: 'none', zIndex: 10, display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2"><path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4" /></svg>
                 <span style={{ fontSize: '10px', color: '#ccc' }}>{t('bookModal.dragCoverHint')}</span>

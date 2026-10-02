@@ -124,6 +124,17 @@ export function openLibraryCoverUrl(url, size) {
   return parsed.toString();
 }
 
+// Open Library covers load in CORS mode so the service worker caches a
+// readable response (an opaque one would break exporting covers to an image).
+// Other hosts are left alone: many send no CORS headers and would fail to load.
+export function coverCrossOrigin(url) {
+  try {
+    return new URL(url).hostname === 'covers.openlibrary.org' ? 'anonymous' : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // src/srcSet for a ~40px cover thumbnail: S at 1x, M on high-DPI screens.
 export function coverThumbnailProps(url) {
   if (!parseOpenLibraryCoverUrl(url)) return { src: url };
