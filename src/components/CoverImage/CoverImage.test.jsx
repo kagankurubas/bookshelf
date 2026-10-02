@@ -13,6 +13,14 @@ describe('CoverImage', () => {
     expect(img).toHaveAttribute('srcset', expect.stringContaining('1-M.jpg?default=false 2x'));
   });
 
+  it('loads Open Library covers in CORS mode but leaves other hosts alone', () => {
+    const { rerender } = render(<CoverImage src="https://covers.openlibrary.org/b/id/1-L.jpg" alt="Dune" fallback={fallback} />);
+    expect(screen.getByRole('img', { name: 'Dune' })).toHaveAttribute('crossorigin', 'anonymous');
+
+    rerender(<CoverImage src="https://example.com/cover.jpg" alt="Dune" fallback={fallback} />);
+    expect(screen.getByRole('img', { name: 'Dune' })).not.toHaveAttribute('crossorigin');
+  });
+
   it('shows the fallback for a missing URL', () => {
     render(<CoverImage src="" alt="Dune" fallback={fallback} />);
     expect(screen.getByText('placeholder')).toBeInTheDocument();
