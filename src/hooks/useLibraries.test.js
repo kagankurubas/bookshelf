@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { DEFAULT_LIBRARY_INDEX, useLibraries } from './useLibraries';
 import { supabase } from '../lib/supabaseClient';
@@ -34,8 +34,15 @@ async function renderWithInitialRows(rows) {
 }
 
 describe('useLibraries', () => {
+  // Queued mockReturnValueOnce answers must not leak into the next test
+  // when a test stops early.
   beforeEach(() => {
     vi.clearAllMocks();
+    supabase.from.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('fetches libraries for the given user and maps db rows to the app shape', async () => {
