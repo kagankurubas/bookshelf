@@ -84,7 +84,16 @@
     "shareTitle": "My Reading Recap",
     "shareText": "{{period}}: I read {{count}} books!",
     "shareError": "Something went wrong generating the image. Please try again.",
-    "filenamePrefix": "reading-recap"
+    "filenamePrefix": "reading-recap",
+    "styleLabel": "Image style",
+    "styleShelf": "Shelf",
+    "styleCalendar": "Calendar",
+    "weekdaysShort": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    "calendarEmpty": "No reading days recorded for this month.",
+    "calendarSkipped_one": "{{count}} book with missing or invalid dates isn't shown on the calendar.",
+    "calendarSkipped_other": "{{count}} books with missing or invalid dates aren't shown on the calendar.",
+    "calendarShareText_one": "{{period}}: I read on {{count}} day!",
+    "calendarShareText_other": "{{period}}: I read on {{count}} days!"
   },
   "cards": {
     "empty": "No books in this library yet.",
