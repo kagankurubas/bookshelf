@@ -66,6 +66,12 @@
   - Kullanıcı ilk kitaplığını oluşturduğu anda yüklemedeki tek seferlik senkron devreye girer; bekleyen kayıtlar o kitaplığa onarılarak gönderilir.
   - Kuyruğa alma da kitaplıksız kaydı reddeder (`NoLibraryError`). Bu toplu taramayı da kapsar: kitaplık yokken toplu tarama kaydedilmez, mevcut genel hata mesajını gösterir.
 - **Onarım (2):** yalnızca oturum sahibinin kayıtlarında ve yalnızca onun kitaplıklarıyla yapılır. `null` id'ler ve kullanıcıda olmayan (silinmiş ya da başkasının) kitaplık id'leri atılır, Ana Kitaplık eklenir.
+- **Silinmiş kitaplığa giden kayıt Ana Kitaplığa düşer.** Kullanıcı çevrimdışıyken bir kitaplığa kitap ekleyip o kitaplığı başka bir cihazda sildiyse, kayıt gönderilirken silinmiş id atılır ve kitap Ana Kitaplığa eklenir. Kitap kaybolmaz ama seçilen kitaplıkta değil, Ana Kitaplıkta görünür.
+- **Hiçbir kitaplık `is_default` değilse** (Ana Kitaplık işareti olmayan eski hesaplar): kayıt beklemez, kullanıcının **ilk** (en eski oluşturulan) kitaplığına bağlanır.
+  - Neden: uygulamanın geri kalanı bu durumda zaten ilk kitaplığı Ana Kitaplık sayıyor (`useLibrary`, içe aktarma). Kitap penceresi ve araç çubuğu da onu varsayılan gösteriyor; kuyruk farklı davranırsa kullanıcı aynı kitabın nereye gittiğini tahmin edemez.
+  - Kitaplık listesi `created_at`'e göre artan sırada geliyor.
+  - Test: "files a library-less record into the first library when none is marked default".
+- **Toplu tarama + kitaplık yok:** kayıt `NoLibraryError` ile reddedilir. Toplu tarayıcı kendi `batchScanner.saveError` metnini gösterir: TR "Kitaplar kaydedilirken bir hata oluştu. Bir kısmı zaten kaydedilmiş olabilir.", EN "Something went wrong saving the books. Some may already be saved.". Metin bağlantıdan söz etmiyor; test ile sabitlendi. "Bir kısmı kaydedilmiş olabilir" ifadesi bu durumda gereksiz ama yanlış yönlendirmiyor; ayrı bir "önce kitaplık oluştur" metni takip konusu.
 - **Hesap silme:** kuyruk her zaman, oturum kapanmadan önce silinir. Silme hata verirse çıkış yine yapılır.
 - **Çok sekme, eski sürüm açık:**
   - Kuyruk veritabanı v2'ye yükseltilirken başka bir sekme v1'i açık tutuyorsa açılış 3 sn bekler, sonra `QueueUnavailableError` ile vazgeçer. Açılış asılı kalmaz ve eski sekme bırakınca kendiliğinden tamamlanır.

@@ -276,4 +276,16 @@ describe('useOfflineBookQueue', () => {
 
     await waitFor(() => expect(addBookForSync).toHaveBeenCalledWith({ title: 'Eski raf', libraryIds: ['lib-1'] }));
   });
+
+  it('files a library-less record into the first library when none is marked default', async () => {
+    getQueuedBooks.mockResolvedValue([{ id: 5, ownerId: 'user-a', title: 'Varsayılansız', libraryIds: [null] }]);
+    const libraries = [
+      { id: 'lib-oldest', name: 'İlk', isDefault: false },
+      { id: 'lib-newer', name: 'Sonraki', isDefault: false },
+    ];
+    const { addBookForSync } = renderQueue({ isReady: true, libraries });
+
+    await waitFor(() => expect(addBookForSync).toHaveBeenCalledWith({ title: 'Varsayılansız', libraryIds: ['lib-oldest'] }));
+    expect(removeQueuedBook).toHaveBeenCalledWith(5);
+  });
 });
