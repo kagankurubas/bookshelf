@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { coverThumbnailProps, openLibraryCoverUrl } from '../../lib/openLibrary';
+import { coverCrossOrigin, coverThumbnailProps, openLibraryCoverUrl } from '../../lib/openLibrary';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
 // Lazy cover <img> that renders `fallback` when there's no URL or it fails to
@@ -12,7 +12,7 @@ function CoverImage({ src, thumbnail = false, fallback = null, children, ...imgP
   if (!src || src === failedSrc) return fallback;
 
   const sources = thumbnail ? coverThumbnailProps(src) : { src: openLibraryCoverUrl(src) };
-  const img = <img {...sources} loading="lazy" decoding="async" onError={() => setFailedSrc(src)} {...imgProps} />;
+  const img = <img {...sources} crossOrigin={coverCrossOrigin(src)} loading="lazy" decoding="async" onError={() => setFailedSrc(src)} {...imgProps} />;
   return children ? children(img) : img;
 }
 

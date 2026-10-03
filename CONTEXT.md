@@ -17,5 +17,9 @@ _Avoid_: Bitti, Okundu (durum adı olarak)
 
 ### Okuma Özeti
 
-Kullanıcının seçtiği bir ay ya da yıl içinde tamamladığı kitapları, mevcut raf (sırt) görselini kullanarak paylaşılabilir bir kart halinde özetleyen ekran.
+Kullanıcının seçtiği bir dönemdeki okumasını paylaşılabilir bir kart (PNG) halinde özetleyen ekran. İki stili vardır:
 _Avoid_: Paylaşım ekranı, özet ekranı
+
+**Raf stili**: Seçilen ay ya da yıl içinde **Tamamlandı** kitapları, raf (sırt) görseliyle gösteren kart.
+
+**Takvim stili**: Seçilen ayı Pazartesi başlangıçlı bir takvim olarak gösteren kart. Her günün hücresinde o gün okunan kitabın kapağı, kitabın bittiği günde puanı yer alır. **Tamamlandı** kitaplar başlangıç ve bitiş tarihleri arasında; **Okunuyor** kitaplar başlangıç tarihinden bugüne (geçmiş bir ayda ay sonuna) kadar görünür. **Başlanmadı** ve **Yarıda Bırakıldı** kitaplar ile tarihi eksik ya da hatalı kitaplar takvime girmez. Yalnızca aylık çalışır; gelecek aylar seçilemez.

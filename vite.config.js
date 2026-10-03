@@ -53,17 +53,31 @@ export default defineConfig(({ mode }) => {
               },
             },
             {
-              // Open Library ISBN/arama JSON'u + kapak gorselleri - pratikte
-              // hic degismeyen veri, agresifce (CacheFirst) cache'lenir.
-              urlPattern: /^https:\/\/(covers\.)?openlibrary\.org\/.*/i,
+              // Open Library ISBN/search JSON: practically never changes, so
+              // it's cached aggressively (CacheFirst).
+              urlPattern: /^https:\/\/openlibrary\.org\/.*/i,
               handler: 'CacheFirst',
               options: {
-                cacheName: 'openlibrary-cache',
+                cacheName: 'openlibrary-api-cache',
                 expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
                 cacheableResponse: { statuses: [0, 200] },
               },
             },
+            {
+              // Cover images, loaded in CORS mode (see coverCrossOrigin). Only
+              // readable 200s are kept: an opaque or 404 entry would be served
+              // back to the image export's CORS fetch and break it.
+              urlPattern: /^https:\/\/covers\.openlibrary\.org\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'openlibrary-covers-cache',
+                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+                cacheableResponse: { statuses: [200] },
+              },
+            },
           ],
+          // Deletes the pre-split Open Library cache, which holds opaque covers.
+          importScripts: ['sw-cleanup.js'],
         },
         manifest: {
           name: 'BookShelf',
