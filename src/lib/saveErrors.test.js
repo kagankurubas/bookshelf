@@ -32,9 +32,35 @@ describe('classifySaveError', () => {
     )).toBe(SAVE_ERROR.NETWORK);
   });
 
-  it('does not mistake an unrelated TypeError (a bug) for a dropped connection', () => {
+  it.each([
+    'The network connection was lost.',
+    'The Internet connection appears to be offline.',
+    'Load failed',
+    'The request timed out.',
+  ])('treats Safari\'s "%s" as a network error, raw or wrapped by supabase-js', (message) => {
+    expect(classifySaveError(new TypeError(message), true)).toBe(SAVE_ERROR.NETWORK);
+    expect(classifySaveError(supabaseFetchFailure(message), true)).toBe(SAVE_ERROR.NETWORK);
+  });
+
+  it('recognises a wrapped fetch failure by its shape, whatever the wording', () => {
+    expect(classifySaveError({ code: '', message: 'TypeError: something no browser says yet' }, true)).toBe(SAVE_ERROR.NETWORK);
+  });
+
+  it('falls back to the browser wording when the error name was dropped', () => {
+    expect(classifySaveError({ code: '', message: 'The network connection was lost.' }, true)).toBe(SAVE_ERROR.NETWORK);
+  });
+
+  it('never treats an error carrying a database code as a network error', () => {
+    expect(classifySaveError({ code: '42501', message: 'TypeError: looks like one but is not' }, true)).toBe(SAVE_ERROR.REJECTED);
+    expect(classifySaveError({ code: '23502', message: 'Load failed' }, true)).toBe(SAVE_ERROR.REJECTED);
+  });
+
+  // By the spec's shape rule any raw TypeError counts as a network error, a
+  // programming bug included: in the queue that errs towards waiting rather
+  // than marking a good book failed.
+  it('treats any raw TypeError as a network error, as the spec\'s shape rule says', () => {
     expect(classifySaveError(new TypeError("Cannot read properties of undefined (reading 'id')"), true))
-      .toBe(SAVE_ERROR.REJECTED);
+      .toBe(SAVE_ERROR.NETWORK);
   });
 
   it('treats any failure while the browser reports offline as a network error', () => {

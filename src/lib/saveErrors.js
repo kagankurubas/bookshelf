@@ -39,21 +39,25 @@ export class LibrariesNotReadyError extends Error {
   }
 }
 
-// Browsers word a failed fetch differently: Chrome "Failed to fetch",
-// Safari "Load failed", Firefox "NetworkError when attempting to fetch".
-const FETCH_FAILURE_MESSAGE = /failed to fetch|load failed|networkerror/i;
+// A failed fetch is recognised by its shape: the browser rejects with a
+// TypeError (or AbortError/TimeoutError when cancelled or timed out), and
+// supabase-js turns that into a plain error with an empty code and the
+// original "Name: message" text.
+const NETWORK_ERROR_NAMES = new Set(['TypeError', 'AbortError', 'TimeoutError']);
+const WRAPPED_NETWORK_ERROR = /^(TypeError|AbortError|TimeoutError)\b/;
 
-// A cancelled request is an AbortError; one cut off by AbortSignal.timeout()
-// is a TimeoutError.
-const ABORTED = /^(AbortError|TimeoutError)\b/;
+// Fallback for wrappers that drop the error name: the wording browsers use,
+// e.g. Chrome "Failed to fetch", Firefox "NetworkError when attempting to
+// fetch", Safari "Load failed", "The network connection was lost.", "The
+// Internet connection appears to be offline.", "The request timed out.".
+const FETCH_FAILURE_MESSAGE = /failed to fetch|networkerror|load failed|network connection was lost|appears to be offline|request timed out/i;
 
-// Matches both a raw fetch rejection and the plain error object supabase-js
-// builds from one, whose message is prefixed with the original error name.
 function isFetchFailure(err) {
-  const message = err?.message ?? '';
-  if (ABORTED.test(err?.name ?? '') || ABORTED.test(message)) return true;
-  const isTypeError = err?.name === 'TypeError' || /^TypeError\b/.test(message);
-  return isTypeError && FETCH_FAILURE_MESSAGE.test(message);
+  if (!err) return false;
+  if (NETWORK_ERROR_NAMES.has(err.name)) return true;
+  if (err.code) return false;
+  const message = err.message ?? '';
+  return WRAPPED_NETWORK_ERROR.test(message) || FETCH_FAILURE_MESSAGE.test(message);
 }
 
 export function classifySaveError(err, isOnline = typeof navigator === 'undefined' ? true : navigator.onLine) {
