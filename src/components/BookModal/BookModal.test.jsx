@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import BookModal from './BookModal';
@@ -208,14 +209,131 @@ describe('BookModal while libraries load', () => {
     expect(handlers.onSave).not.toHaveBeenCalled();
   });
 
-  it('allows Save once the libraries have loaded, even when there are none', async () => {
-    const handlers = renderModal({ libraries: [], librariesLoading: false });
+  it('allows Save once the libraries have loaded', async () => {
+    const handlers = renderModal({ librariesLoading: false });
     fillTitleAndAuthor();
 
     expect(screen.queryByText(/Kitaplıkların yükleniyor/)).not.toBeInTheDocument();
     save();
 
     await waitFor(() => expect(handlers.onSave).toHaveBeenCalled());
+  });
+});
+
+describe('BookModal without any library', () => {
+  const newLibrary = { id: 'lib-new', name: 'Kitaplığım', shelfCount: 2, isDefault: true };
+
+  // Stands in for App: the created library flows back in through the
+  // libraries prop, as it does from useLibraries.
+  function ModalWithLibraryState({ onCreateLibrary, ...props }) {
+    const [libraries, setLibraries] = useState([]);
+    const createAndStore = async (name) => {
+      const created = await onCreateLibrary(name);
+      setLibraries([created]);
+      return created;
+    };
+    return <BookModal {...props} libraries={libraries} librariesLoading={false} onCreateLibrary={createAndStore} />;
+  }
+
+  function renderWithoutLibraries(overrides = {}) {
+    const handlers = {
+      onClose: vi.fn(),
+      onSave: vi.fn().mockResolvedValue({}),
+      onCreateLibrary: vi.fn().mockResolvedValue(newLibrary),
+      selectedBook: null,
+      ...overrides,
+    };
+    render(<ModalWithLibraryState {...handlers} />);
+    return handlers;
+  }
+
+  function fillTitleAndAuthor() {
+    fireEvent.change(screen.getByLabelText('Kitap Adı (Örn: Suç ve Ceza)'), { target: { value: 'Dune' } });
+    fireEvent.change(screen.getByPlaceholderText('Yazar Adı Seç veya Yaz'), { target: { value: 'Herbert' } });
+  }
+
+  it('explains there is no library, offers a pre-filled name and keeps Save disabled', () => {
+    const handlers = renderWithoutLibraries();
+    fillTitleAndAuthor();
+
+    expect(screen.getByText('Henüz bir kitaplığın yok. Kitabı kaydetmek için önce bir kitaplık oluştur.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Yeni kitaplığın adı')).toHaveValue('Kitaplığım');
+    expect(screen.queryByText(/Kitaplıkların yükleniyor/)).not.toBeInTheDocument();
+
+    const saveButton = screen.getByRole('button', { name: 'Kitabı Kaydet' });
+    expect(saveButton).toBeDisabled();
+    fireEvent.click(saveButton);
+    expect(handlers.onSave).not.toHaveBeenCalled();
+  });
+
+  it('creates the library in place, selects it and keeps what was typed', async () => {
+    const handlers = renderWithoutLibraries();
+    fillTitleAndAuthor();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Oluştur' }));
+
+    const chip = await screen.findByRole('button', { name: /Kitaplığım/ });
+    expect(handlers.onCreateLibrary).toHaveBeenCalledWith('Kitaplığım');
+    expect(chip).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Kitap Adı (Örn: Suç ve Ceza)')).toHaveValue('Dune');
+    expect(screen.getByPlaceholderText('Yazar Adı Seç veya Yaz')).toHaveValue('Herbert');
+
+    const saveButton = screen.getByRole('button', { name: 'Kitabı Kaydet' });
+    expect(saveButton).toBeEnabled();
+    fireEvent.click(saveButton);
+    await waitFor(() => expect(handlers.onSave).toHaveBeenCalled());
+    expect(handlers.onSave.mock.calls[0][0]).toMatchObject({ title: 'Dune', libraryIds: ['lib-new'] });
+  });
+
+  it('uses the edited name when the user changes it', async () => {
+    const handlers = renderWithoutLibraries({
+      onCreateLibrary: vi.fn().mockResolvedValue({ ...newLibrary, name: 'Yazlık' }),
+    });
+
+    fireEvent.change(screen.getByLabelText('Yeni kitaplığın adı'), { target: { value: '  Yazlık ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Oluştur' }));
+
+    await screen.findByRole('button', { name: /Yazlık/ });
+    expect(handlers.onCreateLibrary).toHaveBeenCalledWith('Yazlık');
+  });
+
+  it('refuses an empty name without calling onCreateLibrary', () => {
+    const handlers = renderWithoutLibraries();
+
+    fireEvent.change(screen.getByLabelText('Yeni kitaplığın adı'), { target: { value: '   ' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Oluştur' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Kitaplık adı boş olamaz.');
+    expect(handlers.onCreateLibrary).not.toHaveBeenCalled();
+  });
+
+  it('shows a failed creation inside the dialog, not in a browser alert, keeping the input', async () => {
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const handlers = renderWithoutLibraries({ onCreateLibrary: vi.fn().mockRejectedValue(new Error('insert failed')) });
+    fillTitleAndAuthor();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Oluştur' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Kitaplık oluşturulurken bir hata oluştu.');
+    expect(alertSpy).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Kitap Adı (Örn: Suç ve Ceza)')).toHaveValue('Dune');
+    expect(screen.getByLabelText('Yeni kitaplığın adı')).toHaveValue('Kitaplığım');
+    expect(handlers.onClose).not.toHaveBeenCalled();
+    alertSpy.mockRestore();
+    consoleError.mockRestore();
+  });
+
+  it('pre-fills the English default name for an English interface', async () => {
+    await i18n.changeLanguage('en');
+    try {
+      renderWithoutLibraries();
+      expect(screen.getByLabelText('New library name')).toHaveValue('My Library');
+      expect(screen.getByRole('button', { name: 'Create' })).toBeInTheDocument();
+    } finally {
+      await i18n.changeLanguage('tr');
+    }
   });
 });
 
@@ -263,8 +381,8 @@ describe('BookModal save errors', () => {
     expectInputKept(handlers);
   });
 
-  it('asks for a library first when the book has none', async () => {
-    const handlers = renderModal({ libraries: [], onSave: vi.fn().mockRejectedValue(new NoLibraryError()) });
+  it('asks for a library first when the save comes back without one', async () => {
+    const handlers = renderModal({ onSave: vi.fn().mockRejectedValue(new NoLibraryError()) });
     await fillAndSave(handlers);
 
     const alert = await screen.findByRole('alert');

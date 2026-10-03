@@ -157,13 +157,7 @@ function App() {
       return;
     }
     try {
-      const newLib = await createLibrary({
-        name: newLibraryName.trim(),
-        shelfCount: 2,
-        // The user's first library automatically becomes the main
-        // (undeletable) one - guaranteeing at least one undeletable library at all times.
-        isDefault: libraries.length === 0
-      });
+      const newLib = await createLibrary({ name: newLibraryName.trim(), shelfCount: 2 });
       library.setActiveLibraryId(newLib.id);
       setNewLibraryName('');
       setIsAddingLibrary(false);
@@ -172,6 +166,14 @@ function App() {
       console.error(err);
       alert(t('alerts.createLibraryError'));
     }
+  };
+
+  // From the book dialog, a library created while another tab already made
+  // the default one should reuse that default rather than add a second.
+  const handleCreateLibraryFromBookModal = async (name) => {
+    const newLib = await createLibrary({ name, ifDefaultExists: 'useExisting' });
+    library.setActiveLibraryId(newLib.id);
+    return newLib;
   };
 
   const handleDeleteLibrary = async (libId) => {
@@ -387,6 +389,7 @@ function App() {
                     existingTags={bookFilters.uniqueTags}
                     libraries={libraries}
                     librariesLoading={librariesLoading}
+                    onCreateLibrary={handleCreateLibraryFromBookModal}
                     activeLibraryId={activeLibraryId}
                   />
                 )}

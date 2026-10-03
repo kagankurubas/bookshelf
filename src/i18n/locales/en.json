@@ -217,7 +217,11 @@
     "librariesNotReadyError": "Your libraries haven't loaded yet - save again in a moment. What you entered is still here.",
     "transientError": "Something went wrong for a moment. Try again in a few seconds - what you entered is still here.",
     "validationError": "Please fill in the book title and author.",
-    "librariesLoading": "Your libraries are still loading - you can save in a moment."
+    "librariesLoading": "Your libraries are still loading - you can save in a moment.",
+    "noLibrariesHint": "You don't have a library yet. Create one to save this book.",
+    "newLibraryNameLabel": "New library name",
+    "defaultLibraryName": "My Library",
+    "createLibrary": "Create"
   },
   "barcodeScanner": {
     "headerTitle": "Scan Barcode",

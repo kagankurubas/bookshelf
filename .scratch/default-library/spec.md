@@ -138,7 +138,7 @@ Sunucu tarafından reddedilen kayıt (`rejected`) çoğunlukla deterministiktir;
 - **Yeni migration'lar (016, 017; sıra önemli).**
   - *016: tekil Ana Kitaplık ve backfill.*
     1. Backfill: kitaplığı olmayan her kullanıcıya bir Ana Kitaplık. `auth.users`'tan, `libraries`'te satırı olmayanlar. Ad, Dil kararına göre belirlenir: metadata seçeneğinde kullanıcının metadata'sındaki dil, yoksa varsayılan. `shelf_count` 2, `is_default` true. `not exists` koşuluyla idempotent.
-    2. Kısmi unique index: `libraries (user_id) where is_default`. Canlıda çakışma olmadığı doğrulandı. Migration yine de önce 007'nin 1. adımındaki gibi "birden fazla Ana Kitaplık varsa en eskisi kalsın" düzeltmesini idempotent biçimde çalıştırır, ki yerel ya da başka bir ortamda index oluşturma kırılmasın.
+    2. Kısmi unique index: `libraries (user_id) where is_default`, adı **`libraries_one_default_per_user_idx`**. İstemci (`useLibraries`) ikinci Ana Kitaplık ihlalini bu adla tanıdığı için ad değişmemeli. Canlıda çakışma olmadığı doğrulandı. Migration yine de önce 007'nin 1. adımındaki gibi "birden fazla Ana Kitaplık varsa en eskisi kalsın" düzeltmesini idempotent biçimde çalıştırır, ki yerel ya da başka bir ortamda index oluşturma kırılmasın.
     3. Yetim kitaplar kitaplığa **bağlanmaz** (kapsam dışı).
   - *017: yeni kullanıcı trigger'ı.*
     - `public.handle_new_user()`: `security definer`, `set search_path = ''`, tüm tablo adları şemayla (`public.libraries`). `auth.users` üzerinde `after insert for each row` trigger'ı.

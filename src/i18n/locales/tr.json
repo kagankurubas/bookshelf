@@ -217,7 +217,11 @@
     "librariesNotReadyError": "Kitaplıkların henüz yüklenmedi; birazdan yeniden kaydet. Girdiğin bilgiler duruyor.",
     "transientError": "Geçici bir sorun oluştu. Birkaç saniye sonra tekrar dene; girdiğin bilgiler duruyor.",
     "validationError": "Lütfen Kitap Adı ve Yazar alanlarını doldurun.",
-    "librariesLoading": "Kitaplıkların yükleniyor, birazdan kaydedebilirsin."
+    "librariesLoading": "Kitaplıkların yükleniyor, birazdan kaydedebilirsin.",
+    "noLibrariesHint": "Henüz bir kitaplığın yok. Kitabı kaydetmek için önce bir kitaplık oluştur.",
+    "newLibraryNameLabel": "Yeni kitaplığın adı",
+    "defaultLibraryName": "Kitaplığım",
+    "createLibrary": "Oluştur"
   },
   "barcodeScanner": {
     "headerTitle": "Barkod ile Ekle",

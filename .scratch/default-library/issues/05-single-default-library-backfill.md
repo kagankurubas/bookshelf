@@ -2,7 +2,7 @@
 
 **What to build:**
 - **Backfill:** kitaplığı olmayan her mevcut hesaba bir kez Ana Kitaplık açılır. Ad: metadata `locale` tam olarak `en` ise "My Library", aksi halde "Kitaplığım"; 2 kat, `is_default`.
-- **Index:** veritabanı kullanıcı başına ikinci bir Ana Kitaplığı reddeder: `libraries (user_id) where is_default` kısmi unique index.
+- **Index:** veritabanı kullanıcı başına ikinci bir Ana Kitaplığı reddeder: `libraries (user_id) where is_default` kısmi unique index, adı tam olarak `libraries_one_default_per_user_idx` (istemci bu adı `DEFAULT_LIBRARY_INDEX` olarak bekliyor; bir entegrasyon testi ihlal mesajında bu adı doğrular).
 - **İdempotentlik:** index'ten önce olası çoklu Ana Kitaplıklar en eskisine indirilir (007 deseni); backfill `not exists` ile yazılır.
 - Yetim kitaplar kitaplığa bağlanmaz.
 - `supabase/schema.sql` index ile güncellenir (backfill hariç).

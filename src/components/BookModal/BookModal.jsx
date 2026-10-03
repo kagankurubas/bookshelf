@@ -37,7 +37,7 @@ const PencilIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="
 // as `id` (syncNotes() reads that field to decide insert vs. update).
 const noteKey = (note) => note.id ?? note.draftKey;
 
-function BookModal({ onClose, onSave, selectedBook, prefillData = null, existingAuthors = [], existingTags = [], libraries = [], librariesLoading = false, activeLibraryId = null }) {
+function BookModal({ onClose, onSave, selectedBook, prefillData = null, existingAuthors = [], existingTags = [], libraries = [], librariesLoading = false, onCreateLibrary, activeLibraryId = null }) {
   const { t } = useTranslation();
   useEscapeKey(onClose);
   const defaultLibraryId = libraries.find((lib) => lib.isDefault)?.id || null;
@@ -59,6 +59,10 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const hasNoLibraries = !librariesLoading && libraries.length === 0;
+  const [newLibraryName, setNewLibraryName] = useState(() => t('bookModal.defaultLibraryName'));
+  const [isCreatingLibrary, setIsCreatingLibrary] = useState(false);
+  const [createLibraryError, setCreateLibraryError] = useState(null);
 
   const [isAddingCover, setIsAddingCover] = useState(false);
   const [failedCover, setFailedCover] = useState(null);
@@ -224,6 +228,25 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
     setIsDragging(false);
   };
 
+  const handleCreateLibrary = async () => {
+    const name = newLibraryName.trim();
+    if (!name) {
+      setCreateLibraryError(t('toolbar.nameRequired'));
+      return;
+    }
+    setCreateLibraryError(null);
+    setIsCreatingLibrary(true);
+    try {
+      const created = await onCreateLibrary(name);
+      setSelectedLibraries([created.id]);
+    } catch (err) {
+      console.error(err);
+      setCreateLibraryError(t('alerts.createLibraryError'));
+    } finally {
+      setIsCreatingLibrary(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaveError(null);
     if (!title || !author) {
@@ -372,6 +395,24 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
 
           <div className="form-group">
             <span className="form-label"><LibraryStackIcon /> {t('bookModal.libraries')}</span>
+            {hasNoLibraries ? (
+              <div className="book-modal-new-library">
+                <p className="book-modal-new-library-hint">{t('bookModal.noLibrariesHint')}</p>
+                <div className="book-modal-new-library-row">
+                  <input
+                    type="text"
+                    className="form-input"
+                    aria-label={t('bookModal.newLibraryNameLabel')}
+                    value={newLibraryName}
+                    onChange={(e) => { setNewLibraryName(e.target.value); setCreateLibraryError(null); }}
+                  />
+                  <button type="button" className="chip-btn" onClick={handleCreateLibrary} disabled={isCreatingLibrary}>
+                    {t('bookModal.createLibrary')}
+                  </button>
+                </div>
+                {createLibraryError && <p className="book-modal-new-library-error" role="alert">{createLibraryError}</p>}
+              </div>
+            ) : (
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {libraries.map(lib => {
                 const isSelected = selectedLibraries.includes(lib.id);
@@ -381,6 +422,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
                     key={lib.id}
                     type="button"
                     onClick={() => handleLibraryToggle(lib.id)}
+                    aria-pressed={isSelected}
                     title={isMandatory ? t('bookModal.defaultLibraryHint') : undefined}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '5px',
@@ -401,6 +443,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
                 );
               })}
             </div>
+            )}
           </div>
 
           <div className="form-group">
@@ -533,7 +576,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
         {librariesLoading && <p className="book-modal-save-hint" role="status">{t('bookModal.librariesLoading')}</p>}
 
         <div className="modal-footer">
-          <button className="save-book-btn" onClick={handleSave} disabled={!isModified || isSaving || librariesLoading}>
+          <button className="save-book-btn" onClick={handleSave} disabled={!isModified || isSaving || librariesLoading || hasNoLibraries}>
             {isSaving
               ? t('bookModal.saving')
               : selectedBook ? t('bookModal.saveExisting') : t('bookModal.saveNew')}
