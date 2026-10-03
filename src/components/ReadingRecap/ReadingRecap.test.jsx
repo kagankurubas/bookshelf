@@ -26,7 +26,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date(2026, 9, 2, 12, 0));
   clearCoverDataUrlCache();
-  vi.mocked(toBlob).mockResolvedValue(new Blob(['png'], { type: 'image/png' }));
+  vi.mocked(toBlob).mockReset().mockResolvedValue(new Blob(['png'], { type: 'image/png' }));
   vi.mocked(resizeImageBlob).mockReset().mockImplementation(async (blob) => blob);
   globalThis.fetch = vi.fn(async () => imageResponse());
   URL.createObjectURL = vi.fn(() => 'blob:recap');
@@ -168,5 +168,33 @@ describe('ReadingRecap calendar style', () => {
     await act(async () => timeout.abort(new DOMException('timed out', 'TimeoutError')));
     await waitFor(() => expect(shareButton()).toBeEnabled());
     expect(within(container.querySelector('.recap-card')).getByText('Stalled')).toBeInTheDocument();
+  });
+
+  it('falls back to a tile when the cover fetch itself fails (CORS or network error)', async () => {
+    globalThis.fetch = vi.fn(async () => { throw new TypeError('Failed to fetch'); });
+    const { container } = renderRecap([
+      completed('a', '2026-10-01', '2026-10-01', { title: 'No CORS', coverImage: 'https://example.com/cover.jpg' }),
+    ]);
+    switchToCalendar();
+
+    await waitFor(() => expect(shareButton()).toBeEnabled());
+    const card = container.querySelector('.recap-card');
+    expect(card.querySelectorAll('img')).toHaveLength(0);
+    expect(within(card).getByText('No CORS')).toBeInTheDocument();
+  });
+
+  it('keeps sharing disabled while covers are still being prepared', async () => {
+    let finishFetch;
+    globalThis.fetch = vi.fn(() => new Promise((resolve) => { finishFetch = () => resolve(imageResponse()); }));
+    renderRecap([completed('a', '2026-10-01', '2026-10-01', { coverImage: 'https://covers.openlibrary.org/b/id/1-L.jpg' })]);
+    switchToCalendar();
+
+    expect(shareButton()).toBeDisabled();
+    expect(shareButton()).toHaveTextContent('Görsel hazırlanıyor...');
+    fireEvent.click(shareButton());
+    expect(toBlob).not.toHaveBeenCalled();
+
+    await act(async () => finishFetch());
+    await waitFor(() => expect(shareButton()).toBeEnabled());
   });
 });
