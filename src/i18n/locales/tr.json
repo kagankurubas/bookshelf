@@ -215,6 +215,7 @@
     "saveRejectedError": "Bu kitap kaydedilemedi: sunucu kaydı kabul etmedi. Girdiğin bilgiler duruyor.",
     "noLibraryError": "Kitabı kaydetmek için önce bir kitaplık oluştur. Girdiğin bilgiler duruyor.",
     "librariesNotReadyError": "Kitaplıkların henüz yüklenmedi; birazdan yeniden kaydet. Girdiğin bilgiler duruyor.",
+    "transientError": "Geçici bir sorun oluştu. Birkaç saniye sonra tekrar dene; girdiğin bilgiler duruyor.",
     "validationError": "Lütfen Kitap Adı ve Yazar alanlarını doldurun.",
     "librariesLoading": "Kitaplıkların yükleniyor, birazdan kaydedebilirsin."
   },

@@ -50,6 +50,14 @@ describe('classifySaveError', () => {
     expect(classifySaveError(err, true)).toBe(SAVE_ERROR.REJECTED);
   });
 
+  it('treats only PostgREST\'s "JWT issued at future" as transient', () => {
+    expect(classifySaveError({ code: 'PGRST303', message: 'JWT issued at future', details: null, hint: null }, true))
+      .toBe(SAVE_ERROR.TRANSIENT);
+    expect(classifySaveError({ code: 'PGRST301', message: 'JWT expired' }, true)).toBe(SAVE_ERROR.REJECTED);
+    expect(classifySaveError({ code: 'PGRST302', message: 'Anonymous access is disabled' }, true)).toBe(SAVE_ERROR.REJECTED);
+    expect(classifySaveError({ code: 'PGRST116', message: 'no rows' }, true)).toBe(SAVE_ERROR.REJECTED);
+  });
+
   it('keeps a missing library and not-yet-loaded libraries distinct, even offline', () => {
     expect(classifySaveError(new NoLibraryError(), true)).toBe(SAVE_ERROR.NO_LIBRARY);
     expect(classifySaveError(new NoLibraryError(), false)).toBe(SAVE_ERROR.NO_LIBRARY);

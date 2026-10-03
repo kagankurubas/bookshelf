@@ -283,6 +283,34 @@ describe('BookModal save errors', () => {
     expectInputKept(handlers);
   });
 
+  it('calls a stale-clock JWT rejection a temporary problem worth retrying, keeping the input', async () => {
+    const jwtFuture = { code: 'PGRST303', message: 'JWT issued at future', details: null, hint: null };
+    const handlers = renderModal({ onSave: vi.fn().mockRejectedValue(jwtFuture) });
+    await fillAndSave(handlers);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Geçici bir sorun oluştu. Birkaç saniye sonra tekrar dene; girdiğin bilgiler duruyor.');
+    expect(alert.textContent).not.toMatch(/PGRST303|JWT|bağlantı/i);
+    expectInputKept(handlers);
+  });
+
+  it('shows the temporary-problem message in English for an English interface', async () => {
+    await i18n.changeLanguage('en');
+    try {
+      const handlers = renderModal({ onSave: vi.fn().mockRejectedValue({ code: 'PGRST303', message: 'JWT issued at future' }) });
+      fireEvent.change(screen.getByLabelText('Book Title (e.g. Crime and Punishment)'), { target: { value: 'Dune' } });
+      fireEvent.change(screen.getByPlaceholderText('Pick or type an author name'), { target: { value: 'Herbert' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save Book' }));
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent('Something went wrong for a moment. Try again in a few seconds - what you entered is still here.');
+      expect(screen.getByLabelText('Book Title (e.g. Crime and Punishment)')).toHaveValue('Dune');
+      expect(handlers.onClose).not.toHaveBeenCalled();
+    } finally {
+      await i18n.changeLanguage('tr');
+    }
+  });
+
   it('shows the rejected message in English for an English interface', async () => {
     await i18n.changeLanguage('en');
     try {

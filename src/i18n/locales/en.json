@@ -215,6 +215,7 @@
     "saveRejectedError": "This book couldn't be saved: the server didn't accept it. What you entered is still here.",
     "noLibraryError": "Create a library first to save this book. What you entered is still here.",
     "librariesNotReadyError": "Your libraries haven't loaded yet - save again in a moment. What you entered is still here.",
+    "transientError": "Something went wrong for a moment. Try again in a few seconds - what you entered is still here.",
     "validationError": "Please fill in the book title and author.",
     "librariesLoading": "Your libraries are still loading - you can save in a moment."
   },

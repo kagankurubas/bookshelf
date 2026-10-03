@@ -4,8 +4,14 @@ export const SAVE_ERROR = {
   NETWORK: 'network',
   NO_LIBRARY: 'no_library',
   NOT_READY: 'not_ready',
+  TRANSIENT: 'transient',
   REJECTED: 'rejected',
 };
+
+// PostgREST's "JWT issued at future": a stale server clock rejecting a fresh
+// token, which goes away on its own. Other auth errors (e.g. PGRST301) stay
+// rejected.
+const TRANSIENT_CODES = new Set(['PGRST303']);
 
 export class NoLibraryError extends Error {
   constructor() {
@@ -44,5 +50,6 @@ export function classifySaveError(err, isOnline = typeof navigator === 'undefine
   if (err instanceof NoLibraryError) return SAVE_ERROR.NO_LIBRARY;
   if (err instanceof LibrariesNotReadyError) return SAVE_ERROR.NOT_READY;
   if (!isOnline || isFetchFailure(err)) return SAVE_ERROR.NETWORK;
+  if (TRANSIENT_CODES.has(err?.code)) return SAVE_ERROR.TRANSIENT;
   return SAVE_ERROR.REJECTED;
 }
