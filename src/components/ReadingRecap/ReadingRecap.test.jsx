@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import { toBlob } from 'html-to-image';
 import ReadingRecap from './ReadingRecap';
 import { clearCoverDataUrlCache } from '../../lib/coverDataUrl';
 import { resizeImageBlob } from '../../lib/imageResize';
+import i18n from '../../i18n/i18n';
 
 vi.mock('html-to-image', () => ({ toBlob: vi.fn() }));
 // jsdom has no image decoding; the resize step passes the blob through.
@@ -32,7 +33,8 @@ beforeEach(() => {
   URL.revokeObjectURL = vi.fn();
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await act(() => i18n.changeLanguage('tr'));
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
@@ -124,5 +126,27 @@ describe('ReadingRecap calendar style', () => {
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
     expect(resizeImageBlob).toHaveBeenCalledTimes(1);
     expect(resizeImageBlob).toHaveBeenCalledWith(expect.any(Blob), 200);
+  });
+
+  it('labels each day for screen readers with the date, titles and finish-day rating', async () => {
+    renderRecap([completed('a', '2026-10-01', '2026-10-01', { title: 'Dune', rating: 5 })]);
+    switchToCalendar();
+
+    expect(screen.getByRole('img', { name: '1 Ekim: Dune (5 yıldız)' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '2 Ekim: okuma yok' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '3 Ekim: henüz gelmedi' })).toBeInTheDocument();
+  });
+
+  it('switches the calendar texts, title and weekdays to English with the app language', async () => {
+    renderRecap([completed('a', '', '2026-10-01'), completed('b', '', '2026-10-02'), completed('c', '2026-10-01', '2026-10-01')]);
+    switchToCalendar();
+    await act(() => i18n.changeLanguage('en'));
+
+    expect(screen.getByRole('button', { name: 'Calendar' })).toBeInTheDocument();
+    expect(screen.getByText('October 2026')).toBeInTheDocument();
+    expect(screen.getByText('Mon')).toBeInTheDocument();
+    expect(screen.getByText('Sun')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'October 1: Book c (4 stars)' })).toBeInTheDocument();
+    expect(screen.getByText("2 books with missing or invalid dates aren't shown on the calendar.")).toBeInTheDocument();
   });
 });
