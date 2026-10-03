@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LibrariesNotReadyError } from '../lib/saveErrors';
+import { findDefaultLibrary } from '../lib/defaultLibrary';
 
 // Centralizes active-library selection, the "every book also belongs to the
 // default library" invariant, and library-deletion orchestration - turns
@@ -7,7 +8,7 @@ import { LibrariesNotReadyError } from '../lib/saveErrors';
 export function useLibrary({ libraries, librariesLoading = false, addBook, editBook, deleteBook, refetchBooks, deleteLibrary: deleteLibraryRow, refreshStats }) {
   const [explicitActiveLibraryId, setActiveLibraryId] = useState(null);
 
-  const defaultLibrary = libraries.find((lib) => lib.isDefault) || libraries[0] || null;
+  const defaultLibrary = findDefaultLibrary(libraries);
   const activeLibraryId = explicitActiveLibraryId ?? defaultLibrary?.id ?? null;
   const activeLibrary = libraries.find((lib) => lib.id === activeLibraryId) || libraries[0] || null;
 

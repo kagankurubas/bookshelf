@@ -4,6 +4,7 @@ import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { IMPORT_PARSERS } from '../../lib/importParsers';
 import { checkFileSizeLimit, checkRowCountLimit } from '../../lib/importLimits';
 import { markPossibleDuplicates } from '../../lib/importDedup';
+import { findDefaultLibrary } from '../../lib/defaultLibrary';
 import './ImportPreviewModal.css';
 
 // Shared modal opened when the user triggers Settings > Data > Import, which
@@ -27,7 +28,7 @@ function ImportPreviewModal({ books, addBook, libraries, onClose }) {
   const [isImporting, setIsImporting] = useState(false);
   const [summary, setSummary] = useState(null);
 
-  const defaultLibrary = (libraries || []).find((lib) => lib.isDefault) || (libraries || [])[0] || null;
+  const defaultLibrary = findDefaultLibrary(libraries);
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
