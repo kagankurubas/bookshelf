@@ -30,17 +30,16 @@ describe('queueFailureOutcome', () => {
     expect(queueFailureOutcome(err, isOnline)).toBe(QUEUE_FAILURE.WAIT);
   });
 
-  // Documents today's behaviour, recorded in ticket 04: anything not listed
-  // as waiting falls through to the dialog's "rejected" and counts. A
-  // proposal there would cap these instead (wait, then count after N).
+  // Only known record refusals count; an error nobody listed - a new
+  // database code, a server error - leaves the record waiting (ticket 04).
   it.each([
     ['unknown database code', { code: 'XX000', message: 'internal error' }],
     ['HTTP 500 without a code', { status: 500, code: '', message: 'Internal Server Error' }],
     ['HTTP 502 from the gateway', { status: 502, code: '', message: 'Bad Gateway' }],
     ['HTTP 503', { status: 503, code: '', message: 'Service Unavailable' }],
     ['unknown PostgREST code', { code: 'PGRST999', message: 'something new' }],
-  ])('currently counts an %s against the record', (_kind, err) => {
-    expect(queueFailureOutcome(err, true)).toBe(QUEUE_FAILURE.COUNT);
+  ])('leaves the record waiting after an %s', (_kind, err) => {
+    expect(queueFailureOutcome(err, true)).toBe(QUEUE_FAILURE.WAIT);
   });
 
   it('skips a duplicate book id without counting it', () => {

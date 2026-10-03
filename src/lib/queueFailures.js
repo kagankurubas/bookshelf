@@ -1,25 +1,27 @@
-import { classifySaveError, SAVE_ERROR } from './saveErrors';
-
-// What a failed send means for a queued record. This is stricter than the
-// book dialog's classification on purpose: only a refusal of this record
-// itself counts against it. Anything about the connection, the session or
-// the queue leaves it waiting, because the same record will go through once
-// that is sorted out (an expired JWT is refreshed, for example), and counting
-// those would mark perfectly good books as failed.
+// What a failed send means for a queued record. Only a known refusal of this
+// record itself counts against it. Everything else - the connection, the
+// session, the queue, the device, and any error not on the list below,
+// server errors included - leaves it waiting, because the same record may
+// well go through later, and counting those would mark good books failed.
 export const QUEUE_FAILURE = {
   WAIT: 'wait',
   COUNT: 'count',
   SKIP: 'skip',
 };
 
-// PostgREST's JWT and session errors (PGRST300-399).
-const AUTH_ERROR_CODE = /^PGRST3\d\d$/;
+// Postgres refusals that are about the record's own data: RLS, not-null,
+// foreign key, check, unique (other than the book id) and invalid values.
+const RECORD_REFUSAL_CODES = new Set(['42501', '23502', '23503', '23514', '23505', '22P02']);
+
+function isDuplicateBookId(err) {
+  return err?.code === '23505' && (err.message || '').includes('books_pkey');
+}
 
 export function queueFailureOutcome(err, isOnline) {
+  if (!isOnline) return QUEUE_FAILURE.WAIT;
   // A duplicate book id is left alone until retries become idempotent.
-  if (err?.code === '23505' && (err.message || '').includes('books_pkey')) return QUEUE_FAILURE.SKIP;
-  if (AUTH_ERROR_CODE.test(err?.code ?? '') || err?.status === 401) return QUEUE_FAILURE.WAIT;
-  return classifySaveError(err, isOnline) === SAVE_ERROR.REJECTED ? QUEUE_FAILURE.COUNT : QUEUE_FAILURE.WAIT;
+  if (isDuplicateBookId(err)) return QUEUE_FAILURE.SKIP;
+  return RECORD_REFUSAL_CODES.has(err?.code) ? QUEUE_FAILURE.COUNT : QUEUE_FAILURE.WAIT;
 }
 
 export function queueFailureCode(err) {

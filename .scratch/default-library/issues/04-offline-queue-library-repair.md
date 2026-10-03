@@ -99,12 +99,13 @@
   - JWT/oturum hataları kayıt saymıyor ve senkronu durduruyor (3). Hata kalıcıysa bu kayıt ve arkasındaki tüm kayıtlar sonsuza kadar bekler; kullanıcı bunu fark edemez. Şeritte çevrimdışıyken "N kitap bekliyor" görünür, çevrimiçiyken hiçbir şey görünmez.
   - Pratikte supabase-js token'ı kendisi yeniler; yenileyemezse `SIGNED_OUT` gelir ve senkron oturumsuz hiç çalışmaz. Kalıcı durum ancak oturum "açık" görünürken her istek JWT hatası alırsa oluşur.
   - **Fikir:** art arda N senkron denemesinde (örneğin 3) aynı oturum hatası sürerse çevrimiçiyken bir "Oturumunu yenile: çıkış yapıp yeniden gir" şeridi gösterilir. Sayaç kayıtta değil oturum düzeyinde tutulur, başarılı bir gönderimde sıfırlanır.
-- **b) Listede olmayan bilinmeyen hatalar:**
-  - Bugün **sayılıyorlar**. `queueFailureOutcome`, listede olmayan her hatayı kitap penceresinin sınıflandırıcısına bırakıyor; o da ağ, geçici ya da tipli bir hata değilse `rejected` diyor.
-  - Bu kapsamda: bilinmeyen veritabanı kodları (`XX000` vb.), bilinmeyen `PGRST` kodları ve kodu boş HTTP 5xx yanıtları. Test: `queueFailures.test.js` → "currently counts an … against the record".
-  - Risk: sunucu tarafında birkaç dakikalık bir 5xx kesintisi, üç senkron denemesinde sağlam bir kitabı "gönderilemedi" yapabilir.
-  - **Öneri:** bilinmeyen hatalar önce beklesin ama sınırlı olsun. Aynı kayıtta art arda N kez (örneğin 5) aynı bilinmeyen hata gelirse o zaman sayılsın. Bunun için kayda `unknownStreak` ve `lastUnknownCode` tutulur.
-  - Ek bulgu: supabase-js'in hata nesnesi HTTP durum kodunu taşımıyor ve `bookWrites` yalnızca bu nesneyi fırlatıyor. Bu yüzden `status === 401` ve 5xx ayrımı bugün pratikte uygulanamıyor. Öneri uygulanacaksa durum kodu hatayla birlikte taşınmalı.
+- **b) Listede olmayan bilinmeyen hatalar (karar uygulandı):**
+  - **Karar:** sayaç artık yalnızca açık bir listedeki, kayda özgü bilinen kodlarda artar: `42501`, `23502`, `23503`, `23514`, `books_pkey` dışındaki `23505` ve `22P02`.
+  - Listede olmayan her hata **sayılmaz, kayıt bekler**: bilinmeyen veritabanı kodları (`XX000` vb.), bilinmeyen `PGRST` kodları, kodu boş HTTP 5xx yanıtları. Test: `queueFailures.test.js` → "leaves the record waiting after an …".
+  - Böylece birkaç dakikalık bir 5xx kesintisi sağlam bir kitabı "gönderilemedi" yapmaz.
+  - **Yeni risk: kalıcı bilinmeyen hata kuyruğu bekletir.** "Bekler" sonucu senkronu durdurur. Her denemede kalıcı olarak bilinmeyen bir hata alan tek bir kayıt (örneğin sunucuda bu kayda özgü yeni bir kısıt), hem kendisini hem arkasındaki tüm kayıtları sonsuza dek bekletir. Kullanıcı bunu fark etmez: çevrimiçiyken şerit görünmez.
+  - **Öneri:** aynı kayıtta art arda N kez (örneğin 5) aynı bilinmeyen kod gelirse bu kayıt artık sayılsın, ya da en azından atlanıp sonraki kayda geçilsin. Kayda `unknownStreak` ve `lastUnknownCode` tutulur; farklı bir sonuç gelince seri sıfırlanır.
+  - Ek bulgu: supabase-js'in hata nesnesi HTTP durum kodunu taşımıyor ve `bookWrites` yalnızca bu nesneyi fırlatıyor; 5xx ile bilinmeyen kod ayrımı bugün yapılamıyor. Takip ticket'ı 11'de.
 - **c) "Gönderilemedi" kayıtlarının geri dönüş yolu yok:**
   - Liste penceresi (08) gelene kadar "gönderilemedi" işaretli bir kaydı yeniden denemenin ya da tek tek silmenin yolu yok. Kayıt ancak çıkış düğmesiyle (onaylı) ya da hesap silmeyle temizlenir.
   - **Release notu için:** "Çevrimdışıyken eklenen ve sunucunun üç kez kabul etmediği kitaplar artık 'gönderilemedi' olarak işaretlenir ve cihazda saklanır. Bu sürümde bunları yeniden göndermenin ya da tek tek silmenin yolu yok; çıkış yaparak silinebilirler. Yeniden deneme ve silme penceresi sonraki bir sürümde gelecek."
