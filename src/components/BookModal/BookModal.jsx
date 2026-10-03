@@ -5,7 +5,15 @@ import { resolveTagCasing } from '../../lib/tagCasing';
 import { coverCrossOrigin, openLibraryCoverUrl } from '../../lib/openLibrary';
 import { toLocalIsoDate } from '../../lib/localDate';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import { classifySaveError, SAVE_ERROR } from '../../lib/saveErrors';
 import './BookModal.css';
+
+const SAVE_ERROR_MESSAGE_KEYS = {
+  [SAVE_ERROR.NETWORK]: 'bookModal.saveError',
+  [SAVE_ERROR.NO_LIBRARY]: 'bookModal.noLibraryError',
+  [SAVE_ERROR.NOT_READY]: 'bookModal.librariesNotReadyError',
+  [SAVE_ERROR.REJECTED]: 'bookModal.saveRejectedError',
+};
 
 const iconProps = { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8 };
 const PersonIcon = () => (<svg {...iconProps}><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" /></svg>);
@@ -53,7 +61,7 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
 
   const [isAddingCover, setIsAddingCover] = useState(false);
   const [failedCover, setFailedCover] = useState(null);
-  useOnlineStatus(() => setFailedCover(null));
+  const isOnline = useOnlineStatus(() => setFailedCover(null));
   const [coverPosition, setCoverPosition] = useState(selectedBook ? selectedBook.coverPosition || 50 : 50);
   const [isDragging, setIsDragging] = useState(false);
   const [startY, setStartY] = useState(0);
@@ -247,11 +255,11 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
     try {
       await onSave(bookData);
       onClose();
-    } catch {
+    } catch (err) {
       // Save failed - modal stays open, the user's input isn't lost, and an
-      // inline error is shown for retrying (App.jsx's generic alert() no
-      // longer shows in this case).
-      setSaveError(t('bookModal.saveError'));
+      // inline error explains why. The raw error only goes to the console
+      // (App.jsx logs it).
+      setSaveError(t(SAVE_ERROR_MESSAGE_KEYS[classifySaveError(err, isOnline)]));
     } finally {
       setIsSaving(false);
     }

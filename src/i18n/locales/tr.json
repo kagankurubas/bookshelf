@@ -211,7 +211,10 @@
     "saveNew": "Kitabı Kaydet",
     "saveExisting": "Değişiklikleri Kaydet",
     "saving": "Kaydediliyor...",
-    "saveError": "Kaydedilemedi. Bağlantını kontrol edip tekrar dene, girdiklerin kaybolmadı.",
+    "saveError": "Kaydedilemedi. Bağlantını kontrol edip tekrar dene; girdiğin bilgiler duruyor.",
+    "saveRejectedError": "Bu kitap kaydedilemedi: sunucu kaydı kabul etmedi. Girdiğin bilgiler duruyor.",
+    "noLibraryError": "Kitabı kaydetmek için önce bir kitaplık oluştur. Girdiğin bilgiler duruyor.",
+    "librariesNotReadyError": "Kitaplıkların henüz yüklenmedi; birazdan yeniden kaydet. Girdiğin bilgiler duruyor.",
     "validationError": "Lütfen Kitap Adı ve Yazar alanlarını doldurun.",
     "librariesLoading": "Kitaplıkların yükleniyor, birazdan kaydedebilirsin."
   },

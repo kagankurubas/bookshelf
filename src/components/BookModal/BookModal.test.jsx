@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import BookModal from './BookModal';
+import i18n from '../../i18n/i18n';
+import { LibrariesNotReadyError, NoLibraryError } from '../../lib/saveErrors';
 
 function selectedBook(overrides = {}) {
   return {
@@ -214,5 +216,87 @@ describe('BookModal while libraries load', () => {
     save();
 
     await waitFor(() => expect(handlers.onSave).toHaveBeenCalled());
+  });
+});
+
+describe('BookModal save errors', () => {
+  const rlsError = {
+    code: '42501',
+    message: 'new row violates row-level security policy for table "book_libraries"',
+    details: null,
+    hint: null,
+  };
+
+  function fillAndSave(handlers) {
+    fireEvent.change(screen.getByLabelText('Kitap Adı (Örn: Suç ve Ceza)'), { target: { value: 'Dune' } });
+    fireEvent.change(screen.getByPlaceholderText('Yazar Adı Seç veya Yaz'), { target: { value: 'Herbert' } });
+    save();
+    return waitFor(() => expect(handlers.onSave).toHaveBeenCalled());
+  }
+
+  function expectInputKept(handlers) {
+    expect(screen.getByLabelText('Kitap Adı (Örn: Suç ve Ceza)')).toHaveValue('Dune');
+    expect(screen.getByPlaceholderText('Yazar Adı Seç veya Yaz')).toHaveValue('Herbert');
+    expect(handlers.onClose).not.toHaveBeenCalled();
+  }
+
+  it('asks to check the connection only for a network failure, keeping the input', async () => {
+    const handlers = renderModal({ onSave: vi.fn().mockRejectedValue({ code: '', message: 'TypeError: Load failed' }) });
+    await fillAndSave(handlers);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Kaydedilemedi. Bağlantını kontrol edip tekrar dene; girdiğin bilgiler duruyor.');
+    expectInputKept(handlers);
+  });
+
+  it('says the server refused a rejected save, without the raw error, connection advice or retry advice', async () => {
+    const handlers = renderModal({ onSave: vi.fn().mockRejectedValue(rlsError) });
+    await fillAndSave(handlers);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Bu kitap kaydedilemedi: sunucu kaydı kabul etmedi. Girdiğin bilgiler duruyor.');
+    for (const leaked of ['42501', 'row-level', 'book_libraries', 'policy']) {
+      expect(alert.textContent).not.toContain(leaked);
+    }
+    expect(alert.textContent).not.toMatch(/bağlantı/i);
+    expect(alert.textContent).not.toMatch(/tekrar dene/i);
+    expectInputKept(handlers);
+  });
+
+  it('asks for a library first when the book has none', async () => {
+    const handlers = renderModal({ libraries: [], onSave: vi.fn().mockRejectedValue(new NoLibraryError()) });
+    await fillAndSave(handlers);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Kitabı kaydetmek için önce bir kitaplık oluştur. Girdiğin bilgiler duruyor.');
+    expect(alert.textContent).not.toMatch(/bağlantı/i);
+    expectInputKept(handlers);
+  });
+
+  it('asks to save again in a moment when the libraries had not loaded', async () => {
+    const handlers = renderModal({ onSave: vi.fn().mockRejectedValue(new LibrariesNotReadyError()) });
+    await fillAndSave(handlers);
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Kitaplıkların henüz yüklenmedi; birazdan yeniden kaydet. Girdiğin bilgiler duruyor.');
+    expect(alert.textContent).not.toMatch(/bağlantı/i);
+    expectInputKept(handlers);
+  });
+
+  it('shows the rejected message in English for an English interface', async () => {
+    await i18n.changeLanguage('en');
+    try {
+      const handlers = renderModal({ onSave: vi.fn().mockRejectedValue(rlsError) });
+      fireEvent.change(screen.getByLabelText('Book Title (e.g. Crime and Punishment)'), { target: { value: 'Dune' } });
+      fireEvent.change(screen.getByPlaceholderText('Pick or type an author name'), { target: { value: 'Herbert' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save Book' }));
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent("This book couldn't be saved: the server didn't accept it. What you entered is still here.");
+      expect(alert.textContent).not.toMatch(/connection|try again|42501/i);
+      expect(handlers.onClose).not.toHaveBeenCalled();
+    } finally {
+      await i18n.changeLanguage('tr');
+    }
   });
 });
