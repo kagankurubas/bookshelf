@@ -18,6 +18,15 @@ PR A'nın kod incelemesinden (2026-10-03) kalan, bu PR'a alınmayan bulgular ve 
 - **(ticket 04, b) Kalıcı bilinmeyen hata kuyruğu bekletiyor.** Aynı kayıtta art arda N kez aynı bilinmeyen kod gelince kaydı saymak ya da atlamak.
 - **(ticket 04, a) Kalıcı JWT/oturum hatası.** Art arda N senkronda aynı oturum hatası sürerse "oturumunu yenile" şeridi.
 
+## PR A'da bilinçli olarak kabul edilen tavizler
+
+- **Ham `TypeError` her zaman ağ hatası sayılıyor** (`3201e49`).
+  - Spec'teki biçim kuralı gereği koddaki gerçek bir `TypeError` (bir hata) da ağ hatası sayılıyor. Kitap penceresinde "bağlantını kontrol et" yazar; kuyrukta kayıt sayılmadan bekler ve senkronu durdurduğu için arkasındaki kayıtları da bekletir.
+  - İş: `bookWrites`'in ve kuyruğun fırlatabileceği gerçek fetch hatalarını (supabase-js'in sardığı biçim) ham `TypeError`'dan ayırmanın yolu: örneğin fetch hatalarını kaynağında tipli bir `NetworkError`'a sarmak ve ham `TypeError`'ı `rejected` ya da ayrı bir "beklenmeyen hata" sınıfına almak.
+- **IndexedDB yeniden denemesi art arda 3 kezle sınırlı** (`e4aaa87`).
+  - Kuyruk kalıcı olarak açılamazsa (örneğin başka bir sekmede daha yeni bir sürüm açık: `VersionError`), 3 denemeden sonra bir sonraki tetikleyiciye kadar denenmiyor. Kullanıcıya ayrı bir bildirim yok; sayfa yenilenince yeniden deneniyor.
+  - İş: kalıcı durumda "Uygulamanın yeni bir sürümü başka bir sekmede açık; bu sekmeyi yenile" gibi bir bildirim.
+
 ## Kod temizliği (Standards ekseni, hepsi değerlendirme notu)
 
 - **Tekrarlanan `23505` kontrolü:** `useLibraries` (`DEFAULT_LIBRARY_INDEX`) ve `queueFailures` (`'books_pkey'`) aynı "adı verilen kısıtta unique ihlali" kontrolünü ayrı yazıyor; `'books_pkey'` çıplak string. `isUniqueViolation(err, constraintName)` yardımcısı ve adlandırılmış sabitler.
@@ -36,4 +45,5 @@ PR A'nın kod incelemesinden (2026-10-03) kalan, bu PR'a alınmayan bulgular ve 
 - [ ] Bulgu 6: eski kayıtlar için seçilen davranış uygulanmış, testli
 - [ ] Bulgu 7: oturumsuz kuyruğa alma tipli hata ve uygun mesaj veriyor
 - [ ] Kalıcı bilinmeyen hata ve kalıcı oturum hatası önerileri karara bağlandı
+- [ ] İki taviz (ham `TypeError`, IndexedDB 3 deneme sınırı) için karar verildi
 - [ ] Temizlik maddeleri davranış değiştirmeden yapıldı; mevcut testler değişmeden yeşil
