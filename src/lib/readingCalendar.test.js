@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import {
   buildReadingCalendar,
   countBooksSkippedForDates,
@@ -141,17 +141,16 @@ describe('buildReadingCalendar books', () => {
 });
 
 describe('buildReadingCalendar time zones', () => {
-  const originalTz = process.env.TZ;
   afterEach(() => {
-    process.env.TZ = originalTz;
+    vi.unstubAllEnvs();
   });
 
   it('gives the same calendar regardless of the process time zone', () => {
     const books = [completed('a', '2026-09-01', '2026-09-01', 5), reading('b', '2026-09-30')];
     const build = () => buildReadingCalendar({ books, year: 2026, month: 9, today: PAST_TODAY });
-    process.env.TZ = 'Pacific/Kiritimati';
+    vi.stubEnv('TZ', 'Pacific/Kiritimati');
     const ahead = build();
-    process.env.TZ = 'Pacific/Pago_Pago';
+    vi.stubEnv('TZ', 'Pacific/Pago_Pago');
     const behind = build();
     expect(ahead).toEqual(behind);
     expect(idsOn(ahead, '2026-09-01')).toEqual(['a']);
