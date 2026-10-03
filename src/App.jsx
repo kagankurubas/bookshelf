@@ -183,7 +183,9 @@ function App() {
     const unsentCount = await countUnsentForSignOut().catch(() => 0);
     if (unsentCount > 0) {
       if (!window.confirm(t('auth.signOutDiscardQueued', { count: unsentCount }))) return;
-      await discardQueue();
+      // Signing out still goes ahead if the queue can't be cleared: the
+      // records keep their owner, and a different user's sign-in drops them.
+      await discardQueue().catch((err) => console.error(err));
     }
     await signOut();
   };

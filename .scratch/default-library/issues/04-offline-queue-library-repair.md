@@ -50,6 +50,23 @@
 - **Görünürlük:** çevrimdışı şeridi bugün yalnızca çevrimdışıyken görünüyor. Kullanıcının `failed` kaydı varsa şerit çevrimiçiyken de "N kitap gönderilemedi" der (TR/EN, `role="status"`). Çevrimdışıyken mevcut "N kitap bekliyor" metni sürer.
 - **Bilinçli davranış:** liste penceresi (08) gelene kadar `failed` kayıtlar yalnızca çıkışta ya da hesap silmede temizlenir. Şerit metni bunu söyler: "Çıkış yaparsan silinirler."
 
+## Bilinçli davranışlar (2026-10-03, uygulamada)
+
+- **Çıkış düğmesi:**
+  - Gönderilmemiş kayıt (gönderilemeyenler ve sahibi bilinmeyen eski kayıtlar dahil) varsa "N kitap silinecek" onayı sorulur. Onaylanırsa kuyruk silinir ve çıkış yapılır; iptalde oturum açık kalır.
+  - Onay şimdilik tarayıcının `window.confirm` penceresi; uygulama içi pencere 09'da (v1.2).
+- **Çıkış düğmesinde kuyruk silinemezse** (örneğin IndexedDB o anda kullanılamıyor):
+  - Çıkış yine yapılır, hata konsola yazılır ve kayıtlar `ownerId`'leriyle cihazda kalır.
+  - Aynı kullanıcı tekrar girerse kayıtları ona gönderilir: kullanıcı silmeyi onaylamıştı ama silme gerçekleşemedi.
+  - Farklı bir kullanıcı girerse girişteki sahip değişimi temizliği onları siler.
+  - Test: App'te "clearing the queue fails" senaryosu.
+- **Zorunlu çıkış** (oturum süresi doldu, token yenilenemedi; `SIGNED_OUT` olayı bunları düğmeden ayırt etmez): kuyruğa dokunulmaz. Kayıtlar yalnızca aynı kullanıcı girince gönderilir, farklı kullanıcı girince silinir.
+- **Hesap silme:** kuyruk her zaman, oturum kapanmadan önce silinir. Silme hata verirse çıkış yine yapılır.
+- **Çok sekme, eski sürüm açık:**
+  - Kuyruk veritabanı v2'ye yükseltilirken başka bir sekme v1'i açık tutuyorsa açılış 3 sn bekler, sonra `QueueUnavailableError` ile vazgeçer. Açılış asılı kalmaz ve eski sekme bırakınca kendiliğinden tamamlanır.
+  - Bu sırada çevrimiçi kitap ekleme etkilenmez. Çevrimdışı ekleme "geçici bir sorun" mesajı gösterir. Senkron loglar ve birkaç saniye sonra bir kez yeniden dener.
+  - Her bağlantı, başka bir sekme yükseltme istediğinde kendini kapatır.
+
 ## Açık kararlar
 
 - **D1. İdempotency kapsamı:**

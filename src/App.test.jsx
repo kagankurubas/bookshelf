@@ -222,4 +222,18 @@ describe('App sign-out button and the offline queue', () => {
 
     await waitFor(() => expect(order).toEqual(['discard', 'signOut']));
   });
+
+  it('still signs out when clearing the queue fails, leaving the records with their owner', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { queue, signOut } = await renderSignedIn(2);
+    const failure = new Error('idb unavailable');
+    queue.discardQueue.mockRejectedValue(failure);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Çıkış Yap' }));
+
+    await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1));
+    expect(queue.discardQueue).toHaveBeenCalledTimes(1);
+    expect(consoleError).toHaveBeenCalledWith(failure);
+  });
 });
