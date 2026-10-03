@@ -382,4 +382,16 @@ describe('useOfflineBookQueue', () => {
       expect(addBookForSync.mock.calls.filter(([fields]) => fields.title === 'Gecikmeli')).toHaveLength(1);
     });
   });
+
+  it("doesn't sync on coming back online until the signed-in user's data has loaded", async () => {
+    getQueuedBooks.mockResolvedValue([{ id: 1, ownerId: 'user-a', title: 'Erken', libraryIds: ['lib-1'] }]);
+    const { addBookForSync } = renderQueue({ isReady: false });
+
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+    });
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(addBookForSync).not.toHaveBeenCalled();
+  });
 });

@@ -68,7 +68,9 @@ export function useOfflineBookQueue({ userId, libraries = [], addBook, addBookFo
   // record left waiting; a refusal of the record itself counts against it
   // and the loop moves on (see lib/queueFailures.js).
   const syncQueuedBooks = async () => {
-    if (!userId) return;
+    // Every trigger waits for the signed-in user's data to be loaded, so a
+    // sync never runs against a previous user's libraries.
+    if (!userId || !isReady) return;
     // Without a library there is nothing to file the books into: every
     // record stays queued, untouched and uncounted, until one exists.
     if (libraries.length === 0) return;
