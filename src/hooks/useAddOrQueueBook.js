@@ -1,3 +1,6 @@
+import { hasValidLibraryIds } from '../lib/bookWrites';
+import { NoLibraryError } from '../lib/saveErrors';
+
 // Extracted into an isolated helper so the "add directly if online,
 // otherwise queue" decision isn't left as an untestable closure buried in
 // App.jsx. The decision is based on the `isOnline` flag AT CLICK TIME,
@@ -10,6 +13,9 @@
 // be written without touching real IndexedDB or Supabase.
 export function useAddOrQueueBook({ isOnline, addBook, enqueueBook }) {
   return async (fields) => {
+    // A book without a library is refused before either path, so it never
+    // reaches the offline queue.
+    if (!hasValidLibraryIds(fields.libraryIds)) throw new NoLibraryError();
     if (isOnline) {
       return addBook(fields);
     }

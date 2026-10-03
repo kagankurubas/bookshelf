@@ -16,13 +16,15 @@ function setNavigatorOnline(value) {
   Object.defineProperty(window.navigator, 'onLine', { value, configurable: true });
 }
 
-function renderQueue({ isReady = true, userId = 'user-a', retryDelayMs } = {}) {
+const ownLibraries = [{ id: 'lib-1', name: 'Kitaplığım', isDefault: true }];
+
+function renderQueue({ isReady = true, userId = 'user-a', retryDelayMs, libraries = ownLibraries } = {}) {
   const addBook = vi.fn().mockResolvedValue({ id: 'book-1' });
   const addBookForSync = vi.fn().mockResolvedValue({ id: 'book-1' });
   const refreshStats = vi.fn();
   const hook = renderHook(
-    ({ isReady, userId }) => useOfflineBookQueue({ userId, addBook, addBookForSync, refreshStats, isReady, retryDelayMs }),
-    { initialProps: { isReady, userId } }
+    ({ isReady, userId, libraries = ownLibraries }) => useOfflineBookQueue({ userId, libraries, addBook, addBookForSync, refreshStats, isReady, retryDelayMs }),
+    { initialProps: { isReady, userId, libraries } }
   );
   return { ...hook, addBook, addBookForSync, refreshStats };
 }
@@ -55,10 +57,10 @@ describe('useOfflineBookQueue', () => {
     await waitFor(() => expect(result.current.queuedCount).toBe(0));
 
     await act(async () => {
-      await result.current.addOrQueueBook({ title: 'Dune' });
+      await result.current.addOrQueueBook({ title: 'Dune', libraryIds: ['lib-1'] });
     });
 
-    expect(addBook).toHaveBeenCalledWith({ title: 'Dune' });
+    expect(addBook).toHaveBeenCalledWith({ title: 'Dune', libraryIds: ['lib-1'] });
     expect(enqueueBook).not.toHaveBeenCalled();
   });
 
@@ -70,10 +72,10 @@ describe('useOfflineBookQueue', () => {
     await waitFor(() => expect(result.current.queuedCount).toBe(0));
 
     await act(async () => {
-      await result.current.addOrQueueBook({ title: 'Dune' });
+      await result.current.addOrQueueBook({ title: 'Dune', libraryIds: ['lib-1'] });
     });
 
-    expect(enqueueBook).toHaveBeenCalledWith('user-a', { title: 'Dune' });
+    expect(enqueueBook).toHaveBeenCalledWith('user-a', { title: 'Dune', libraryIds: ['lib-1'] });
     expect(addBook).not.toHaveBeenCalled();
     await waitFor(() => expect(result.current.queuedCount).toBe(1));
   });
@@ -91,8 +93,8 @@ describe('useOfflineBookQueue', () => {
     // dahil) tamamen bittiginin kesin isareti.
     await waitFor(() => expect(result.current.queuedCount).toBe(0));
     expect(addBookForSync).toHaveBeenCalledTimes(2);
-    expect(addBookForSync).toHaveBeenNthCalledWith(1, { title: 'Kitap 1' });
-    expect(addBookForSync).toHaveBeenNthCalledWith(2, { title: 'Kitap 2' });
+    expect(addBookForSync).toHaveBeenNthCalledWith(1, { title: 'Kitap 1', libraryIds: ['lib-1'] });
+    expect(addBookForSync).toHaveBeenNthCalledWith(2, { title: 'Kitap 2', libraryIds: ['lib-1'] });
     expect(getQueuedBooks).toHaveBeenCalledWith('user-a');
     expect(getQueuedBooks.mock.calls.every(([ownerId]) => ownerId === 'user-a')).toBe(true);
     expect(removeQueuedBook).toHaveBeenCalledWith(1);
@@ -112,7 +114,7 @@ describe('useOfflineBookQueue', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const { result, rerender } = renderHook(
-      ({ isReady }) => useOfflineBookQueue({ userId: 'user-a', addBook, addBookForSync, refreshStats, isReady }),
+      ({ isReady }) => useOfflineBookQueue({ userId: 'user-a', libraries: ownLibraries, addBook, addBookForSync, refreshStats, isReady }),
       { initialProps: { isReady: false } }
     );
     rerender({ isReady: true });
@@ -161,7 +163,7 @@ describe('useOfflineBookQueue', () => {
 
     rerender({ isReady: true, userId: 'user-b' });
 
-    await waitFor(() => expect(addBookForSync).toHaveBeenCalledWith({ title: 'B Kitabi' }));
+    await waitFor(() => expect(addBookForSync).toHaveBeenCalledWith({ title: 'B Kitabi', libraryIds: ['lib-1'] }));
     expect(addBookForSync).toHaveBeenCalledTimes(1);
     expect(removeQueuedBook).toHaveBeenCalledWith(7);
   });
@@ -205,7 +207,7 @@ describe('useOfflineBookQueue', () => {
       await new Promise((r) => setTimeout(r, 5));
       expect(addBookForSync).not.toHaveBeenCalled();
 
-      await waitFor(() => expect(addBookForSync).toHaveBeenCalledWith({ title: 'Gecikmeli' }));
+      await waitFor(() => expect(addBookForSync).toHaveBeenCalledWith({ title: 'Gecikmeli', libraryIds: ['lib-1'] }));
       expect(removeQueuedBook).toHaveBeenCalledWith(4);
     });
 
@@ -215,15 +217,63 @@ describe('useOfflineBookQueue', () => {
       setNavigatorOnline(false);
       const offline = renderQueue({ isReady: false });
 
-      await expect(offline.result.current.addOrQueueBook({ title: 'Dune' })).rejects.toBeInstanceOf(QueueUnavailableError);
+      await expect(offline.result.current.addOrQueueBook({ title: 'Dune', libraryIds: ['lib-1'] })).rejects.toBeInstanceOf(QueueUnavailableError);
       offline.unmount();
 
       setNavigatorOnline(true);
       const online = renderQueue({ isReady: false });
       await act(async () => {
-        await online.result.current.addOrQueueBook({ title: 'Dune' });
+        await online.result.current.addOrQueueBook({ title: 'Dune', libraryIds: ['lib-1'] });
       });
-      expect(online.addBook).toHaveBeenCalledWith({ title: 'Dune' });
+      expect(online.addBook).toHaveBeenCalledWith({ title: 'Dune', libraryIds: ['lib-1'] });
     });
+  });
+
+  describe('when the user has no library', () => {
+    it('leaves every record waiting, untouched, on both sync triggers', async () => {
+      getQueuedBooks.mockResolvedValue([
+        { id: 1, ownerId: 'user-a', title: 'Kitaplıksız', libraryIds: [null] },
+        { id: 2, ownerId: 'user-a', title: 'Sonraki', libraryIds: [null] },
+      ]);
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const { result, addBookForSync } = renderQueue({ isReady: true, libraries: [] });
+      await waitFor(() => expect(result.current.queuedCount).toBe(2));
+      const readsBeforeSync = getQueuedBooks.mock.calls.length;
+
+      await act(async () => {
+        window.dispatchEvent(new Event('online'));
+      });
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(addBookForSync).not.toHaveBeenCalled();
+      expect(removeQueuedBook).not.toHaveBeenCalled();
+      expect(result.current.queuedCount).toBe(2);
+      // Waiting is a decision, not a failure: the records are not even read
+      // for sending, and nothing is logged as an error.
+      expect(getQueuedBooks.mock.calls.length).toBe(readsBeforeSync);
+      expect(consoleError).not.toHaveBeenCalled();
+    });
+
+    it('sends the waiting records, filed into the new library, as soon as one exists', async () => {
+      getQueuedBooks
+        .mockResolvedValueOnce([{ id: 1, ownerId: 'user-a', title: 'Kitaplıksız', libraryIds: [null] }]) // count
+        .mockResolvedValueOnce([{ id: 1, ownerId: 'user-a', title: 'Kitaplıksız', libraryIds: [null] }]) // flush
+        .mockResolvedValue([]);
+      const { rerender, addBookForSync } = renderQueue({ isReady: true, libraries: [] });
+      await new Promise((r) => setTimeout(r, 0));
+      expect(addBookForSync).not.toHaveBeenCalled();
+
+      rerender({ isReady: true, userId: 'user-a', libraries: [{ id: 'lib-new', isDefault: true }] });
+
+      await waitFor(() => expect(addBookForSync).toHaveBeenCalledWith({ title: 'Kitaplıksız', libraryIds: ['lib-new'] }));
+      expect(removeQueuedBook).toHaveBeenCalledWith(1);
+    });
+  });
+
+  it('files a record queued into a since-deleted library into the default one', async () => {
+    getQueuedBooks.mockResolvedValue([{ id: 3, ownerId: 'user-a', title: 'Eski raf', libraryIds: ['lib-deleted'] }]);
+    const { addBookForSync } = renderQueue({ isReady: true });
+
+    await waitFor(() => expect(addBookForSync).toHaveBeenCalledWith({ title: 'Eski raf', libraryIds: ['lib-1'] }));
   });
 });

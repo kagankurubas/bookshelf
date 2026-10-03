@@ -90,6 +90,7 @@ function App() {
   // flush isn't attempted before library data has loaded).
   const { isOnline, queuedCount, addOrQueueBook, countUnsentForSignOut, discardQueue } = useOfflineBookQueue({
     userId: user?.id,
+    libraries,
     addBook: library.addBook,
     addBookForSync: library.addBookWithoutStatsRefresh,
     refreshStats: library.refreshStats,

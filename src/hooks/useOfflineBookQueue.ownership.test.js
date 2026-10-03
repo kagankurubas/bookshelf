@@ -25,7 +25,7 @@ describe('useOfflineBookQueue on a shared device', () => {
     const addBookForSync = vi.fn().mockResolvedValue({ id: 'saved' });
     const refreshStats = vi.fn();
     renderHook(() => useOfflineBookQueue({
-      userId: 'user-b', addBook: vi.fn(), addBookForSync, refreshStats, isReady: true,
+      userId: 'user-b', libraries: [{ id: 'lib-b', isDefault: true }], addBook: vi.fn(), addBookForSync, refreshStats, isReady: true,
     }));
 
     await waitFor(() => expect(refreshStats).toHaveBeenCalledTimes(1));
@@ -47,9 +47,25 @@ describe('useOfflineBookQueue on a shared device', () => {
     Object.defineProperty(window.navigator, 'onLine', { value: false, configurable: true });
 
     const { result } = renderHook(() => useOfflineBookQueue({
-      userId: 'user-b', addBook: vi.fn(), addBookForSync: vi.fn(), refreshStats: vi.fn(), isReady: false,
+      userId: 'user-b', libraries: [{ id: 'lib-b', isDefault: true }], addBook: vi.fn(), addBookForSync: vi.fn(), refreshStats: vi.fn(), isReady: false,
     }));
 
     await waitFor(() => expect(result.current.queuedCount).toBe(1));
+  });
+
+  it("repairs only the signed-in user's own library-less records, with that user's own library", async () => {
+    await enqueueBook('user-a', { title: 'A kitaplıksız', libraryIds: [null] });
+    await enqueueBook('user-b', { title: 'B kitaplıksız', libraryIds: [null] });
+
+    const addBookForSync = vi.fn().mockResolvedValue({ id: 'saved' });
+    const refreshStats = vi.fn();
+    renderHook(() => useOfflineBookQueue({
+      userId: 'user-b', libraries: [{ id: 'lib-b', isDefault: true }], addBook: vi.fn(), addBookForSync, refreshStats, isReady: true,
+    }));
+
+    await waitFor(() => expect(refreshStats).toHaveBeenCalledTimes(1));
+    expect(addBookForSync).toHaveBeenCalledTimes(1);
+    expect(addBookForSync).toHaveBeenCalledWith({ title: 'B kitaplıksız', libraryIds: ['lib-b'] });
+    expect((await getQueuedBooks('user-a')).map((b) => b.libraryIds)).toEqual([[null]]);
   });
 });

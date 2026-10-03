@@ -38,7 +38,7 @@ export function toBookColumns(fields) {
   return columns;
 }
 
-function hasValidLibraryIds(libraryIds) {
+export function hasValidLibraryIds(libraryIds) {
   return Array.isArray(libraryIds)
     && libraryIds.length > 0
     && libraryIds.every((id) => typeof id === 'string' && id !== '');

@@ -61,6 +61,11 @@
   - Farklı bir kullanıcı girerse girişteki sahip değişimi temizliği onları siler.
   - Test: App'te "clearing the queue fails" senaryosu.
 - **Zorunlu çıkış** (oturum süresi doldu, token yenilenemedi; `SIGNED_OUT` olayı bunları düğmeden ayırt etmez): kuyruğa dokunulmaz. Kayıtlar yalnızca aynı kullanıcı girince gönderilir, farklı kullanıcı girince silinir.
+- **Kitaplık yokken (2):**
+  - Senkron hiçbir kaydı okumaz ve göndermez; kayıtlar silinmez, hata sayılmaz, hepsi bekler.
+  - Kullanıcı ilk kitaplığını oluşturduğu anda yüklemedeki tek seferlik senkron devreye girer; bekleyen kayıtlar o kitaplığa onarılarak gönderilir.
+  - Kuyruğa alma da kitaplıksız kaydı reddeder (`NoLibraryError`). Bu toplu taramayı da kapsar: kitaplık yokken toplu tarama kaydedilmez, mevcut genel hata mesajını gösterir.
+- **Onarım (2):** yalnızca oturum sahibinin kayıtlarında ve yalnızca onun kitaplıklarıyla yapılır. `null` id'ler ve kullanıcıda olmayan (silinmiş ya da başkasının) kitaplık id'leri atılır, Ana Kitaplık eklenir.
 - **Hesap silme:** kuyruk her zaman, oturum kapanmadan önce silinir. Silme hata verirse çıkış yine yapılır.
 - **Çok sekme, eski sürüm açık:**
   - Kuyruk veritabanı v2'ye yükseltilirken başka bir sekme v1'i açık tutuyorsa açılış 3 sn bekler, sonra `QueueUnavailableError` ile vazgeçer. Açılış asılı kalmaz ve eski sekme bırakınca kendiliğinden tamamlanır.

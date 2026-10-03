@@ -3,6 +3,7 @@ import { useOnlineStatus } from './useOnlineStatus';
 import { useAddOrQueueBook } from './useAddOrQueueBook';
 import { clearQueue, countUnsentBooks, enqueueBook, getQueuedBooks, removeQueuedBook } from '../lib/offlineBookQueue';
 import { QueueUnavailableError } from '../lib/saveErrors';
+import { repairLibraryIds } from '../lib/queuedBookRepair';
 
 // How long to wait before retrying a sync the queue itself refused.
 export const QUEUE_RETRY_DELAY_MS = 5000;
@@ -21,7 +22,7 @@ export const QUEUE_RETRY_DELAY_MS = 5000;
 //
 // Records belong to the user who queued them (`userId`): only that user's
 // records are counted and synced, and nothing syncs while signed out.
-export function useOfflineBookQueue({ userId, addBook, addBookForSync, refreshStats, isReady, retryDelayMs = QUEUE_RETRY_DELAY_MS }) {
+export function useOfflineBookQueue({ userId, libraries = [], addBook, addBookForSync, refreshStats, isReady, retryDelayMs = QUEUE_RETRY_DELAY_MS }) {
   const [queuedCount, setQueuedCount] = useState(0);
   const flushRef = useRef(null);
   const retryTimerRef = useRef(null);
@@ -51,6 +52,9 @@ export function useOfflineBookQueue({ userId, addBook, addBookForSync, refreshSt
   // stops, and the rest stay queued for retry on the next online transition.
   const flushQueuedBooks = async () => {
     if (!userId) return;
+    // Without a library there is nothing to file the books into: every
+    // record stays queued, untouched and uncounted, until one exists.
+    if (libraries.length === 0) return;
     let queued;
     try {
       queued = await getQueuedBooks(userId);
@@ -64,7 +68,7 @@ export function useOfflineBookQueue({ userId, addBook, addBookForSync, refreshSt
       // eslint-disable-next-line no-unused-vars
       const { id, ownerId, ...fields } = queuedBook;
       try {
-        await addBookForSync(fields);
+        await addBookForSync({ ...fields, libraryIds: repairLibraryIds(fields.libraryIds, libraries) });
         await removeQueuedBook(id);
         addedAny = true;
       } catch (err) {
@@ -115,17 +119,19 @@ export function useOfflineBookQueue({ userId, addBook, addBookForSync, refreshSt
   // closure that's recreated every render, but we only want the ONE call
   // guarded by flushedForUserRef (the latest closure at the moment the
   // data first becomes ready). Keyed by user, so signing back in on the same
-  // tab syncs that user's records again.
+  // tab syncs that user's records again; it waits for a first library, so
+  // books queued without one go out as soon as the user creates it.
   const flushedForUserRef = useRef(null);
+  const hasLibraries = libraries.length > 0;
   useEffect(() => {
-    if (!isReady || !userId) return;
+    if (!isReady || !userId || !hasLibraries) return;
     if (flushedForUserRef.current === userId) return;
     flushedForUserRef.current = userId;
     if (navigator.onLine) {
       flushQueuedBooks();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReady, userId]);
+  }, [isReady, userId, hasLibraries]);
 
   // Read on startup and whenever the signed-in user changes, so the banner
   // shows that user's count from the first render.
