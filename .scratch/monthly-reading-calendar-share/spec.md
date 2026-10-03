@@ -194,3 +194,19 @@ Prototip throwaway branch'te yapıldı ve silindi (push edilmedi). Ölçüt, exp
 - iOS Safari hiç test edilmedi.
 - Telefonda SW'li senaryo test edilmedi (yalnızca masaüstünde doğrulandı); LAN http'de SW kayıt olmuyor.
 - Gerçek native paylaşım menüsüyle export telefonda test edilmedi (http'de `navigator.share` yok).
+
+### Kapak boyutu ölçümü ve karar (2026-10-03)
+
+Takvim kapakları spec gereği `-M` boyutunda isteniyor; Kartlar görünümü kayıtlı boyutu (çoğunlukla `-L`) yüklüyor. URL'ler farklı olduğu için ilk takvim açılışında SW kapak cache'i ıskalanıyor ve her farklı kapak ağa gidiyor. Ölçüm (Eylül 2026, 3 kapak, Open Library `/b/id/…`):
+
+| Durum | Süre |
+|---|---|
+| `-M`, soğuk ağ (`curl`, cache yok) | kapak başına 1,95–2,4 sn; bunun 1,15–1,3 sn'si 2 yönlendirme (`covers.openlibrary.org` → archive.org → archive.org) |
+| `-M`, tarayıcıda soğuk (`cache: 'reload'`, 3 kapak paralel) | kapak başına 1,6–1,8 sn, toplam 1,8 sn |
+| `-M`, SW cache'inde yok, HTTP disk cache'inde var | kapak başına ~225 ms |
+| `-L`, SW cache'inden (Kartlar'da yüklenmiş) | 3 ms, ağ yok |
+
+- Daha önce görülen ~20 sn'lik hazırlık tekrarlanamadı. Tarayıcı ölçümleri arka plandaki bir otomasyon sekmesinde yapıldı (`visibilityState: hidden`): 200×246 canvas için `toBlob` 1013 ms, 100 ms'lik zamanlayıcı 313 ms sürdü. Ölçülen ~1 sn'lik hazır olma tabanı bu kısıtlamadan geliyor; ~20 sn büyük olasılıkla bu kısıtlama ile soğuk archive.org isteklerinin birleşimiydi (kanıtlanmadı).
+- Kayıtlı boyutu kullanmak, Kartlar'da yüklenmiş kapaklar için ağ isteğini kaldırır; ama Kartlar kapakları lazy yüklüyor, aramayla eklenen kitaplar `-M` kaydediliyor ve ISBN'den türetilen kapaklar hiçbir görünümde yüklenmiyor.
+- **Karar (kullanıcı):** spec'teki `-M` kalıyor. v1.2'de gerçek cihazda (ön plandaki sekmede, telefonda) ölçülerek yeniden değerlendirilecek.
+
