@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { clearUserDataCache, SUPABASE_REST_CACHE } from './userDataCache';
+import { clearUserDataCache, SUPABASE_REST_CACHE, supabaseRestCachePattern } from './userDataCache';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -26,3 +26,37 @@ describe('clearUserDataCache', () => {
     await expect(clearUserDataCache()).resolves.toBeUndefined();
   });
 });
+
+describe('supabaseRestCachePattern', () => {
+  const base = 'https://abcdefghijklmnopqrst.supabase.co';
+  const pattern = supabaseRestCachePattern(base);
+
+  it.each([
+    'books?select=id,title&user_id=eq.u1&order=created_at.asc',
+    'libraries?select=*&user_id=eq.u1',
+    'rpc/get_reading_stats?p_library_id=l1',
+  ])('caches the offline-capable read %s', (path) => {
+    expect(pattern.test(`${base}/rest/v1/${path}`)).toBe(true);
+  });
+
+  it.each([
+    'rest/v1/ai_conversations?select=id,title,created_at&user_id=eq.u1',
+    'rest/v1/ai_messages?select=id,role,content&conversation_id=eq.c1',
+    'rest/v1/ai_messages',
+    'auth/v1/user',
+    'functions/v1/ai-chat',
+  ])('never caches %s', (path) => {
+    expect(pattern.test(`${base}/${path}`)).toBe(false);
+  });
+
+  it('matches only the configured Supabase host', () => {
+    expect(pattern.test('https://abcdefghijklmnopqrst.supabase.co.evil.example/rest/v1/books')).toBe(false);
+    expect(pattern.test('https://evil.example/https://abcdefghijklmnopqrst.supabase.co/rest/v1/books')).toBe(false);
+    expect(pattern.test('https://abcdefghijklmnopqrstXsupabaseXco/rest/v1/books')).toBe(false);
+  });
+
+  it('matches nothing without a Supabase URL', () => {
+    expect(supabaseRestCachePattern(undefined).test(`${base}/rest/v1/books`)).toBe(false);
+  });
+});
+

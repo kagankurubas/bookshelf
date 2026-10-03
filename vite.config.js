@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
-import { SUPABASE_REST_CACHE } from './src/lib/userDataCache.js'
+import { SUPABASE_REST_CACHE, supabaseRestCachePattern } from './src/lib/userDataCache.js'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -14,17 +14,7 @@ export default defineConfig(({ mode }) => {
   // degiskenleri) degerler otomatik oncelikli sayilir.
   const env = loadEnv(mode, process.cwd(), '')
 
-  // vite-plugin-pwa/workbox, runtimeCaching.urlPattern fonksiyonlarini
-  // (Node tarafinda tanimlanan) kaynak metnine (toString()) donusturup
-  // OLDUGU GIBI service worker dosyasina yaziyor - bu yuzden fonksiyon
-  // govdesindeki herhangi bir serbest degisken (ör. yukaridaki 'env')
-  // tarayicida COZULEMEZ, sadece regex'ler kendi kaynaklarini tasidigi
-  // icin (RegExp.toString()) closure sorunu yasamadan dogru serialize
-  // olur. Bu yuzden URL, bir fonksiyon yerine gercek degeri icine gomulu
-  // bir RegExp olarak insa ediliyor.
-  const supabaseRestPattern = env.VITE_SUPABASE_URL
-    ? new RegExp(`^${env.VITE_SUPABASE_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/rest/v1/`)
-    : /(?!)/ // VITE_SUPABASE_URL yoksa (ör. .env'siz bir CI build'i) hicbir seyle eslesmeyen guvenli varsayilan
+  const supabaseRestPattern = supabaseRestCachePattern(env.VITE_SUPABASE_URL)
 
   return {
     plugins: [
@@ -39,11 +29,8 @@ export default defineConfig(({ mode }) => {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,wasm}'],
           runtimeCaching: [
             {
-              // Supabase REST okumalari (.select() -> GET). Proje ref'i
-              // deploy'a gore degisebildigi icin, build zamaninda okunan
-              // gercek VITE_SUPABASE_URL'den insa edilen bir regex'e
-              // (yukarida) gore eslenir. /auth/v1/* ve /functions/v1/*
-              // bu pattern'e hic girmiyor.
+              // Supabase REST reads (GET) except AI chat history; /auth/v1 and
+              // /functions/v1 never match.
               urlPattern: supabaseRestPattern,
               handler: 'NetworkFirst',
               options: {

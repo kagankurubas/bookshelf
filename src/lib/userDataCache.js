@@ -34,3 +34,13 @@ export async function syncUserDataCacheOwner(userId) {
     // Can't remember the owner; the cache is cleared again next time.
   }
 }
+
+// Supabase REST reads the service worker caches (NetworkFirst) so books,
+// libraries and stats work offline. AI chat history is left out: its text is
+// never written to Cache Storage. Built as a RegExp because workbox serializes
+// urlPattern into sw.js via toString(), so it can't close over variables.
+export function supabaseRestCachePattern(supabaseUrl) {
+  if (!supabaseUrl) return /(?!)/;
+  const base = supabaseUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${base}/rest/v1/(?!ai_(?:conversations|messages)(?:[/?]|$))`);
+}
