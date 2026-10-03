@@ -53,8 +53,8 @@ export default defineConfig(({ mode }) => {
               },
             },
             {
-              // Open Library ISBN/arama JSON'u - pratikte hic degismeyen
-              // veri, agresifce (CacheFirst) cache'lenir.
+              // Open Library ISBN/search JSON: practically never changes, so
+              // it's cached aggressively (CacheFirst).
               urlPattern: /^https:\/\/openlibrary\.org\/.*/i,
               handler: 'CacheFirst',
               options: {
