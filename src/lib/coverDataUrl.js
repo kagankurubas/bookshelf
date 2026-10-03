@@ -1,8 +1,14 @@
+import { resizeImageBlob } from './imageResize';
+
 // Covers embedded in an exported image must already be data URLs: if
 // html-to-image has to fetch a cover itself and that fails, the whole export
-// fails. Each URL is fetched once per session; the result (data URL, or null
-// when the cover can't be read) is reused.
+// fails. Each URL is fetched and shrunk once per session; the result (data
+// URL, or null when the cover can't be read) is reused.
 const results = new Map();
+
+// A calendar cell is at most ~70px wide in the 2x export, so 200px keeps
+// covers sharp while keeping the card's data URLs small.
+export const COVER_MAX_WIDTH = 200;
 
 function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => {
@@ -21,7 +27,7 @@ async function fetchAsDataUrl(url) {
     if (!response.ok) return null;
     const blob = await response.blob();
     if (!blob.type.startsWith('image/')) return null;
-    return await blobToDataUrl(blob);
+    return await blobToDataUrl(await resizeImageBlob(blob, COVER_MAX_WIDTH));
   } catch {
     return null;
   }

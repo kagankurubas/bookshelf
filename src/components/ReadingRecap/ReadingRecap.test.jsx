@@ -3,8 +3,11 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { toBlob } from 'html-to-image';
 import ReadingRecap from './ReadingRecap';
 import { clearCoverDataUrlCache } from '../../lib/coverDataUrl';
+import { resizeImageBlob } from '../../lib/imageResize';
 
 vi.mock('html-to-image', () => ({ toBlob: vi.fn() }));
+// jsdom has no image decoding; the resize step passes the blob through.
+vi.mock('../../lib/imageResize', () => ({ resizeImageBlob: vi.fn() }));
 
 const completed = (id, dateStarted, dateFinished, extra = {}) => ({
   id, title: `Book ${id}`, category: 'Kurgu', status: 'Tamamlandı', rating: 4, dateStarted, dateFinished, coverImage: '', isbn: '', ...extra,
@@ -23,6 +26,7 @@ beforeEach(() => {
   vi.setSystemTime(new Date(2026, 9, 2, 12, 0));
   clearCoverDataUrlCache();
   vi.mocked(toBlob).mockResolvedValue(new Blob(['png'], { type: 'image/png' }));
+  vi.mocked(resizeImageBlob).mockReset().mockImplementation(async (blob) => blob);
   globalThis.fetch = vi.fn(async () => imageResponse());
   URL.createObjectURL = vi.fn(() => 'blob:recap');
   URL.revokeObjectURL = vi.fn();
@@ -93,6 +97,7 @@ describe('ReadingRecap calendar style', () => {
     expect(images).toHaveLength(1);
     expect(images[0].getAttribute('src')).toMatch(/^data:image\/jpeg;base64,/);
     expect(within(card).getByText('Book b')).toBeInTheDocument();
+    expect(resizeImageBlob).toHaveBeenCalledTimes(1);
 
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     fireEvent.click(shareButton());
@@ -117,5 +122,7 @@ describe('ReadingRecap calendar style', () => {
     await waitFor(() => expect(shareButton()).toBeEnabled());
 
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(resizeImageBlob).toHaveBeenCalledTimes(1);
+    expect(resizeImageBlob).toHaveBeenCalledWith(expect.any(Blob), 200);
   });
 });
