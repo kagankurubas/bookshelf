@@ -13,6 +13,7 @@ const SAVE_ERROR_MESSAGE_KEYS = {
   [SAVE_ERROR.NO_LIBRARY]: 'bookModal.noLibraryError',
   [SAVE_ERROR.NOT_READY]: 'bookModal.librariesNotReadyError',
   [SAVE_ERROR.TRANSIENT]: 'bookModal.transientError',
+  [SAVE_ERROR.STORAGE_FULL]: 'bookModal.storageFullError',
   [SAVE_ERROR.REJECTED]: 'bookModal.saveRejectedError',
 };
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classifySaveError, LibrariesNotReadyError, NoLibraryError, QueueUnavailableError, SAVE_ERROR } from './saveErrors';
+import { classifySaveError, LibrariesNotReadyError, NoLibraryError, QueueUnavailableError, SAVE_ERROR, StorageFullError } from './saveErrors';
 
 // The shape supabase-js returns when the underlying fetch itself fails.
 function supabaseFetchFailure(message) {
@@ -94,5 +94,15 @@ describe('classifySaveError', () => {
     expect(classifySaveError(new NoLibraryError(), false)).toBe(SAVE_ERROR.NO_LIBRARY);
     expect(classifySaveError(new LibrariesNotReadyError(), true)).toBe(SAVE_ERROR.NOT_READY);
     expect(classifySaveError(new LibrariesNotReadyError(), false)).toBe(SAVE_ERROR.NOT_READY);
+  });
+
+  it('classifies a full device on its own, also while offline', () => {
+    expect(classifySaveError(new StorageFullError(), true)).toBe(SAVE_ERROR.STORAGE_FULL);
+    expect(classifySaveError(new StorageFullError(), false)).toBe(SAVE_ERROR.STORAGE_FULL);
+  });
+
+  it('does not take an aborted queue transaction for a network error', () => {
+    const aborted = new QueueUnavailableError(new DOMException('aborted', 'AbortError'));
+    expect(classifySaveError(aborted, true)).toBe(SAVE_ERROR.TRANSIENT);
   });
 });

@@ -15,7 +15,7 @@ import {
   removeBooksOwnedByOthers,
   removeQueuedBook,
 } from './offlineBookQueue';
-import { QueueUnavailableError } from './saveErrors';
+import { QueueUnavailableError, StorageFullError } from './saveErrors';
 
 const DB_NAME = 'bookshelf-offline-queue';
 
@@ -285,5 +285,53 @@ describe('offlineBookQueue', () => {
     await enqueueBook('user-a', { title: 'A1' });
 
     expect(await countUnownedBooks()).toBe(2);
+  });
+
+  describe('IndexedDB failures', () => {
+    it('reports a full device as StorageFullError, not as a refusal or a network error', async () => {
+      const add = vi.spyOn(IDBObjectStore.prototype, 'add').mockImplementation(() => {
+        throw new DOMException('The quota has been exceeded.', 'QuotaExceededError');
+      });
+      try {
+        const outcome = await enqueueBook('user-a', { title: 'Dolu' }).catch((err) => err);
+        expect(outcome).toBeInstanceOf(StorageFullError);
+        expect(outcome.cause.name).toBe('QuotaExceededError');
+      } finally {
+        add.mockRestore();
+      }
+    });
+
+    it('reports an aborted transaction as QueueUnavailableError, not as an AbortError', async () => {
+      const realAdd = IDBObjectStore.prototype.add;
+      const add = vi.spyOn(IDBObjectStore.prototype, 'add').mockImplementation(function abortAfterAdd(...args) {
+        const request = realAdd.apply(this, args);
+        this.transaction.abort();
+        return request;
+      });
+      try {
+        const outcome = await enqueueBook('user-a', { title: 'İptal' }).catch((err) => err);
+        expect(outcome).toBeInstanceOf(QueueUnavailableError);
+        expect(outcome.name).not.toBe('AbortError');
+      } finally {
+        add.mockRestore();
+      }
+      expect(await readAllRecords()).toEqual([]);
+    });
+
+    it('reports a newer queue version open elsewhere as QueueUnavailableError', async () => {
+      await new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 9);
+        request.onupgradeneeded = () => request.result.createObjectStore('pendingBooks', { keyPath: 'id', autoIncrement: true });
+        request.onsuccess = () => {
+          request.result.close();
+          resolve();
+        };
+        request.onerror = () => reject(request.error);
+      });
+
+      const outcome = await getQueuedBooks('user-a').catch((err) => err);
+      expect(outcome).toBeInstanceOf(QueueUnavailableError);
+      expect(outcome.cause.name).toBe('VersionError');
+    });
   });
 });

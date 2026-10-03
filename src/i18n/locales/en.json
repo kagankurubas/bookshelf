@@ -218,6 +218,7 @@
     "noLibraryError": "Create a library first to save this book. What you entered is still here.",
     "librariesNotReadyError": "Your libraries haven't loaded yet - save again in a moment. What you entered is still here.",
     "transientError": "Something went wrong for a moment. Try again in a few seconds - what you entered is still here.",
+    "storageFullError": "Your device storage is full, so the book couldn't be kept on this device. Free up some space and try again - what you entered is still here.",
     "validationError": "Please fill in the book title and author.",
     "librariesLoading": "Your libraries are still loading - you can save in a moment.",
     "noLibrariesHint": "You don't have a library yet. Create one to save this book.",

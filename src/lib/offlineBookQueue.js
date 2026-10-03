@@ -4,13 +4,23 @@
 // is unnecessary - the raw `indexedDB` API is wrapped directly in a
 // Promise. Follows the same "pure function, independent of
 // Supabase/React" pattern as src/lib/openLibrary.js.
-import { QueueUnavailableError } from './saveErrors';
+import { QueueUnavailableError, StorageFullError } from './saveErrors';
 
 const DB_NAME = 'bookshelf-offline-queue';
 // Version 2 adds the owner index; records written by version 1 carry no owner.
 const DB_VERSION = 2;
 const STORE_NAME = 'pendingBooks';
 const OWNER_INDEX = 'ownerId';
+
+// IndexedDB errors never leave this module raw: a full device becomes
+// StorageFullError and anything else (an aborted transaction, a newer
+// version open in another tab) QueueUnavailableError, so neither is taken
+// for a network error or a server refusal.
+function toQueueError(err) {
+  if (err instanceof QueueUnavailableError || err instanceof StorageFullError) return err;
+  if (err?.name === 'QuotaExceededError') return new StorageFullError(err);
+  return new QueueUnavailableError(err);
+}
 
 // Opening waits while another tab keeps an older version open (the upgrade
 // is "blocked"); after this long the queue counts as unavailable instead of
@@ -63,7 +73,7 @@ function openDb() {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      reject(request.error);
+      reject(toQueueError(request.error));
     };
   });
 }
@@ -82,6 +92,8 @@ async function withStore(mode, run) {
       tx.onerror = () => reject(tx.error);
       tx.onabort = () => reject(tx.error);
     });
+  } catch (err) {
+    throw toQueueError(err);
   } finally {
     db.close();
   }

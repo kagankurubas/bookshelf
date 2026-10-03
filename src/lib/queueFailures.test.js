@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { QUEUE_FAILURE, queueFailureCode, queueFailureOutcome } from './queueFailures';
-import { LibrariesNotReadyError, NoLibraryError, QueueUnavailableError, classifySaveError, SAVE_ERROR } from './saveErrors';
+import { LibrariesNotReadyError, NoLibraryError, QueueUnavailableError, StorageFullError, classifySaveError, SAVE_ERROR } from './saveErrors';
 
 describe('queueFailureOutcome', () => {
   it.each([
@@ -59,5 +59,10 @@ describe('queueFailureCode', () => {
     expect(queueFailureCode(new QueueUnavailableError())).toBe('queue_unavailable');
     expect(queueFailureCode(new Error('x'))).toBe('Error');
     expect(queueFailureCode(undefined)).toBe('unknown');
+  });
+
+  it('never counts a full device or an unavailable queue against a record', () => {
+    expect(queueFailureOutcome(new StorageFullError(), true)).toBe(QUEUE_FAILURE.WAIT);
+    expect(queueFailureOutcome(new QueueUnavailableError(new DOMException('x', 'AbortError')), true)).toBe(QUEUE_FAILURE.WAIT);
   });
 });

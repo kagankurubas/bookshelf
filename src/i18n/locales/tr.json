@@ -218,6 +218,7 @@
     "noLibraryError": "Kitabı kaydetmek için önce bir kitaplık oluştur. Girdiğin bilgiler duruyor.",
     "librariesNotReadyError": "Kitaplıkların henüz yüklenmedi; birazdan yeniden kaydet. Girdiğin bilgiler duruyor.",
     "transientError": "Geçici bir sorun oluştu. Birkaç saniye sonra tekrar dene; girdiğin bilgiler duruyor.",
+    "storageFullError": "Cihaz depolaması dolu; kitap bu cihazda bekletilemedi. Biraz yer açıp tekrar dene; girdiğin bilgiler duruyor.",
     "validationError": "Lütfen Kitap Adı ve Yazar alanlarını doldurun.",
     "librariesLoading": "Kitaplıkların yükleniyor, birazdan kaydedebilirsin.",
     "noLibrariesHint": "Henüz bir kitaplığın yok. Kitabı kaydetmek için önce bir kitaplık oluştur.",

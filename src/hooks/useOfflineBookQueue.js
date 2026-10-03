@@ -16,6 +16,9 @@ import { QUEUE_FAILURE, queueFailureCode, queueFailureOutcome } from '../lib/que
 
 // How long to wait before retrying a sync the queue itself refused.
 export const QUEUE_RETRY_DELAY_MS = 5000;
+// Retries in a row before giving up until the next trigger, so a queue that
+// stays unavailable (a newer version open elsewhere) isn't retried forever.
+export const MAX_QUEUE_RETRIES = 3;
 
 // Centralizes the whole offline book-add queue orchestration (staying
 // embedded in App.jsx would both be a second, unrelated reason for it to
@@ -36,12 +39,14 @@ export function useOfflineBookQueue({ userId, libraries = [], addBook, addBookFo
   const [failedCount, setFailedCount] = useState(0);
   const flushRef = useRef(null);
   const retryTimerRef = useRef(null);
+  const retryCountRef = useRef(0);
 
   // One delayed retry when the queue itself couldn't be opened (another tab
   // still holding an older version), so the sync isn't lost until the next
   // online transition.
   const scheduleRetry = () => {
-    if (retryTimerRef.current) return;
+    if (retryTimerRef.current || retryCountRef.current >= MAX_QUEUE_RETRIES) return;
+    retryCountRef.current += 1;
     retryTimerRef.current = setTimeout(() => {
       retryTimerRef.current = null;
       flushRef.current?.();
@@ -77,6 +82,7 @@ export function useOfflineBookQueue({ userId, libraries = [], addBook, addBookFo
     let queued;
     try {
       queued = await getQueuedBooks(userId);
+      retryCountRef.current = 0;
     } catch (err) {
       console.error(err);
       if (err instanceof QueueUnavailableError) scheduleRetry();

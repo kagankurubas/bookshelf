@@ -394,4 +394,17 @@ describe('useOfflineBookQueue', () => {
 
     expect(addBookForSync).not.toHaveBeenCalled();
   });
+
+  it('stops retrying an unavailable queue after a few attempts in a row', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    getQueuedBooks.mockRejectedValue(new QueueUnavailableError());
+    renderQueue({ isReady: true, retryDelayMs: 5 });
+
+    await new Promise((r) => setTimeout(r, 150));
+    const callsAfterRetries = getQueuedBooks.mock.calls.length;
+    // One count read, the load-time sync and three retries.
+    expect(callsAfterRetries).toBe(5);
+    await new Promise((r) => setTimeout(r, 60));
+    expect(getQueuedBooks.mock.calls.length).toBe(callsAfterRetries);
+  });
 });

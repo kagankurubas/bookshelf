@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import BookModal from './BookModal';
 import i18n from '../../i18n/i18n';
-import { LibrariesNotReadyError, NoLibraryError } from '../../lib/saveErrors';
+import { LibrariesNotReadyError, NoLibraryError, StorageFullError } from '../../lib/saveErrors';
 
 function selectedBook(overrides = {}) {
   return {
@@ -445,4 +445,33 @@ describe('BookModal save errors', () => {
       await i18n.changeLanguage('tr');
     }
   });
+
+describe('BookModal when the device is full', () => {
+  it('says the device storage is full, not that the server refused, keeping the input', async () => {
+    const handlers = renderModal({ onSave: vi.fn().mockRejectedValue(new StorageFullError()) });
+    fireEvent.change(screen.getByLabelText('Kitap Adı (Örn: Suç ve Ceza)'), { target: { value: 'Dune' } });
+    fireEvent.change(screen.getByPlaceholderText('Yazar Adı Seç veya Yaz'), { target: { value: 'Herbert' } });
+    save();
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Cihaz depolaması dolu; kitap bu cihazda bekletilemedi. Biraz yer açıp tekrar dene; girdiğin bilgiler duruyor.');
+    expect(alert.textContent).not.toMatch(/sunucu|bağlantı/i);
+    expect(screen.getByLabelText('Kitap Adı (Örn: Suç ve Ceza)')).toHaveValue('Dune');
+    expect(handlers.onClose).not.toHaveBeenCalled();
+  });
+
+  it('says so in English for an English interface', async () => {
+    await i18n.changeLanguage('en');
+    try {
+      renderModal({ onSave: vi.fn().mockRejectedValue(new StorageFullError()) });
+      fireEvent.change(screen.getByLabelText('Book Title (e.g. Crime and Punishment)'), { target: { value: 'Dune' } });
+      fireEvent.change(screen.getByPlaceholderText('Pick or type an author name'), { target: { value: 'Herbert' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save Book' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent("Your device storage is full, so the book couldn't be kept on this device.");
+    } finally {
+      await i18n.changeLanguage('tr');
+    }
+  });
+});
 });

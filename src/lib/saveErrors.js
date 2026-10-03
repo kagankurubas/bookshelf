@@ -5,6 +5,7 @@ export const SAVE_ERROR = {
   NO_LIBRARY: 'no_library',
   NOT_READY: 'not_ready',
   TRANSIENT: 'transient',
+  STORAGE_FULL: 'storage_full',
   REJECTED: 'rejected',
 };
 
@@ -21,13 +22,23 @@ export class NoLibraryError extends Error {
   }
 }
 
-// The offline queue couldn't be opened, e.g. another tab still holds an
-// older version of it open; trying again shortly usually works.
+// The offline queue couldn't be used, e.g. another tab still holds an
+// older version of it open or a transaction was aborted; trying again
+// shortly usually works.
 export class QueueUnavailableError extends Error {
-  constructor() {
-    super('The offline queue is not available right now.');
+  constructor(cause) {
+    super('The offline queue is not available right now.', { cause });
     this.name = 'QueueUnavailableError';
     this.code = 'queue_unavailable';
+  }
+}
+
+// The device has no room left to keep a book in the offline queue.
+export class StorageFullError extends Error {
+  constructor(cause) {
+    super('The device storage is full.', { cause });
+    this.name = 'StorageFullError';
+    this.code = SAVE_ERROR.STORAGE_FULL;
   }
 }
 
@@ -65,6 +76,7 @@ export function classifySaveError(err, isOnline = typeof navigator === 'undefine
   if (err instanceof LibrariesNotReadyError) return SAVE_ERROR.NOT_READY;
   // Checked before the offline test: queueing is exactly what offline saves do.
   if (err instanceof QueueUnavailableError) return SAVE_ERROR.TRANSIENT;
+  if (err instanceof StorageFullError) return SAVE_ERROR.STORAGE_FULL;
   if (!isOnline || isFetchFailure(err)) return SAVE_ERROR.NETWORK;
   if (TRANSIENT_CODES.has(err?.code)) return SAVE_ERROR.TRANSIENT;
   return SAVE_ERROR.REJECTED;
