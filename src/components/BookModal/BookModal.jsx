@@ -28,7 +28,7 @@ const PencilIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="
 // as `id` (syncNotes() reads that field to decide insert vs. update).
 const noteKey = (note) => note.id ?? note.draftKey;
 
-function BookModal({ onClose, onSave, selectedBook, prefillData = null, existingAuthors = [], existingTags = [], libraries = [], activeLibraryId = null }) {
+function BookModal({ onClose, onSave, selectedBook, prefillData = null, existingAuthors = [], existingTags = [], libraries = [], librariesLoading = false, activeLibraryId = null }) {
   const { t } = useTranslation();
   useEscapeKey(onClose);
   const defaultLibraryId = libraries.find((lib) => lib.isDefault)?.id || null;
@@ -521,9 +521,10 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
         </div>
 
         {saveError && <p className="book-modal-save-error" role="alert">{saveError}</p>}
+        {librariesLoading && <p className="book-modal-save-hint" role="status">{t('bookModal.librariesLoading')}</p>}
 
         <div className="modal-footer">
-          <button className="save-book-btn" onClick={handleSave} disabled={!isModified || isSaving}>
+          <button className="save-book-btn" onClick={handleSave} disabled={!isModified || isSaving || librariesLoading}>
             {isSaving
               ? t('bookModal.saving')
               : selectedBook ? t('bookModal.saveExisting') : t('bookModal.saveNew')}

@@ -32,7 +32,7 @@ function ImportPreviewModal({ books, addBook, libraries, onClose }) {
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (!file) return;
+    if (!file || !defaultLibrary) return;
 
     setFileError(null);
 
@@ -153,6 +153,8 @@ function ImportPreviewModal({ books, addBook, libraries, onClose }) {
                 </div>
               </div>
 
+              {!defaultLibrary && <p className="import-error-text" role="alert">{t('import.noLibrary')}</p>}
+
               <label className="import-file-picker">
                 <span className="import-file-picker-label">{t('import.chooseFile')}</span>
                 <input
@@ -160,7 +162,7 @@ function ImportPreviewModal({ books, addBook, libraries, onClose }) {
                   accept=".csv,text/csv"
                   onChange={handleFileChange}
                   aria-label={t('import.chooseFile')}
-                  disabled={isReading}
+                  disabled={isReading || !defaultLibrary}
                 />
               </label>
 

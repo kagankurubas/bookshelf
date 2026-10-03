@@ -212,7 +212,8 @@
     "saveExisting": "Değişiklikleri Kaydet",
     "saving": "Kaydediliyor...",
     "saveError": "Kaydedilemedi. Bağlantını kontrol edip tekrar dene, girdiklerin kaybolmadı.",
-    "validationError": "Lütfen Kitap Adı ve Yazar alanlarını doldurun."
+    "validationError": "Lütfen Kitap Adı ve Yazar alanlarını doldurun.",
+    "librariesLoading": "Kitaplıkların yükleniyor, birazdan kaydedebilirsin."
   },
   "barcodeScanner": {
     "headerTitle": "Barkod ile Ekle",
@@ -341,6 +342,7 @@
     "summaryDeselectedSkipped": "{{count}} satır, seçimi kaldırıldığı için atlandı.",
     "summaryRoundedRatings": "{{count}} kitabın puanı en yakın tam sayıya yuvarlandı.",
     "summaryAddFailed": "{{count}} satır bir hata nedeniyle eklenemedi.",
+    "noLibrary": "İçe aktarmak için önce bir kitaplık oluştur.",
     "error": {
       "malformed": "Bu dosya okunamadı. Geçerli bir CSV dosyası olduğundan emin olup tekrar dene.",
       "wrong-format": "Bu dosya seçtiğin formatla eşleşmiyor. Lütfen platformu ve dosyayı kontrol edip tekrar dene.",

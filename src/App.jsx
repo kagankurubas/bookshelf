@@ -69,6 +69,7 @@ function App() {
   const readingStatsRef = useRef(null);
   const library = useLibrary({
     libraries,
+    librariesLoading,
     addBook,
     editBook,
     deleteBook,
@@ -385,6 +386,7 @@ function App() {
                     existingAuthors={bookFilters.uniqueAuthors}
                     existingTags={bookFilters.uniqueTags}
                     libraries={libraries}
+                    librariesLoading={librariesLoading}
                     activeLibraryId={activeLibraryId}
                   />
                 )}

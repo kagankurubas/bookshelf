@@ -212,7 +212,8 @@
     "saveExisting": "Save Changes",
     "saving": "Saving...",
     "saveError": "Couldn't save. Check your connection and try again - what you entered is still here.",
-    "validationError": "Please fill in the book title and author."
+    "validationError": "Please fill in the book title and author.",
+    "librariesLoading": "Your libraries are still loading - you can save in a moment."
   },
   "barcodeScanner": {
     "headerTitle": "Scan Barcode",
@@ -341,6 +342,7 @@
     "summaryDeselectedSkipped": "{{count}} row(s) skipped because they were unchecked.",
     "summaryRoundedRatings": "{{count}} book(s) had their rating rounded to the nearest whole number.",
     "summaryAddFailed": "{{count}} row(s) could not be added due to an error.",
+    "noLibrary": "Create a library first to import books.",
     "error": {
       "malformed": "This file couldn't be read. Make sure it's a valid CSV file and try again.",
       "wrong-format": "This file doesn't match the format you selected. Please check the platform and file, then try again.",

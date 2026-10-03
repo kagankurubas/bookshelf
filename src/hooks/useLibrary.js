@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { LibrariesNotReadyError } from '../lib/saveErrors';
 
 // Centralizes active-library selection, the "every book also belongs to the
 // default library" invariant, and library-deletion orchestration - turns
 // logic App.jsx used to re-derive in a scattered way into one module.
-export function useLibrary({ libraries, addBook, editBook, deleteBook, refetchBooks, deleteLibrary: deleteLibraryRow, refreshStats }) {
+export function useLibrary({ libraries, librariesLoading = false, addBook, editBook, deleteBook, refetchBooks, deleteLibrary: deleteLibraryRow, refreshStats }) {
   const [explicitActiveLibraryId, setActiveLibraryId] = useState(null);
 
   const defaultLibrary = libraries.find((lib) => lib.isDefault) || libraries[0] || null;
@@ -23,8 +24,12 @@ export function useLibrary({ libraries, addBook, editBook, deleteBook, refetchBo
   // Batch scanning (BatchScanner) adds N books back to back - instead of
   // triggering a separate stats refetch after each add, the calling loop
   // calls refreshStats() once when it finishes (see BatchScanner.jsx).
-  const addBookWithoutStatsRefresh = (fields) =>
-    addBook({ ...fields, libraryIds: withDefaultLibrary(fields.libraryIds) });
+  // An empty list only means "no library" once it has loaded; before that the
+  // default library just isn't known yet.
+  const addBookWithoutStatsRefresh = async (fields) => {
+    if (librariesLoading) throw new LibrariesNotReadyError();
+    return addBook({ ...fields, libraryIds: withDefaultLibrary(fields.libraryIds) });
+  };
 
   const addBookToLibrary = async (fields) => {
     const result = await addBookWithoutStatsRefresh(fields);

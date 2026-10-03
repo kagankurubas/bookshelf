@@ -187,3 +187,32 @@ describe('BookModal cover', () => {
     expect(screen.getByLabelText(/kapak/i)).toHaveValue('https://example.com/not-an-image');
   });
 });
+
+describe('BookModal while libraries load', () => {
+  function fillTitleAndAuthor() {
+    fireEvent.change(screen.getByLabelText('Kitap Adı (Örn: Suç ve Ceza)'), { target: { value: 'Dune' } });
+    fireEvent.change(screen.getByPlaceholderText('Yazar Adı Seç veya Yaz'), { target: { value: 'Herbert' } });
+  }
+
+  it('keeps Save disabled and explains why until the libraries have loaded', () => {
+    const handlers = renderModal({ libraries: [], librariesLoading: true });
+    fillTitleAndAuthor();
+
+    const saveButton = screen.getByRole('button', { name: 'Kitabı Kaydet' });
+    expect(saveButton).toBeDisabled();
+    expect(screen.getByRole('status')).toHaveTextContent('Kitaplıkların yükleniyor');
+
+    fireEvent.click(saveButton);
+    expect(handlers.onSave).not.toHaveBeenCalled();
+  });
+
+  it('allows Save once the libraries have loaded, even when there are none', async () => {
+    const handlers = renderModal({ libraries: [], librariesLoading: false });
+    fillTitleAndAuthor();
+
+    expect(screen.queryByText(/Kitaplıkların yükleniyor/)).not.toBeInTheDocument();
+    save();
+
+    await waitFor(() => expect(handlers.onSave).toHaveBeenCalled());
+  });
+});
