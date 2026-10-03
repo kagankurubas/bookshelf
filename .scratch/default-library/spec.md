@@ -120,6 +120,13 @@ Canlıda bugün kitaplığı olmayan 2 hesap var (ikisinin de kitabı yok). Bird
   - *Kilitlenmeme:* senkron bir kayıtta `network` hatası alırsa durur, kalanlar kuyrukta bekler (bugünkü davranış). `rejected` ya da `no_library` hatasında o kaydın deneme sayacını ve son hata sınıfını kayda yazar, loglar ve **sonraki kayda geçer**. Arkasındakileri bekletmez. Bu, mevcut "ilk hatada dur" testinin değiştiği bilinçli bir davranış değişikliği.
   - *Sessizce sonsuza kadar kalmama:* reddedilen bir kayıt kuyrukta sessizce sonsuza kadar beklemez; son durumu aşağıdaki açık karara göre belirlenir. Kayıt alanlarına deneme sayısı, son hata sınıfı ve son deneme zamanı eklenir. Aynı object store kullanıldığı için IndexedDB sürüm yükseltmesi gerekmez.
 
+- *Kapsam güncellemesi (2026-10-03 bulguları):*
+  - Kuyruk bugün cihazdaki herkes için ortak ve çıkışta temizlenmiyor. Bu yüzden A'nın kayıtları B'nin oturumuyla gönderilebiliyor; `[null]` onarımı da A'nın kitabını B'nin Ana Kitaplığına bağlayabilirdi.
+  - Kayıtlarda istemci kimliği yok; yanıtı kaybolan bir isteğin tekrar gönderimi çift kitap üretir.
+  - 04 bu yüzden kuyruğu kullanıcıya özel yapar (`ownerId`), çıkışta ve hesap silmede temizler ve kayıtlara istemci kimliği (`clientBookId`) ekler.
+  - Ayrıntı, açık kararlar (D1–D3) ve test planı ticket 04'te. Liste penceresi takip ticket'ı 08.
+  - Aşağıdaki seçenek kaydında seçilen: seçenek 1'in yalnızca veri tarafı (kullanıcı kararı).
+
 ### Açık karar: gönderilemeyen kuyruk kayıtları
 
 Sunucu tarafından reddedilen kayıt (`rejected`) çoğunlukla deterministiktir; aynı veri tekrar gönderilince yine reddedilir. Geçici bir 5xx de `rejected` sınıfına düşer, bu yüzden birkaç deneme hakkı anlamlı.

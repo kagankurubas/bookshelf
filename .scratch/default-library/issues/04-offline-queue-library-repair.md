@@ -1,20 +1,112 @@
-# 04: Çevrimdışı kuyruk: kitaplıksız kayıt girmesin, takılı kayıtlar onarılsın, kuyruk kilitlenmesin (PR A)
+# 04: Çevrimdışı kuyruk: kullanıcıya özel, çıkışta temizlenen, tekrar gönderimde çift kitap üretmeyen kuyruk (PR A)
 
-**What to build:**
-- **Kuyruğa giriş:** kitaplık id listesi geçersizse ekle-ya-da-kuyruğa-al kararından önce `no_library` fırlatılır; kayıt kuyruğa girmez.
-- **Onarım:** senkron her kaydı göndermeden önce kitaplık listesindeki `null` ve boş değerleri atar ve Ana Kitaplığı ekler; önceki sürümde `[null]` ile kuyruğa girmiş kayıtlar böyle onarılır. Hiç kitaplık yokken senkron başlamaz, kayıtlar kuyrukta bekler.
-- **Kilitlenmeme:** `network` hatası senkronu durdurur (bugünkü davranış). `rejected` ve `no_library` hatasında kaydın deneme sayacı ve son hata sınıfı yazılır, loglanır, sonraki kayda geçilir.
-- **Sessizce kalmama:** reddedilen kayıt sonsuza kadar sessizce kuyrukta kalmaz; 3 başarısız denemeden sonraki durumu spec'teki "Açık karar: gönderilemeyen kuyruk kayıtları"na göre (önerilen: "gönderilemeyen kayıtlar" listesi, Yeniden dene / Sil).
+## Bulgular (2026-10-03, kod incelemesi + yerel Docker Postgres)
+
+1. **Kuyruk paylaşılıyor; hesaplar arası sızıntı mümkün.**
+   - Kuyruk tek bir IndexedDB veritabanında (`bookshelf-offline-queue` / `pendingBooks`) tutuluyor, cihazdaki herkes için ortak. Kayıtlar yalnızca kitap alanlarını taşıyor, kullanıcı kimliği yok.
+   - Kuyruk ne `SIGNED_OUT`'ta ne hesap silmede temizleniyor:
+     - `useAuth` çıkışta yalnızca REST önbelleğini siliyor.
+     - `useDeleteAccount` da yalnızca REST önbelleğini silip oturumu kapatıyor.
+     - Kuyruğa erişen tek yer `useOfflineBookQueue`.
+   - Senkron, mevcut oturumla `useLibrary.addBookWithoutStatsRefresh` → `useBooks.addBook` yolundan çalışıyor; kitap o anki kullanıcının `user_id`'siyle yazılıyor.
+   - Senkron iki yerden tetikleniyor: veriler hazır olunca, ve "çevrimiçi oldu" olayında hiçbir koşula bakmadan (oturum yokken bile).
+   - **Sonuç: A'nın kuyruğu aynı cihazda B'nin oturumuyla gönderilir.**
+     - Bugün: A'nın kaydı `[A_kitaplık]` taşır → `withDefaultLibrary` bunu `[A_kitaplık, B_Ana]` yapar → kitap B adına eklenir → `book_libraries` eklemesini RLS (011) reddeder → 01'deki geri silme kitabı siler → hata `rejected` → senkron ilk hatada durur ve B'nin kendi kayıtları da arkada kilitli kalır.
+     - Planlanan "`[null]` → Ana Kitaplık" onarımı bununla birleşseydi: A'nın `[null]` kaydı `[B_Ana]` olur, her adım geçer ve **A'nın kitabı B'nin hesabına, B'nin Ana Kitaplığına kaydedilir.** Kitap B adına yazıldığı için RLS bunu engellemez. Onarım, sahiplik kontrolü olmadan uygulanmamalı.
+2. **İdempotency yok.**
+   - Kayıtta yalnızca IndexedDB'nin otomatik anahtarı var; kitabın kimliğini veritabanı üretiyor.
+   - İstek sunucuya ulaşır ama yanıt kaybolursa hata `network` olur, kayıt kuyrukta kalır ve bir sonraki senkron **ikinci bir kitap** üretir.
+   - Ekleme yolundaki geri silme de aynı ağ kesintisinde düşebilir; o zaman yetim kitap da oluşur.
+   - Yerel Docker Postgres'te doğrulandı:
+     - istemcinin ürettiği `books.id` kabul ediliyor
+     - aynı kimlik ikinci kez gönderilince `23505 … "books_pkey"` dönüyor
+     - `upsert(…, { onConflict: 'id', ignoreDuplicates: true })` 0 satır döndürüyor
+     - sonuçta kitap 1 tane
+   - Sütun izni kısıtlaması yok: migration'larda `books`/`notes` için grant ya da revoke yok.
+3. **Kitaplık yokken onarım.** "Hazır" koşuluna "en az bir kitaplık var" eklemek yetmez, çünkü çevrimiçi olayı senkronu ayrıca çağırıyor. Koruma senkronun kendi içinde olmalı. Kayıt silinmemeli, deneme sayılmamalı, "bekliyor" kalmalı.
+4. **Deneme sayacı bugün yok.** Kayıtta tutulursa (IndexedDB) sayfa yenilemede sıfırlanmaz; bunun için kuyruk modülüne bir kayıt güncelleme fonksiyonu gerekiyor.
+5. **Liste penceresi olmadan temizleme.** Liste penceresi (08) gelene kadar "gönderilemedi" kayıtlarını temizlemenin tek yolu çıkış yapmak (ve hesap silme). Bu bilerek seçilmiş davranıştır, aşağıda yazılı.
+
+## What to build
+
+- **Sahiplik:**
+  - Her kayda kuyruğa alındığı anda `ownerId` (o anki kullanıcının id'si) yazılır. Oturum yoksa kayıt kuyruğa alınmaz.
+  - Senkron yalnızca `ownerId` o anki kullanıcıya eşit olan kayıtları gönderir. Başka kullanıcının kayıtlarına dokunmaz: göndermez, sayaçlarını değiştirmez.
+  - Senkron oturum yokken hiç çalışmaz.
+- **Çıkışta temizlik:** `SIGNED_OUT` olayında ve hesap silmede (oturum kapanmadan önce) kuyruk tamamen silinir. Bu davranışın bedeli: kullanıcı çevrimdışıyken eklediği ve henüz gönderilmemiş kitaplarla çıkış yaparsa o kitaplar kaybolur (Karar D2).
+- **İdempotency:**
+  - Kuyruğa alınırken kayda `clientBookId = crypto.randomUUID()` yazılır; notlara da istemci kimlikleri verilir.
+  - Senkron kitabı bu kimlikle ekler. `books_pkey` üzerinde `23505` dönerse kitap kimliğe göre okunur:
+    - okunabiliyorsa (kullanıcının kendi kitabı) önceki deneme kitabı yazmış demektir. Kitaplık bağlantıları ve notlar `ignoreDuplicates` ile tamamlanır ve kayıt başarılı sayılır.
+    - okunamıyorsa (başka birinin kimliği ya da silinmiş) `rejected`.
+  - Kapsam: Karar D1.
+- **Geçerlilik:** kitaplık listesi geçersiz bir kayıt kuyruğa alınmaz; `no_library` fırlatılır. Kontrol çevrimiçi/çevrimdışı ayrımından önce yapılır.
+- **Onarım (yalnızca kendi kayıtlarında):** kitaplık listesindeki `null`/boş değerler ve kullanıcının mevcut kitaplıkları arasında olmayan id'ler (silinmiş kitaplık) atılır, kullanıcının Ana Kitaplığı eklenir.
+- **Kitaplık yokken:** senkron içindeki koruma kaydı göndermez; kayıt "bekliyor" kalır, sayaç artmaz, sonraki kayıtlar da bekler.
+- **Hata sınıfına göre davranış:**
+  - `network` ve `transient`: senkron durur, sayaç artmaz.
+  - `rejected`: sayaç artar ve kayda yazılır (`attempts`, `lastErrorClass`, `lastAttemptAt`), sonraki kayda geçilir. 3. reddedilişte kayıt `failed: true` olur, otomatik senkrondan çıkar; veri silinmez.
+  - `no_library` (onarımdan sonra beklenmez): kayıt bekliyor kalır, sayaç artmaz.
+- **Görünürlük:** çevrimdışı şeridi bugün yalnızca çevrimdışıyken görünüyor. Kullanıcının `failed` kaydı varsa şerit çevrimiçiyken de "N kitap gönderilemedi" der (TR/EN, `role="status"`). Çevrimdışıyken mevcut "N kitap bekliyor" metni sürer.
+- **Bilinçli davranış:** liste penceresi (08) gelene kadar `failed` kayıtlar yalnızca çıkışta ya da hesap silmede temizlenir. Şerit metni bunu söyler: "Çıkış yaparsan silinirler."
+
+## Açık kararlar
+
+- **D1. İdempotency kapsamı:**
+  - (a) yalnızca kuyruk kayıtları
+  - (b) **(önerilen)** kitap penceresi de yeni kitap için açılışta bir `clientBookId` üretir; hem doğrudan kaydetme hem kuyruk aynı kimliği kullanır. Böylece "bağlantını kontrol et" sonrası Kaydet'e tekrar basmak da çift kitap üretmez. Ek iş küçük: pencerede kimlik üretimi ve `insertBookWithLinks`'in kimlik kabul etmesi.
+- **D2. Çıkışta bekleyen kayıtlar:**
+  - (a) **(önerilen)** çıkışta kuyrukta kayıt varsa onay sorulur: "Gönderilmemiş N kitap silinecek."
+  - (b) uyarısız silinir
+- **D3. Eski kayıtlar (`ownerId`'siz, bu sürümden önce kuyruğa girmiş):**
+  - (a) **(önerilen)** gönderilmez, kimseye atanmaz, `failed` sayılır ve şeritte görünür, çıkışta silinir
+  - (b) ilk giriş yapan kullanıcıya atanır. Paylaşılan cihazda bulgu 1'deki sızıntıyı yeniden açar.
 
 **Blocked by:** 01
 
-**Status:** needs-info (gönderilemeyen kayıtların son durumu kararı)
+**Status:** needs-info (D1, D2, D3)
 
-- [ ] Geçersiz kitaplıkla çevrimdışı ekleme kuyruğa yazmaz, `no_library` fırlatır (`useAddOrQueueBook` testi)
-- [ ] `libraryIds: [null]` olan kayıt senkronda Ana Kitaplık id'siyle gönderilir ve kuyruktan silinir
-- [ ] `rejected` hata veren kayıt kuyrukta kalır, deneme sayacı artar, arkasındaki kayıt senkronlanır, sayaç doğru güncellenir
-- [ ] 3. başarısız denemeden sonra kayıt otomatik senkrondan çıkar ve kullanıcıya görünür (seçilen seçeneğe göre RTL testi)
-- [ ] `network` hatası senkronu durdurur; kalanlar kuyrukta kalır (mevcut "ilk hatada dur" testi bu ayrıma göre güncellenir)
-- [ ] Kitaplık yokken açılışta senkron denenmez
-- [ ] Yeni metinler TR ve EN'de; locale eşlik testi yeşil
-- [ ] Elle: çevrimdışı ekle → çevrimiçi ol → kitap Ana Kitaplıkta görünür (PR açıklamasında elle doğrulama adımı)
+## Test planı
+
+**Kuyruk modülü** (`fake-indexeddb`, mevcut desen):
+- [ ] kayıt `ownerId` ve `clientBookId` ile saklanır; kullanıcıya göre okuma yalnızca o kullanıcının kayıtlarını döndürür
+- [ ] kayıt güncelleme (`attempts`, `failed`) veritabanı kapatılıp yeniden açılınca korunur (sayfa yenileme benzetimi)
+- [ ] kuyruğu temizleme tüm kayıtları siler
+
+**`useAddOrQueueBook`:**
+- [ ] geçersiz kitaplıkla, çevrimiçi de çevrimdışı da, `no_library` fırlar ve kuyruğa hiçbir şey yazılmaz
+- [ ] çevrimdışı geçerli kayıt `ownerId` + `clientBookId` ile kuyruğa girer
+- [ ] oturum yoksa kuyruğa alınmaz
+
+**`useOfflineBookQueue`:**
+- [ ] **hesaplar arası:** B oturumdayken A'nın kayıtları (`[null]` olan dahil) gönderilmez ve değişmez; B'nin kayıtları gönderilir
+- [ ] kendi `[null]` kaydı Ana Kitaplık id'siyle gönderilir; mevcut kitaplıklar arasında olmayan id'ler atılır
+- [ ] kitaplık yokken hem "hazır" yolundan hem çevrimiçi olayından tetiklenen senkron hiçbir şey göndermez; kayıtlar ve sayaçlar değişmez
+- [ ] oturum yokken çevrimiçi olayı senkron başlatmaz
+- [ ] `rejected` → sayaç artar, sonraki kayıt gönderilir; 3. reddedilişte `failed`, sonraki senkronda gönderilmez, sayı dışarı verilir
+- [ ] `network` ve `transient` → senkron durur, sayaç artmaz
+- [ ] eski `ownerId`'siz kayıt D3'e göre davranır
+
+**`bookWrites` (mock):**
+- [ ] `clientBookId` eklemede kimlik olarak gönderilir
+- [ ] `books_pkey` `23505` + kitap okunabiliyor → bağlantılar ve notlar `ignoreDuplicates` ile tamamlanır, sonuç başarılı
+- [ ] `23505` + kitap okunamıyor → `rejected`
+
+**Oturum ve hesap silme:**
+- [ ] `useAuth`'ta `SIGNED_OUT` → kuyruk temizlenir
+- [ ] `useDeleteAccount` → kuyruk oturum kapanmadan önce temizlenir
+- [ ] D2-a seçilirse: çıkışta kayıt varken onay istenir, iptal edilince çıkış yapılmaz
+
+**Çevrimdışı şeridi RTL:**
+- [ ] çevrimiçiyken `failed` > 0 ise "N kitap gönderilemedi" görünür, değilse şerit görünmez
+- [ ] çevrimdışı metni değişmez
+- [ ] TR/EN
+
+**Entegrasyon** (gerçek RLS, yerel Docker):
+- [ ] aynı `clientBookId` ile iki kez ekleme → tek kitap, bağlantılar ve notlar tek kopya
+- [ ] başka kullanıcının kitabıyla çakışan `clientBookId` → `rejected`, başka hesaba hiçbir şey yazılmaz
+
+**Diğer:**
+- [ ] **Mutasyon kontrolleri:** sahiplik süzgeci, kitaplık-yok koruması ve sayacın kayda yazılması tek tek kaldırılınca ilgili testler düşer
+- [ ] **Elle (maintainer yapar):** aynı cihazda A ile çevrimdışı kitap ekle → çıkış → B ile giriş → çevrimiçi ol → A'nın kitabı B'de yok, kuyruk boş
+- [ ] Tüm paket `--sequence.shuffle` ile de yeşil
