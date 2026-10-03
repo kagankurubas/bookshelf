@@ -10,7 +10,7 @@ import {
   resolveCalendarCoverUrl,
 } from '../../lib/readingCalendar';
 import { loadCoverDataUrl } from '../../lib/coverDataUrl';
-import { toLocalDateString } from '../../lib/localDate';
+import { toLocalIsoDate } from '../../lib/localDate';
 import { getSpineSize, getSpineFilter, getCategoryEmblem, getCategoryColorClass } from '../../lib/shelfSpine';
 import CustomSelect from '../CustomSelect/CustomSelect';
 import CalendarCard from './CalendarCard';
@@ -78,7 +78,7 @@ function ReadingRecap({ books, onClose }) {
   const { t, i18n } = useTranslation();
   useEscapeKey(onClose);
 
-  const [today] = useState(() => toLocalDateString());
+  const [today] = useState(() => toLocalIsoDate());
   const currentYear = Number(today.slice(0, 4));
   const currentMonth = Number(today.slice(5, 7));
 
