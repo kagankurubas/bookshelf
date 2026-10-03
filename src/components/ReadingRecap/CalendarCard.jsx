@@ -7,14 +7,13 @@ function Stars({ rating }) {
   return (
     <span className="calendar-stars" aria-hidden="true">
       {Array.from({ length: rating }, (_, i) => (
-        <svg key={i} viewBox="0 0 24 24" width="9" height="9"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" fill="#ffd36b" /></svg>
+        <svg key={i} viewBox="0 0 24 24" width="11" height="11"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" fill="#ffd36b" /></svg>
       ))}
     </span>
   );
 }
 
-function CalendarCover({ entry, dataUrl }) {
-  const { book, rating } = entry;
+function CalendarCover({ book, dataUrl }) {
   return (
     <div className="calendar-cover">
       {dataUrl ? (
@@ -24,7 +23,6 @@ function CalendarCover({ entry, dataUrl }) {
           <span>{book.title}</span>
         </div>
       )}
-      {rating && <Stars rating={rating} />}
     </div>
   );
 }
@@ -40,13 +38,16 @@ function CalendarDay({ cell, coverFor }) {
   }
   const shown = cell.books.slice(0, MAX_COVERS_PER_DAY);
   const hidden = cell.books.length - shown.length;
+  // Finished books sort first, so the first rated entry is the one shown.
+  const rating = cell.books.find((entry) => entry.rating)?.rating;
   return (
     <div className={`calendar-cell calendar-cell--read calendar-cell--covers-${shown.length}`}>
       {shown.map((entry) => (
-        <CalendarCover key={entry.book.id} entry={entry} dataUrl={coverFor(entry.book)} />
+        <CalendarCover key={entry.book.id} book={entry.book} dataUrl={coverFor(entry.book)} />
       ))}
       <span className="calendar-day-number">{cell.day}</span>
       {hidden > 0 && <span className="calendar-more">+{hidden}</span>}
+      {rating && <Stars rating={rating} />}
     </div>
   );
 }

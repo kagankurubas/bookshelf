@@ -267,6 +267,8 @@
   word-break: break-word;
 }
 
+/* Spans the whole day cell (not one half of a split cell) so all five stars
+   fit, on a dark band that keeps them readable over any cover. */
 .calendar-stars {
   position: absolute;
   left: 0;
@@ -275,8 +277,12 @@
   display: flex;
   justify-content: center;
   gap: 1px;
-  padding: 2px 0;
-  background: rgba(0, 0, 0, 0.6);
+  padding: 3px 0;
+  background: rgba(0, 0, 0, 0.78);
+}
+
+.calendar-stars svg {
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9));
 }
 
 .calendar-more {
@@ -293,5 +299,5 @@
 }
 
 .calendar-cell--read:has(.calendar-stars) .calendar-more {
-  bottom: 16px;
+  bottom: 20px;
 }
