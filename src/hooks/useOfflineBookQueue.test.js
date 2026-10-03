@@ -313,4 +313,73 @@ describe('useOfflineBookQueue', () => {
     await waitFor(() => expect(result.current.failedCount).toBe(3));
     expect(result.current.queuedCount).toBe(1);
   });
+
+  describe('when sync triggers overlap in one tab', () => {
+    it('never sends the same record twice, and still runs once more for a trigger that came in meanwhile', async () => {
+      let remaining = [
+        { id: 1, ownerId: 'user-a', title: 'Birinci', libraryIds: ['lib-1'] },
+        { id: 2, ownerId: 'user-a', title: 'İkinci', libraryIds: ['lib-1'] },
+      ];
+      getQueuedBooks.mockImplementation(async () => remaining);
+      removeQueuedBook.mockImplementation(async (id) => {
+        remaining = remaining.filter((record) => record.id !== id);
+      });
+      let releaseFirst;
+      const addBookForSync = vi.fn((fields) => (
+        fields.title === 'Birinci' && !releaseFirst.done
+          ? new Promise((resolve) => { releaseFirst.resolve = () => { releaseFirst.done = true; resolve({ id: 'saved' }); }; })
+          : Promise.resolve({ id: 'saved' })
+      ));
+      releaseFirst = { done: false };
+      const refreshStats = vi.fn();
+
+      // Trigger 1: the load-time sync starts and stalls on the first record.
+      renderHook(() => useOfflineBookQueue({
+        userId: 'user-a', libraries: ownLibraries, addBook: vi.fn(), addBookForSync, refreshStats, isReady: true,
+      }));
+      await waitFor(() => expect(addBookForSync).toHaveBeenCalledTimes(1));
+
+      // Triggers 2 and 3 arrive while it is still running.
+      await act(async () => {
+        window.dispatchEvent(new Event('online'));
+        window.dispatchEvent(new Event('online'));
+      });
+      await new Promise((r) => setTimeout(r, 10));
+      expect(addBookForSync).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        releaseFirst.resolve();
+      });
+
+      await waitFor(() => expect(remaining).toEqual([]));
+      const sentTitles = addBookForSync.mock.calls.map(([fields]) => fields.title);
+      expect(sentTitles).toEqual(['Birinci', 'İkinci']);
+      // The follow-up pass ran (the queue was read again) but found nothing new.
+      await waitFor(() => expect(getQueuedBooks.mock.calls.length).toBeGreaterThanOrEqual(3));
+    });
+
+    it('lets the retry timer join the same single sync', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      let remaining = [{ id: 9, ownerId: 'user-a', title: 'Gecikmeli', libraryIds: ['lib-1'] }];
+      let firstRead = true;
+      getQueuedBooks.mockImplementation(async () => {
+        if (firstRead) {
+          firstRead = false;
+          throw new QueueUnavailableError();
+        }
+        return remaining;
+      });
+      removeQueuedBook.mockImplementation(async (id) => {
+        remaining = remaining.filter((record) => record.id !== id);
+      });
+      const { addBookForSync } = renderQueue({ isReady: true, retryDelayMs: 15 });
+      await act(async () => {
+        window.dispatchEvent(new Event('online'));
+      });
+
+      await waitFor(() => expect(remaining).toEqual([]));
+      await new Promise((r) => setTimeout(r, 30));
+      expect(addBookForSync.mock.calls.filter(([fields]) => fields.title === 'Gecikmeli')).toHaveLength(1);
+    });
+  });
 });

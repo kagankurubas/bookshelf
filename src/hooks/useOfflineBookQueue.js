@@ -67,7 +67,7 @@ export function useOfflineBookQueue({ userId, libraries = [], addBook, addBookFo
   // record itself (connection, session, queue) stops the loop with every
   // record left waiting; a refusal of the record itself counts against it
   // and the loop moves on (see lib/queueFailures.js).
-  const flushQueuedBooks = async () => {
+  const syncQueuedBooks = async () => {
     if (!userId) return;
     // Without a library there is nothing to file the books into: every
     // record stays queued, untouched and uncounted, until one exists.
@@ -107,6 +107,28 @@ export function useOfflineBookQueue({ userId, libraries = [], addBook, addBookFo
       refreshStats();
     }
     refreshQueuedCount();
+  };
+
+  // One sync at a time in this tab: a trigger that arrives while one is
+  // running (load, coming back online, the retry timer) doesn't start a
+  // second pass over the same records; it asks for one more pass afterwards.
+  const flushingRef = useRef(false);
+  const flushAgainRef = useRef(false);
+  const flushQueuedBooks = async () => {
+    if (flushingRef.current) {
+      flushAgainRef.current = true;
+      return;
+    }
+    flushingRef.current = true;
+    try {
+      await syncQueuedBooks();
+    } finally {
+      flushingRef.current = false;
+    }
+    if (flushAgainRef.current) {
+      flushAgainRef.current = false;
+      flushRef.current?.();
+    }
   };
   useEffect(() => {
     flushRef.current = flushQueuedBooks;
