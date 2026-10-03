@@ -30,6 +30,19 @@ describe('queueFailureOutcome', () => {
     expect(queueFailureOutcome(err, isOnline)).toBe(QUEUE_FAILURE.WAIT);
   });
 
+  // Documents today's behaviour, recorded in ticket 04: anything not listed
+  // as waiting falls through to the dialog's "rejected" and counts. A
+  // proposal there would cap these instead (wait, then count after N).
+  it.each([
+    ['unknown database code', { code: 'XX000', message: 'internal error' }],
+    ['HTTP 500 without a code', { status: 500, code: '', message: 'Internal Server Error' }],
+    ['HTTP 502 from the gateway', { status: 502, code: '', message: 'Bad Gateway' }],
+    ['HTTP 503', { status: 503, code: '', message: 'Service Unavailable' }],
+    ['unknown PostgREST code', { code: 'PGRST999', message: 'something new' }],
+  ])('currently counts an %s against the record', (_kind, err) => {
+    expect(queueFailureOutcome(err, true)).toBe(QUEUE_FAILURE.COUNT);
+  });
+
   it('skips a duplicate book id without counting it', () => {
     const duplicateId = { code: '23505', message: 'duplicate key value violates unique constraint "books_pkey"' };
     expect(queueFailureOutcome(duplicateId, true)).toBe(QUEUE_FAILURE.SKIP);

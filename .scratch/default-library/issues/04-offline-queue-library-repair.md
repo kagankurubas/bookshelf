@@ -93,7 +93,28 @@
   - Bu sırada çevrimiçi kitap ekleme etkilenmez. Çevrimdışı ekleme "geçici bir sorun" mesajı gösterir. Senkron loglar ve birkaç saniye sonra bir kez yeniden dener.
   - Her bağlantı, başka bir sekme yükseltme istediğinde kendini kapatır.
 
-## Açık kararlar
+## Bilinen sınırlar ve takip fikirleri (PR A'da çözülmedi)
+
+- **a) Kalıcı JWT/oturum hatası:**
+  - JWT/oturum hataları kayıt saymıyor ve senkronu durduruyor (3). Hata kalıcıysa bu kayıt ve arkasındaki tüm kayıtlar sonsuza kadar bekler; kullanıcı bunu fark edemez. Şeritte çevrimdışıyken "N kitap bekliyor" görünür, çevrimiçiyken hiçbir şey görünmez.
+  - Pratikte supabase-js token'ı kendisi yeniler; yenileyemezse `SIGNED_OUT` gelir ve senkron oturumsuz hiç çalışmaz. Kalıcı durum ancak oturum "açık" görünürken her istek JWT hatası alırsa oluşur.
+  - **Fikir:** art arda N senkron denemesinde (örneğin 3) aynı oturum hatası sürerse çevrimiçiyken bir "Oturumunu yenile: çıkış yapıp yeniden gir" şeridi gösterilir. Sayaç kayıtta değil oturum düzeyinde tutulur, başarılı bir gönderimde sıfırlanır.
+- **b) Listede olmayan bilinmeyen hatalar:**
+  - Bugün **sayılıyorlar**. `queueFailureOutcome`, listede olmayan her hatayı kitap penceresinin sınıflandırıcısına bırakıyor; o da ağ, geçici ya da tipli bir hata değilse `rejected` diyor.
+  - Bu kapsamda: bilinmeyen veritabanı kodları (`XX000` vb.), bilinmeyen `PGRST` kodları ve kodu boş HTTP 5xx yanıtları. Test: `queueFailures.test.js` → "currently counts an … against the record".
+  - Risk: sunucu tarafında birkaç dakikalık bir 5xx kesintisi, üç senkron denemesinde sağlam bir kitabı "gönderilemedi" yapabilir.
+  - **Öneri:** bilinmeyen hatalar önce beklesin ama sınırlı olsun. Aynı kayıtta art arda N kez (örneğin 5) aynı bilinmeyen hata gelirse o zaman sayılsın. Bunun için kayda `unknownStreak` ve `lastUnknownCode` tutulur.
+  - Ek bulgu: supabase-js'in hata nesnesi HTTP durum kodunu taşımıyor ve `bookWrites` yalnızca bu nesneyi fırlatıyor. Bu yüzden `status === 401` ve 5xx ayrımı bugün pratikte uygulanamıyor. Öneri uygulanacaksa durum kodu hatayla birlikte taşınmalı.
+- **c) "Gönderilemedi" kayıtlarının geri dönüş yolu yok:**
+  - Liste penceresi (08) gelene kadar "gönderilemedi" işaretli bir kaydı yeniden denemenin ya da tek tek silmenin yolu yok. Kayıt ancak çıkış düğmesiyle (onaylı) ya da hesap silmeyle temizlenir.
+  - **Release notu için:** "Çevrimdışıyken eklenen ve sunucunun üç kez kabul etmediği kitaplar artık 'gönderilemedi' olarak işaretlenir ve cihazda saklanır. Bu sürümde bunları yeniden göndermenin ya da tek tek silmenin yolu yok; çıkış yaparak silinebilirler. Yeniden deneme ve silme penceresi sonraki bir sürümde gelecek."
+
+## Erteleme
+
+- **(4) Kimlik tabanlı tekrar gönderim** v1.1.1'e ertelendi ve ticket 10'a taşındı: yeni kitap kimliği, `23505` tamamlama, yedek UUID üretici ve iki sekme testi. PR A'da yok.
+- Bu yüzden PR A'da yanıtı kaybolan bir istek tekrar gönderildiğinde çift kitap oluşabilir (bulgu 2). Kuyruktaki kayıtta da (kitap eklendi, kayıt silinemedi) bir sonraki senkron aynı kitabı ikinci kez ekler. `books_pkey` → `skip` kuralı bu sürümde etkisiz kalır, çünkü kimlik henüz istemciden gönderilmiyor.
+
+## Açık kararlar (kararlaştırıldı: D1-b → ticket 10, D2-a ve D3-a uygulandı)
 
 - **D1. İdempotency kapsamı:**
   - (a) yalnızca kuyruk kayıtları
@@ -107,7 +128,7 @@
 
 **Blocked by:** 01
 
-**Status:** needs-info (D1, D2, D3)
+**Status:** ready-for-human ((1)-(3) PR A'da uygulandı; (4) ticket 10, v1.1.1)
 
 ## Test planı
 
