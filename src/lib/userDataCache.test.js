@@ -28,7 +28,7 @@ describe('clearUserDataCache', () => {
 });
 
 describe('supabaseRestCachePattern', () => {
-  const base = 'https://abcdefghijklmnopqrst.supabase.co';
+  const base = 'https://example.supabase.co';
   const pattern = supabaseRestCachePattern(base);
 
   it.each([
@@ -50,9 +50,9 @@ describe('supabaseRestCachePattern', () => {
   });
 
   it('matches only the configured Supabase host', () => {
-    expect(pattern.test('https://abcdefghijklmnopqrst.supabase.co.evil.example/rest/v1/books')).toBe(false);
-    expect(pattern.test('https://evil.example/https://abcdefghijklmnopqrst.supabase.co/rest/v1/books')).toBe(false);
-    expect(pattern.test('https://abcdefghijklmnopqrstXsupabaseXco/rest/v1/books')).toBe(false);
+    expect(pattern.test('https://example.supabase.co.evil.example/rest/v1/books')).toBe(false);
+    expect(pattern.test('https://evil.example/https://example.supabase.co/rest/v1/books')).toBe(false);
+    expect(pattern.test('https://exampleXsupabaseXco/rest/v1/books')).toBe(false);
   });
 
   it('matches nothing without a Supabase URL', () => {
