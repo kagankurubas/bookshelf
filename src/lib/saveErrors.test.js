@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classifySaveError, LibrariesNotReadyError, NoLibraryError, SAVE_ERROR } from './saveErrors';
+import { classifySaveError, LibrariesNotReadyError, NoLibraryError, QueueUnavailableError, SAVE_ERROR } from './saveErrors';
 
 // The shape supabase-js returns when the underlying fetch itself fails.
 function supabaseFetchFailure(message) {
@@ -56,6 +56,11 @@ describe('classifySaveError', () => {
     expect(classifySaveError({ code: 'PGRST301', message: 'JWT expired' }, true)).toBe(SAVE_ERROR.REJECTED);
     expect(classifySaveError({ code: 'PGRST302', message: 'Anonymous access is disabled' }, true)).toBe(SAVE_ERROR.REJECTED);
     expect(classifySaveError({ code: 'PGRST116', message: 'no rows' }, true)).toBe(SAVE_ERROR.REJECTED);
+  });
+
+  it('treats an unavailable offline queue as transient, also while offline', () => {
+    expect(classifySaveError(new QueueUnavailableError(), true)).toBe(SAVE_ERROR.TRANSIENT);
+    expect(classifySaveError(new QueueUnavailableError(), false)).toBe(SAVE_ERROR.TRANSIENT);
   });
 
   it('keeps a missing library and not-yet-loaded libraries distinct, even offline', () => {

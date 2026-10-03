@@ -2,15 +2,17 @@
 // global test setup) - keeps the scope narrow so other tests don't
 // encounter a real/unneeded global indexedDB object.
 import 'fake-indexeddb/auto';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   clearQueue,
   countUnsentBooks,
   enqueueBook,
   getQueuedBooks,
+  OPEN_TIMEOUT_MS,
   removeBooksOwnedByOthers,
   removeQueuedBook,
 } from './offlineBookQueue';
+import { QueueUnavailableError } from './saveErrors';
 
 const DB_NAME = 'bookshelf-offline-queue';
 
@@ -191,6 +193,48 @@ describe('offlineBookQueue', () => {
       await removeQueuedBook(id);
       expect(await getQueuedBooks('user-a')).toEqual([]);
       expect((await readAllRecords()).map((r) => r.title)).toEqual(['Eski']);
+    });
+  });
+
+  describe('while another tab still has the old version open', () => {
+    // Plays the old tab: a version 1 connection that, like the version 1
+    // code, does not close itself when asked to upgrade.
+    function openOldTabConnection() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, 1);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    it('gives up waiting instead of hanging, then works once the old tab lets go', async () => {
+      await createVersionOneQueue([{ title: 'Eski' }]);
+      const oldTab = await openOldTabConnection();
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+      try {
+        const pending = getQueuedBooks('user-a').then(() => 'opened', (err) => err);
+        await vi.advanceTimersByTimeAsync(OPEN_TIMEOUT_MS);
+
+        const outcome = await pending;
+        expect(outcome).toBeInstanceOf(QueueUnavailableError);
+      } finally {
+        vi.useRealTimers();
+      }
+
+      oldTab.close();
+
+      const id = await enqueueBook('user-a', { title: 'Yeni' });
+      expect((await getQueuedBooks('user-a')).map((b) => b.id)).toEqual([id]);
+      expect((await readAllRecords()).map((r) => [r.title, r.ownerId])).toEqual([['Eski', null], ['Yeni', 'user-a']]);
+    });
+
+    it('does not wait at all when the old tab closes on request', async () => {
+      await createVersionOneQueue([{ title: 'Eski' }]);
+      const oldTab = await openOldTabConnection();
+      oldTab.onversionchange = () => oldTab.close();
+
+      expect(await getQueuedBooks('user-a')).toEqual([]);
+      expect((await readAllRecords()).map((r) => r.ownerId)).toEqual([null]);
     });
   });
 });

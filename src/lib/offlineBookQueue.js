@@ -4,14 +4,27 @@
 // is unnecessary - the raw `indexedDB` API is wrapped directly in a
 // Promise. Follows the same "pure function, independent of
 // Supabase/React" pattern as src/lib/openLibrary.js.
+import { QueueUnavailableError } from './saveErrors';
+
 const DB_NAME = 'bookshelf-offline-queue';
 // Version 2 adds the owner index; records written by version 1 carry no owner.
 const DB_VERSION = 2;
 const STORE_NAME = 'pendingBooks';
 const OWNER_INDEX = 'ownerId';
 
+// Opening waits while another tab keeps an older version open (the upgrade
+// is "blocked"); after this long the queue counts as unavailable instead of
+// hanging, and the open completes on its own once that tab lets go.
+export const OPEN_TIMEOUT_MS = 3000;
+
 function openDb() {
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new QueueUnavailableError());
+    }, OPEN_TIMEOUT_MS);
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = (event) => {
       const db = request.result;
@@ -34,8 +47,24 @@ function openDb() {
         };
       }
     };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      // Never be the tab that blocks another tab's upgrade.
+      db.onversionchange = () => db.close();
+      if (settled) {
+        db.close();
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      resolve(db);
+    };
+    request.onerror = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(request.error);
+    };
   });
 }
 

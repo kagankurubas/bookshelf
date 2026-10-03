@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useOfflineBookQueue } from './useOfflineBookQueue';
+import { QueueUnavailableError } from '../lib/saveErrors';
 import { clearQueue, countUnsentBooks, enqueueBook, getQueuedBooks, removeQueuedBook } from '../lib/offlineBookQueue';
 
 vi.mock('../lib/offlineBookQueue', () => ({
@@ -15,12 +16,12 @@ function setNavigatorOnline(value) {
   Object.defineProperty(window.navigator, 'onLine', { value, configurable: true });
 }
 
-function renderQueue({ isReady = true, userId = 'user-a' } = {}) {
+function renderQueue({ isReady = true, userId = 'user-a', retryDelayMs } = {}) {
   const addBook = vi.fn().mockResolvedValue({ id: 'book-1' });
   const addBookForSync = vi.fn().mockResolvedValue({ id: 'book-1' });
   const refreshStats = vi.fn();
   const hook = renderHook(
-    ({ isReady, userId }) => useOfflineBookQueue({ userId, addBook, addBookForSync, refreshStats, isReady }),
+    ({ isReady, userId }) => useOfflineBookQueue({ userId, addBook, addBookForSync, refreshStats, isReady, retryDelayMs }),
     { initialProps: { isReady, userId } }
   );
   return { ...hook, addBook, addBookForSync, refreshStats };
@@ -189,5 +190,40 @@ describe('useOfflineBookQueue', () => {
 
     await expect(result.current.countUnsentForSignOut()).resolves.toBe(0);
     expect(countUnsentBooks).not.toHaveBeenCalled();
+  });
+
+  describe('when the queue itself cannot be opened', () => {
+    it('does not crash the sync, and retries it once a moment later', async () => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      getQueuedBooks
+        .mockRejectedValueOnce(new QueueUnavailableError()) // mount count read
+        .mockRejectedValueOnce(new QueueUnavailableError()) // first flush
+        .mockResolvedValueOnce([{ id: 4, ownerId: 'user-a', title: 'Gecikmeli' }]) // retried flush
+        .mockResolvedValue([]);
+      const { addBookForSync } = renderQueue({ isReady: true, retryDelayMs: 20 });
+
+      await new Promise((r) => setTimeout(r, 5));
+      expect(addBookForSync).not.toHaveBeenCalled();
+
+      await waitFor(() => expect(addBookForSync).toHaveBeenCalledWith({ title: 'Gecikmeli' }));
+      expect(removeQueuedBook).toHaveBeenCalledWith(4);
+    });
+
+    it('rejects an offline add with the transient error, while online adds keep working', async () => {
+      getQueuedBooks.mockResolvedValue([]);
+      enqueueBook.mockRejectedValue(new QueueUnavailableError());
+      setNavigatorOnline(false);
+      const offline = renderQueue({ isReady: false });
+
+      await expect(offline.result.current.addOrQueueBook({ title: 'Dune' })).rejects.toBeInstanceOf(QueueUnavailableError);
+      offline.unmount();
+
+      setNavigatorOnline(true);
+      const online = renderQueue({ isReady: false });
+      await act(async () => {
+        await online.result.current.addOrQueueBook({ title: 'Dune' });
+      });
+      expect(online.addBook).toHaveBeenCalledWith({ title: 'Dune' });
+    });
   });
 });

@@ -21,6 +21,16 @@ export class NoLibraryError extends Error {
   }
 }
 
+// The offline queue couldn't be opened, e.g. another tab still holds an
+// older version of it open; trying again shortly usually works.
+export class QueueUnavailableError extends Error {
+  constructor() {
+    super('The offline queue is not available right now.');
+    this.name = 'QueueUnavailableError';
+    this.code = 'queue_unavailable';
+  }
+}
+
 export class LibrariesNotReadyError extends Error {
   constructor() {
     super('Libraries have not loaded yet.');
@@ -49,6 +59,8 @@ function isFetchFailure(err) {
 export function classifySaveError(err, isOnline = typeof navigator === 'undefined' ? true : navigator.onLine) {
   if (err instanceof NoLibraryError) return SAVE_ERROR.NO_LIBRARY;
   if (err instanceof LibrariesNotReadyError) return SAVE_ERROR.NOT_READY;
+  // Checked before the offline test: queueing is exactly what offline saves do.
+  if (err instanceof QueueUnavailableError) return SAVE_ERROR.TRANSIENT;
   if (!isOnline || isFetchFailure(err)) return SAVE_ERROR.NETWORK;
   if (TRANSIENT_CODES.has(err?.code)) return SAVE_ERROR.TRANSIENT;
   return SAVE_ERROR.REJECTED;

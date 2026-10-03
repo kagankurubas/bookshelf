@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useOnlineStatus } from './useOnlineStatus';
 import { useAddOrQueueBook } from './useAddOrQueueBook';
 import { clearQueue, countUnsentBooks, enqueueBook, getQueuedBooks, removeQueuedBook } from '../lib/offlineBookQueue';
+import { QueueUnavailableError } from '../lib/saveErrors';
+
+// How long to wait before retrying a sync the queue itself refused.
+export const QUEUE_RETRY_DELAY_MS = 5000;
 
 // Centralizes the whole offline book-add queue orchestration (staying
 // embedded in App.jsx would both be a second, unrelated reason for it to
@@ -17,8 +21,23 @@ import { clearQueue, countUnsentBooks, enqueueBook, getQueuedBooks, removeQueued
 //
 // Records belong to the user who queued them (`userId`): only that user's
 // records are counted and synced, and nothing syncs while signed out.
-export function useOfflineBookQueue({ userId, addBook, addBookForSync, refreshStats, isReady }) {
+export function useOfflineBookQueue({ userId, addBook, addBookForSync, refreshStats, isReady, retryDelayMs = QUEUE_RETRY_DELAY_MS }) {
   const [queuedCount, setQueuedCount] = useState(0);
+  const flushRef = useRef(null);
+  const retryTimerRef = useRef(null);
+
+  // One delayed retry when the queue itself couldn't be opened (another tab
+  // still holding an older version), so the sync isn't lost until the next
+  // online transition.
+  const scheduleRetry = () => {
+    if (retryTimerRef.current) return;
+    retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = null;
+      flushRef.current?.();
+    }, retryDelayMs);
+  };
+
+  useEffect(() => () => clearTimeout(retryTimerRef.current), []);
 
   const refreshQueuedCount = () => {
     getQueuedBooks(userId)
@@ -32,7 +51,14 @@ export function useOfflineBookQueue({ userId, addBook, addBookForSync, refreshSt
   // stops, and the rest stay queued for retry on the next online transition.
   const flushQueuedBooks = async () => {
     if (!userId) return;
-    const queued = await getQueuedBooks(userId);
+    let queued;
+    try {
+      queued = await getQueuedBooks(userId);
+    } catch (err) {
+      console.error(err);
+      if (err instanceof QueueUnavailableError) scheduleRetry();
+      return;
+    }
     let addedAny = false;
     for (const queuedBook of queued) {
       // eslint-disable-next-line no-unused-vars
@@ -51,6 +77,9 @@ export function useOfflineBookQueue({ userId, addBook, addBookForSync, refreshSt
     }
     refreshQueuedCount();
   };
+  useEffect(() => {
+    flushRef.current = flushQueuedBooks;
+  });
 
   // Even though a new onOnline closure (wrapping this render's current
   // addBookForSync/refreshStats via flushQueuedBooks) is passed to
