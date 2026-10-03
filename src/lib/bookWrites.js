@@ -1,3 +1,5 @@
+import { NoLibraryError } from './saveErrors';
+
 // Book writes that take the Supabase client as a parameter, so the RLS
 // integration tests can run the exact same code against a real database.
 
@@ -34,6 +36,12 @@ export function toBookColumns(fields) {
     columns[column] = DATE_FIELDS.has(key) && fields[key] === '' ? null : fields[key];
   });
   return columns;
+}
+
+function hasValidLibraryIds(libraryIds) {
+  return Array.isArray(libraryIds)
+    && libraryIds.length > 0
+    && libraryIds.every((id) => typeof id === 'string' && id !== '');
 }
 
 export async function syncBookLibraries(client, bookId, newLibraryIds, oldLibraryIds) {
@@ -101,7 +109,42 @@ export async function syncNotes(client, bookId, newNotes, oldNotes) {
   return [...keptNotes, ...newlyInsertedNotes];
 }
 
+// Returns how many rows were deleted: RLS turns a delete of someone else's
+// book into zero rows rather than an error.
 export async function deleteBookRow(client, id) {
-  const { error } = await client.from('books').delete().eq('id', id);
+  const { data, error } = await client.from('books').delete().eq('id', id).select('id');
   if (error) throw error;
+  return data?.length ?? 0;
+}
+
+// Inserts a book with its library links and notes. A book without a library
+// is refused before anything is written, and if a later step fails the book
+// row is deleted again, so a failed save never leaves an orphan book behind.
+export async function insertBookWithLinks(client, userId, bookFields) {
+  const { libraryIds } = bookFields;
+  if (!hasValidLibraryIds(libraryIds)) throw new NoLibraryError();
+
+  const { data: row, error: insertError } = await client
+    .from('books')
+    .insert({ ...toBookColumns(bookFields), user_id: userId })
+    .select()
+    .single();
+  if (insertError) throw insertError;
+
+  try {
+    await syncBookLibraries(client, row.id, libraryIds, []);
+    const notesList = bookFields.notesList || [];
+    const savedNotes = notesList.length > 0 ? await syncNotes(client, row.id, notesList, []) : [];
+    return { row, libraryIds, notesList: savedNotes };
+  } catch (err) {
+    try {
+      const deletedCount = await deleteBookRow(client, row.id);
+      if (deletedCount !== 1) {
+        console.error('Clean-up of a half-saved book deleted an unexpected number of rows', row.id, deletedCount);
+      }
+    } catch (cleanupError) {
+      console.error('Could not remove a half-saved book', row.id, cleanupError);
+    }
+    throw err;
+  }
 }

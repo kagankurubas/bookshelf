@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useBooks } from './useBooks';
 import { supabase } from '../lib/supabaseClient';
+import { classifySaveError, NoLibraryError, SAVE_ERROR } from '../lib/saveErrors';
 
 vi.mock('../lib/supabaseClient', () => ({
   supabase: { from: vi.fn() },
@@ -114,11 +115,15 @@ describe('useBooks', () => {
       data: { ...baseRow, id: 'new-1', tags: ['ödünç aldım'], book_libraries: undefined, notes: undefined },
       error: null,
     });
-    supabase.from.mockReturnValueOnce(insertBuilder);
+    supabase.from
+      .mockReturnValueOnce(insertBuilder)
+      .mockReturnValueOnce(queryResult({ error: null })); // book_libraries insert
 
     let newBook;
     await act(async () => {
-      newBook = await result.current.addBook({ title: 'Foundation', author: 'Asimov', tags: ['ödünç aldım'] });
+      newBook = await result.current.addBook({
+        title: 'Foundation', author: 'Asimov', tags: ['ödünç aldım'], libraryIds: ['lib-1'],
+      });
     });
 
     expect(insertBuilder.insert).toHaveBeenCalledWith(expect.objectContaining({ tags: ['ödünç aldım'] }));
@@ -160,11 +165,128 @@ describe('useBooks', () => {
   it('deleteBook removes the book from supabase and from state', async () => {
     const { result } = await renderWithInitialRows([baseRow]);
 
-    supabase.from.mockReturnValueOnce(queryResult({ error: null }));
+    const deleteBuilder = queryResult({ error: null });
+    supabase.from.mockReturnValueOnce(deleteBuilder);
     await act(async () => {
       await result.current.deleteBook('b1');
     });
 
+    expect(supabase.from).toHaveBeenLastCalledWith('books');
+    expect(deleteBuilder.delete).toHaveBeenCalled();
+    expect(deleteBuilder.eq).toHaveBeenCalledWith('id', 'b1');
     expect(result.current.books).toEqual([]);
+  });
+
+  describe('addBook without a valid library', () => {
+    it.each([
+      ['an empty list', []],
+      ['a null id', [null]],
+      ['a null next to a real id', ['lib-1', null]],
+      ['no list at all', undefined],
+    ])('refuses %s before writing anything', async (_case, libraryIds) => {
+      const { result } = await renderWithInitialRows([]);
+      supabase.from.mockClear();
+
+      let caught;
+      await act(async () => {
+        caught = await result.current.addBook({ title: 'Dune', author: 'Herbert', libraryIds }).catch((err) => err);
+      });
+
+      expect(caught).toBeInstanceOf(NoLibraryError);
+      expect(classifySaveError(caught, true)).toBe(SAVE_ERROR.NO_LIBRARY);
+      expect(supabase.from).not.toHaveBeenCalled();
+      expect(result.current.books).toEqual([]);
+    });
+  });
+
+  describe('addBook when a later step fails', () => {
+    const insertedRow = { ...baseRow, id: 'new-1', book_libraries: undefined, notes: undefined };
+
+    it('deletes the inserted book again when linking it to a library is refused', async () => {
+      const { result } = await renderWithInitialRows([]);
+      const linkError = { code: '42501', message: 'new row violates row-level security policy' };
+      const deleteBuilder = queryResult({ data: [{ id: 'new-1' }], error: null });
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      supabase.from
+        .mockReturnValueOnce(queryResult({ data: insertedRow, error: null }))
+        .mockReturnValueOnce(queryResult({ error: linkError }))
+        .mockReturnValueOnce(deleteBuilder);
+
+      let caught;
+      await act(async () => {
+        caught = await result.current.addBook({ title: 'Dune', author: 'Herbert', libraryIds: ['lib-1'] }).catch((err) => err);
+      });
+
+      expect(caught).toBe(linkError);
+      expect(supabase.from.mock.calls.slice(-3).map(([table]) => table)).toEqual(['books', 'book_libraries', 'books']);
+      expect(deleteBuilder.delete).toHaveBeenCalled();
+      expect(deleteBuilder.eq).toHaveBeenCalledWith('id', 'new-1');
+      expect(consoleError).not.toHaveBeenCalled();
+      expect(result.current.books).toEqual([]);
+      consoleError.mockRestore();
+    });
+
+    it('logs and still reports the original error when the clean-up delete removes no row', async () => {
+      const { result } = await renderWithInitialRows([]);
+      const linkError = { code: '42501', message: 'new row violates row-level security policy' };
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      supabase.from
+        .mockReturnValueOnce(queryResult({ data: insertedRow, error: null }))
+        .mockReturnValueOnce(queryResult({ error: linkError }))
+        .mockReturnValueOnce(queryResult({ data: [], error: null }));
+
+      let caught;
+      await act(async () => {
+        caught = await result.current.addBook({ title: 'Dune', author: 'Herbert', libraryIds: ['lib-1'] }).catch((err) => err);
+      });
+
+      expect(caught).toBe(linkError);
+      expect(consoleError).toHaveBeenCalledWith(expect.any(String), 'new-1', 0);
+      expect(result.current.books).toEqual([]);
+      consoleError.mockRestore();
+    });
+
+    it('deletes the inserted book again when saving its notes fails', async () => {
+      const { result } = await renderWithInitialRows([]);
+      const notesError = { code: '23514', message: 'check constraint violated' };
+      const deleteBuilder = queryResult({ data: [{ id: 'new-1' }], error: null });
+      supabase.from
+        .mockReturnValueOnce(queryResult({ data: insertedRow, error: null }))
+        .mockReturnValueOnce(queryResult({ error: null }))
+        .mockReturnValueOnce(queryResult({ data: null, error: notesError }))
+        .mockReturnValueOnce(deleteBuilder);
+
+      let caught;
+      await act(async () => {
+        caught = await result.current
+          .addBook({ title: 'Dune', author: 'Herbert', libraryIds: ['lib-1'], notesList: [{ text: 'not' }] })
+          .catch((err) => err);
+      });
+
+      expect(caught).toBe(notesError);
+      expect(deleteBuilder.eq).toHaveBeenCalledWith('id', 'new-1');
+      expect(result.current.books).toEqual([]);
+    });
+
+    it('still reports the original error when the clean-up delete fails too', async () => {
+      const { result } = await renderWithInitialRows([]);
+      const linkError = { code: '42501', message: 'new row violates row-level security policy' };
+      const cleanupError = { code: '', message: 'TypeError: Failed to fetch' };
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      supabase.from
+        .mockReturnValueOnce(queryResult({ data: insertedRow, error: null }))
+        .mockReturnValueOnce(queryResult({ error: linkError }))
+        .mockReturnValueOnce(queryResult({ error: cleanupError }));
+
+      let caught;
+      await act(async () => {
+        caught = await result.current.addBook({ title: 'Dune', author: 'Herbert', libraryIds: ['lib-1'] }).catch((err) => err);
+      });
+
+      expect(caught).toBe(linkError);
+      expect(consoleError).toHaveBeenCalledWith(expect.any(String), 'new-1', cleanupError);
+      expect(result.current.books).toEqual([]);
+      consoleError.mockRestore();
+    });
   });
 });

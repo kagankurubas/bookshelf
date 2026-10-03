@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import {
   deleteBookRow,
   formatNoteDate,
+  insertBookWithLinks,
   syncBookLibraries,
   syncNotes,
   toBookColumns,
@@ -78,19 +79,8 @@ export function useBooks(userId) {
   }, [fetchBooks]);
 
   const addBook = useCallback(async (bookFields) => {
-    const columns = { ...toBookColumns(bookFields), user_id: userId };
-    const { data, error: insertError } = await supabase.from('books').insert(columns).select().single();
-    if (insertError) throw insertError;
-
-    const libraryIds = bookFields.libraryIds || [];
-    if (libraryIds.length > 0) {
-      await syncBookLibraries(supabase, data.id, libraryIds, []);
-    }
-
-    const notesList = bookFields.notesList || [];
-    const savedNotes = notesList.length > 0 ? await syncNotes(supabase, data.id, notesList, []) : [];
-
-    const newBook = { ...mapBookRow(data), libraryIds, notesList: savedNotes };
+    const { row, libraryIds, notesList } = await insertBookWithLinks(supabase, userId, bookFields);
+    const newBook = { ...mapBookRow(row), libraryIds, notesList };
     setBooks((prev) => [...prev, newBook]);
     return newBook;
   }, [userId]);
