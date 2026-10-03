@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { useLibraries } from './useLibraries';
+import { DEFAULT_LIBRARY_INDEX, useLibraries } from './useLibraries';
 import { supabase } from '../lib/supabaseClient';
 
 vi.mock('../lib/supabaseClient', () => ({
@@ -23,6 +23,9 @@ function queryResult(result) {
   return builder;
 }
 
+const defaultRow = { id: 'lib-1', name: 'Kitaplığım', shelf_count: 2, is_default: true };
+const defaultLibrary = { id: 'lib-1', name: 'Kitaplığım', shelfCount: 2, isDefault: true };
+
 async function renderWithInitialRows(rows) {
   supabase.from.mockReturnValueOnce(queryResult({ data: rows, error: null }));
   const hook = renderHook(() => useLibraries('user-1'));
@@ -31,8 +34,15 @@ async function renderWithInitialRows(rows) {
 }
 
 describe('useLibraries', () => {
+  // Queued mockReturnValueOnce answers must not leak into the next test
+  // when a test stops early.
   beforeEach(() => {
     vi.clearAllMocks();
+    supabase.from.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('fetches libraries for the given user and maps db rows to the app shape', async () => {
@@ -63,8 +73,8 @@ describe('useLibraries', () => {
     expect(result.current.libraries).toEqual([]);
   });
 
-  it('createLibrary inserts a row and appends the mapped library to state', async () => {
-    const { result } = await renderWithInitialRows([]);
+  it('createLibrary inserts a regular library when the user already has one and appends it to state', async () => {
+    const { result } = await renderWithInitialRows([defaultRow]);
 
     const insertedRow = { id: 'lib-2', name: 'Yazlık', shelf_count: 2, is_default: false };
     const insertBuilder = queryResult({ data: insertedRow, error: null });
@@ -80,6 +90,118 @@ describe('useLibraries', () => {
     });
     expect(created).toEqual({ id: 'lib-2', name: 'Yazlık', shelfCount: 2, isDefault: false });
     expect(result.current.libraries).toContainEqual(created);
+  });
+
+  it('createLibrary makes the first library the default one', async () => {
+    const { result } = await renderWithInitialRows([]);
+    const insertBuilder = queryResult({ data: defaultRow, error: null });
+    supabase.from.mockReturnValueOnce(insertBuilder);
+
+    await act(async () => {
+      await result.current.createLibrary({ name: 'Kitaplığım' });
+    });
+
+    expect(insertBuilder.insert).toHaveBeenCalledWith({
+      name: 'Kitaplığım', shelf_count: 2, is_default: true, user_id: 'user-1',
+    });
+    expect(result.current.libraries).toEqual([defaultLibrary]);
+  });
+
+  describe('createLibrary when another tab already made the default library', () => {
+    const secondDefault = {
+      code: '23505',
+      message: `duplicate key value violates unique constraint "${DEFAULT_LIBRARY_INDEX}"`,
+      details: 'Key (user_id)=(user-1) already exists.',
+      hint: null,
+    };
+
+    async function renderTrackingLoading() {
+      supabase.from.mockReturnValueOnce(queryResult({ data: [], error: null }));
+      const loadingSeen = [];
+      const hook = renderHook(() => {
+        const state = useLibraries('user-1');
+        loadingSeen.push(state.loading);
+        return state;
+      });
+      await waitFor(() => expect(hook.result.current.loading).toBe(false));
+      loadingSeen.length = 0;
+      return { ...hook, loadingSeen };
+    }
+
+    it('returns the existing default without adding another one (book dialog shortcut)', async () => {
+      const { result, loadingSeen } = await renderTrackingLoading();
+      const firstInsert = queryResult({ data: null, error: secondDefault });
+      supabase.from
+        .mockReturnValueOnce(firstInsert)
+        .mockReturnValueOnce(queryResult({ data: [defaultRow], error: null }));
+
+      let created;
+      await act(async () => {
+        created = await result.current.createLibrary({ name: 'Kitaplığım', ifDefaultExists: 'useExisting' });
+      });
+
+      expect(created).toEqual(defaultLibrary);
+      expect(supabase.from.mock.calls.slice(-2).map(([table]) => table)).toEqual(['libraries', 'libraries']);
+      expect(firstInsert.insert).toHaveBeenCalledTimes(1);
+      expect(result.current.libraries).toEqual([defaultLibrary]);
+      expect(result.current.error).toBeNull();
+      expect(loadingSeen).not.toContain(true);
+    });
+
+    it('still creates the named library as a regular one (toolbar)', async () => {
+      const { result, loadingSeen } = await renderTrackingLoading();
+      const regularRow = { id: 'lib-2', name: 'Yazlık', shelf_count: 2, is_default: false };
+      const secondInsert = queryResult({ data: regularRow, error: null });
+      supabase.from
+        .mockReturnValueOnce(queryResult({ data: null, error: secondDefault }))
+        .mockReturnValueOnce(queryResult({ data: [defaultRow], error: null }))
+        .mockReturnValueOnce(secondInsert);
+
+      let created;
+      await act(async () => {
+        created = await result.current.createLibrary({ name: 'Yazlık' });
+      });
+
+      expect(secondInsert.insert).toHaveBeenCalledWith({
+        name: 'Yazlık', shelf_count: 2, is_default: false, user_id: 'user-1',
+      });
+      expect(created).toEqual({ id: 'lib-2', name: 'Yazlık', shelfCount: 2, isDefault: false });
+      expect(result.current.libraries).toEqual([defaultLibrary, created]);
+      expect(loadingSeen).not.toContain(true);
+    });
+
+    it('throws a unique violation from any other constraint without re-reading', async () => {
+      const { result } = await renderTrackingLoading();
+      const otherViolation = { code: '23505', message: 'duplicate key value violates unique constraint "libraries_pkey"' };
+      supabase.from.mockReturnValueOnce(queryResult({ data: null, error: otherViolation }));
+      const callsBefore = supabase.from.mock.calls.length;
+
+      let caught;
+      await act(async () => {
+        caught = await result.current.createLibrary({ name: 'Yazlık' }).catch((err) => err);
+      });
+
+      expect(caught).toBe(otherViolation);
+      expect(supabase.from.mock.calls.length).toBe(callsBefore + 1);
+      expect(result.current.libraries).toEqual([]);
+    });
+
+    it('throws when the regular retry is refused too', async () => {
+      const { result } = await renderTrackingLoading();
+      const retryError = { code: '42501', message: 'new row violates row-level security policy' };
+      supabase.from
+        .mockReturnValueOnce(queryResult({ data: null, error: secondDefault }))
+        .mockReturnValueOnce(queryResult({ data: [defaultRow], error: null }))
+        .mockReturnValueOnce(queryResult({ data: null, error: retryError }));
+
+      let caught;
+      await act(async () => {
+        caught = await result.current.createLibrary({ name: 'Yazlık' }).catch((err) => err);
+      });
+
+      expect(caught).toBe(retryError);
+      expect(result.current.libraries).toEqual([defaultLibrary]);
+    });
   });
 
   it('updateLibrary sends only the provided columns and merges the mapped result into state', async () => {

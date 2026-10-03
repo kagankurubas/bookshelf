@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useDeleteAccount, WrongPasswordError } from './useDeleteAccount';
 import { supabase } from '../lib/supabaseClient';
+import { clearQueue } from '../lib/offlineBookQueue';
+
+vi.mock('../lib/offlineBookQueue', () => ({ clearQueue: vi.fn(() => Promise.resolve()) }));
 
 vi.mock('../lib/supabaseClient', () => ({
   supabase: {
@@ -98,13 +101,14 @@ describe('useDeleteAccount cached data', () => {
     order = [];
     vi.stubGlobal('caches', { delete: vi.fn(async (name) => { order.push(`clear:${name}`); return true; }) });
     supabase.auth.signOut.mockImplementation(async () => { order.push('signOut'); return { error: null }; });
+    clearQueue.mockImplementation(async () => { order.push('clearQueue'); });
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it('clears the cached REST reads before signing out after a successful deletion', async () => {
+  it('clears the cached REST reads and the offline queue before signing out after a successful deletion', async () => {
     supabase.functions.invoke.mockResolvedValue({ data: { success: true }, error: null });
     const { result } = renderHook(() => useDeleteAccount());
 
@@ -112,10 +116,24 @@ describe('useDeleteAccount cached data', () => {
       await result.current.deleteAccount('a@test.com');
     });
 
-    expect(order).toEqual(['clear:supabase-rest-cache', 'signOut']);
+    expect(order).toEqual(['clear:supabase-rest-cache', 'clearQueue', 'signOut']);
   });
 
-  it('keeps the cache when the deletion fails', async () => {
+  it('still signs out when clearing the offline queue fails', async () => {
+    supabase.functions.invoke.mockResolvedValue({ data: { success: true }, error: null });
+    clearQueue.mockImplementation(async () => { throw new Error('idb unavailable'); });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { result } = renderHook(() => useDeleteAccount());
+
+    await act(async () => {
+      await result.current.deleteAccount('a@test.com');
+    });
+
+    expect(order).toEqual(['clear:supabase-rest-cache', 'signOut']);
+    console.error.mockRestore();
+  });
+
+  it('keeps the cache and the offline queue when the deletion fails', async () => {
     supabase.functions.invoke.mockResolvedValue({ data: null, error: new Error('boom') });
     const { result } = renderHook(() => useDeleteAccount());
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 function mapLibraryRow(row) {
@@ -10,50 +10,100 @@ function mapLibraryRow(row) {
   };
 }
 
+// Name of the partial unique index that allows one default library per user.
+// It ships in a later migration; until then this error simply never occurs.
+export const DEFAULT_LIBRARY_INDEX = 'libraries_one_default_per_user_idx';
+
+function isSecondDefaultLibraryError(error) {
+  return error?.code === '23505' && (error.message || '').includes(DEFAULT_LIBRARY_INDEX);
+}
+
+const NO_LIBRARIES = [];
+
 export function useLibraries(userId) {
   const [libraries, setLibraries] = useState([]);
+  // Whose list `libraries` holds. Right after a different user signs in on
+  // the same tab the old list is still in state for a render or two; it is
+  // never handed out as the new user's (it reads as empty and loading).
+  const [librariesOwner, setLibrariesOwner] = useState(null);
+  const librariesOwnerRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchLibraries = useCallback(async () => {
-    if (!userId) {
-      setLibraries([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
+  const setListFor = (owner, list) => {
+    librariesOwnerRef.current = owner;
+    setLibrariesOwner(owner);
+    setLibraries(list);
+  };
+
+  const readLibraries = useCallback(async () => {
     const { data, error: fetchError } = await supabase
       .from('libraries')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: true });
+    if (fetchError) throw fetchError;
+    return data.map(mapLibraryRow);
+  }, [userId]);
 
-    if (fetchError) {
-      setError(fetchError);
-    } else {
-      setLibraries(data.map(mapLibraryRow));
+  const fetchLibraries = useCallback(async () => {
+    if (!userId) {
+      setListFor(null, []);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      setListFor(userId, await readLibraries());
       setError(null);
+    } catch (fetchError) {
+      setError(fetchError);
+      if (librariesOwnerRef.current !== userId) setListFor(userId, []);
     }
     setLoading(false);
-  }, [userId]);
+  }, [userId, readLibraries]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchLibraries();
   }, [fetchLibraries]);
 
-  const createLibrary = useCallback(async ({ name, shelfCount = 2, isDefault = false }) => {
+  const insertLibrary = useCallback(async ({ name, shelfCount, isDefault }) => {
     const { data, error: insertError } = await supabase
       .from('libraries')
       .insert({ name, shelf_count: shelfCount, is_default: isDefault, user_id: userId })
       .select()
       .single();
     if (insertError) throw insertError;
+    return mapLibraryRow(data);
+  }, [userId]);
 
-    const newLibrary = mapLibraryRow(data);
+  // The user's first library becomes their default (undeletable) one. If
+  // another tab or device created that first library in the meantime, the
+  // database refuses a second default: the list is re-read without the
+  // loading state (which would unmount open dialogs), then `ifDefaultExists`
+  // either returns the existing default ('useExisting') or still creates
+  // this library as a regular one ('createRegular').
+  const createLibrary = useCallback(async ({ name, shelfCount = 2, ifDefaultExists = 'createRegular' }) => {
+    let newLibrary;
+    try {
+      newLibrary = await insertLibrary({ name, shelfCount, isDefault: libraries.length === 0 });
+    } catch (insertError) {
+      if (!isSecondDefaultLibraryError(insertError)) throw insertError;
+
+      const current = await readLibraries();
+      setLibraries(current);
+      if (ifDefaultExists === 'useExisting') {
+        const existingDefault = current.find((lib) => lib.isDefault);
+        if (!existingDefault) throw insertError;
+        return existingDefault;
+      }
+      newLibrary = await insertLibrary({ name, shelfCount, isDefault: false });
+    }
+
     setLibraries((prev) => [...prev, newLibrary]);
     return newLibrary;
-  }, [userId]);
+  }, [libraries.length, insertLibrary, readLibraries]);
 
   const updateLibrary = useCallback(async (id, updates) => {
     const columns = {};
@@ -87,9 +137,11 @@ export function useLibraries(userId) {
     setLibraries((prev) => prev.filter((lib) => lib.id !== id));
   }, [libraries]);
 
+  const isCurrentList = librariesOwner === (userId ?? null);
+
   return {
-    libraries,
-    loading,
+    libraries: isCurrentList ? libraries : NO_LIBRARIES,
+    loading: loading || !isCurrentList,
     error,
     createLibrary,
     updateLibrary,

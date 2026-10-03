@@ -196,4 +196,16 @@ describe('ImportPreviewModal', () => {
     await waitFor(() => expect(screen.getByText('1 kitap eklendi.')).toBeInTheDocument());
     expect(screen.getByText('1 kitap bozuk formatlı olduğu için atlandı.')).toBeInTheDocument();
   });
+
+  it('does not let the user import without a library, and says so', async () => {
+    const { addBook } = renderModal({ libraries: [] });
+
+    expect(screen.getByRole('alert')).toHaveTextContent('İçe aktarmak için önce bir kitaplık oluştur.');
+    const input = document.querySelector('input[type="file"]');
+    expect(input).toBeDisabled();
+
+    await uploadFile();
+    expect(screen.queryByText('1984')).not.toBeInTheDocument();
+    expect(addBook).not.toHaveBeenCalled();
+  });
 });

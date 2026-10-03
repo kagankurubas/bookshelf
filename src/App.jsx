@@ -69,6 +69,7 @@ function App() {
   const readingStatsRef = useRef(null);
   const library = useLibrary({
     libraries,
+    librariesLoading,
     addBook,
     editBook,
     deleteBook,
@@ -87,7 +88,9 @@ function App() {
   // useOfflineBookQueue - App.jsx only injects which addBook variant
   // (single/without stats) to use and when to consider things "ready" (so a
   // flush isn't attempted before library data has loaded).
-  const { isOnline, queuedCount, addOrQueueBook } = useOfflineBookQueue({
+  const { isOnline, queuedCount, failedCount, addOrQueueBook, countUnsentForSignOut, discardQueue } = useOfflineBookQueue({
+    userId: user?.id,
+    libraries,
     addBook: library.addBook,
     addBookForSync: library.addBookWithoutStatsRefresh,
     refreshStats: library.refreshStats,
@@ -156,13 +159,7 @@ function App() {
       return;
     }
     try {
-      const newLib = await createLibrary({
-        name: newLibraryName.trim(),
-        shelfCount: 2,
-        // The user's first library automatically becomes the main
-        // (undeletable) one - guaranteeing at least one undeletable library at all times.
-        isDefault: libraries.length === 0
-      });
+      const newLib = await createLibrary({ name: newLibraryName.trim(), shelfCount: 2 });
       library.setActiveLibraryId(newLib.id);
       setNewLibraryName('');
       setIsAddingLibrary(false);
@@ -171,6 +168,27 @@ function App() {
       console.error(err);
       alert(t('alerts.createLibraryError'));
     }
+  };
+
+  // From the book dialog, a library created while another tab already made
+  // the default one should reuse that default rather than add a second.
+  const handleCreateLibraryFromBookModal = async (name) => {
+    const newLib = await createLibrary({ name, ifDefaultExists: 'useExisting' });
+    library.setActiveLibraryId(newLib.id);
+    return newLib;
+  };
+
+  // The sign-out button is the only path that discards the offline queue,
+  // after confirming; an expired session keeps it for the same user.
+  const handleSignOut = async () => {
+    const unsentCount = await countUnsentForSignOut().catch(() => 0);
+    if (unsentCount > 0) {
+      if (!window.confirm(t('auth.signOutDiscardQueued', { count: unsentCount }))) return;
+      // Signing out still goes ahead if the queue can't be cleared: the
+      // records keep their owner, and a different user's sign-in drops them.
+      await discardQueue().catch((err) => console.error(err));
+    }
+    await signOut();
   };
 
   const handleDeleteLibrary = async (libId) => {
@@ -184,7 +202,7 @@ function App() {
 
   return (
     <>
-      <OfflineBanner isOnline={isOnline} queuedCount={queuedCount} />
+      <OfflineBanner isOnline={isOnline} queuedCount={queuedCount} failedCount={failedCount} />
       <AuthGate
         authLoading={authLoading}
         user={user}
@@ -217,7 +235,7 @@ function App() {
                   activeView={activeView}
                   onChangeView={setActiveView}
                   userEmail={user.email}
-                  onSignOut={signOut}
+                  onSignOut={handleSignOut}
                   onOpenSettings={() => setIsSettingsOpen(true)}
                 />
 
@@ -385,6 +403,8 @@ function App() {
                     existingAuthors={bookFilters.uniqueAuthors}
                     existingTags={bookFilters.uniqueTags}
                     libraries={libraries}
+                    librariesLoading={librariesLoading}
+                    onCreateLibrary={handleCreateLibraryFromBookModal}
                     activeLibraryId={activeLibraryId}
                   />
                 )}

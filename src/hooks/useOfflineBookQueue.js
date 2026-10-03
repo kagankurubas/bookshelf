@@ -1,7 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { useOnlineStatus } from './useOnlineStatus';
 import { useAddOrQueueBook } from './useAddOrQueueBook';
-import { enqueueBook, getQueuedBooks, removeQueuedBook } from '../lib/offlineBookQueue';
+import {
+  clearQueue,
+  countUnownedBooks,
+  countUnsentBooks,
+  enqueueBook,
+  getQueuedBooks,
+  recordRejectedAttempt,
+  removeQueuedBook,
+} from '../lib/offlineBookQueue';
+import { QueueUnavailableError } from '../lib/saveErrors';
+import { repairLibraryIds } from '../lib/queuedBookRepair';
+import { QUEUE_FAILURE, queueFailureCode, queueFailureOutcome } from '../lib/queueFailures';
+
+// How long to wait before retrying a sync the queue itself refused.
+export const QUEUE_RETRY_DELAY_MS = 5000;
+// Retries in a row before giving up until the next trigger, so a queue that
+// stays unavailable (a newer version open elsewhere) isn't retried forever.
+export const MAX_QUEUE_RETRIES = 3;
 
 // Centralizes the whole offline book-add queue orchestration (staying
 // embedded in App.jsx would both be a second, unrelated reason for it to
@@ -14,31 +31,84 @@ import { enqueueBook, getQueuedBooks, removeQueuedBook } from '../lib/offlineBoo
 // stats aren't refreshed N times - `refreshStats` is called once after the
 // loop finishes. `isReady` is controlled from outside so a flush isn't
 // attempted before library data (activeLibraryId) has loaded.
-export function useOfflineBookQueue({ addBook, addBookForSync, refreshStats, isReady }) {
+//
+// Records belong to the user who queued them (`userId`): only that user's
+// records are counted and synced, and nothing syncs while signed out.
+export function useOfflineBookQueue({ userId, libraries = [], addBook, addBookForSync, refreshStats, isReady, retryDelayMs = QUEUE_RETRY_DELAY_MS }) {
   const [queuedCount, setQueuedCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
+  const flushRef = useRef(null);
+  const retryTimerRef = useRef(null);
+  const retryCountRef = useRef(0);
 
+  // One delayed retry when the queue itself couldn't be opened (another tab
+  // still holding an older version), so the sync isn't lost until the next
+  // online transition.
+  const scheduleRetry = () => {
+    if (retryTimerRef.current || retryCountRef.current >= MAX_QUEUE_RETRIES) return;
+    retryCountRef.current += 1;
+    retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = null;
+      flushRef.current?.();
+    }, retryDelayMs);
+  };
+
+  useEffect(() => () => clearTimeout(retryTimerRef.current), []);
+
+  // queuedCount: the user's records still waiting to be sent. failedCount:
+  // the ones marked failed, plus unowned records nobody can send.
   const refreshQueuedCount = () => {
-    getQueuedBooks()
-      .then((queued) => setQueuedCount(queued.length))
+    Promise.all([getQueuedBooks(userId), userId ? countUnownedBooks() : 0])
+      .then(([queued, unowned]) => {
+        setQueuedCount(queued.filter((record) => !record.failed).length);
+        setFailedCount(queued.filter((record) => record.failed).length + unowned);
+      })
       .catch((err) => console.error(err));
   };
 
   // Tries records sequentially (not in parallel); each one is deleted from
   // IndexedDB IMMEDIATELY on success (not in bulk) - so remaining records
-  // stay safe if the sync is interrupted. If one item fails, the loop
-  // stops, and the rest stay queued for retry on the next online transition.
-  const flushQueuedBooks = async () => {
-    const queued = await getQueuedBooks();
+  // stay safe if the sync is interrupted. A failure that isn't about the
+  // record itself (connection, session, queue) stops the loop with every
+  // record left waiting; a refusal of the record itself counts against it
+  // and the loop moves on (see lib/queueFailures.js).
+  const syncQueuedBooks = async () => {
+    // Every trigger waits for the signed-in user's data to be loaded, so a
+    // sync never runs against a previous user's libraries.
+    if (!userId || !isReady) return;
+    // Without a library there is nothing to file the books into: every
+    // record stays queued, untouched and uncounted, until one exists.
+    if (libraries.length === 0) return;
+    let queued;
+    try {
+      queued = await getQueuedBooks(userId);
+      retryCountRef.current = 0;
+    } catch (err) {
+      console.error(err);
+      if (err instanceof QueueUnavailableError) scheduleRetry();
+      return;
+    }
     let addedAny = false;
     for (const queuedBook of queued) {
-      const { id, ...fields } = queuedBook;
+      if (queuedBook.failed) continue;
+      // eslint-disable-next-line no-unused-vars
+      const { id, ownerId, attempts, lastErrorCode, lastAttemptAt, failed, ...fields } = queuedBook;
       try {
-        await addBookForSync(fields);
+        await addBookForSync({ ...fields, libraryIds: repairLibraryIds(fields.libraryIds, libraries) });
         await removeQueuedBook(id);
         addedAny = true;
       } catch (err) {
         console.error(err);
-        break;
+        const outcome = queueFailureOutcome(err, navigator.onLine);
+        if (outcome === QUEUE_FAILURE.WAIT) break;
+        if (outcome === QUEUE_FAILURE.COUNT) {
+          try {
+            await recordRejectedAttempt(id, queueFailureCode(err));
+          } catch (recordError) {
+            console.error(recordError);
+            break;
+          }
+        }
       }
     }
     if (addedAny) {
@@ -46,6 +116,31 @@ export function useOfflineBookQueue({ addBook, addBookForSync, refreshStats, isR
     }
     refreshQueuedCount();
   };
+
+  // One sync at a time in this tab: a trigger that arrives while one is
+  // running (load, coming back online, the retry timer) doesn't start a
+  // second pass over the same records; it asks for one more pass afterwards.
+  const flushingRef = useRef(false);
+  const flushAgainRef = useRef(false);
+  const flushQueuedBooks = async () => {
+    if (flushingRef.current) {
+      flushAgainRef.current = true;
+      return;
+    }
+    flushingRef.current = true;
+    try {
+      await syncQueuedBooks();
+    } finally {
+      flushingRef.current = false;
+    }
+    if (flushAgainRef.current) {
+      flushAgainRef.current = false;
+      flushRef.current?.();
+    }
+  };
+  useEffect(() => {
+    flushRef.current = flushQueuedBooks;
+  });
 
   // Even though a new onOnline closure (wrapping this render's current
   // addBookForSync/refreshStats via flushQueuedBooks) is passed to
@@ -61,7 +156,11 @@ export function useOfflineBookQueue({ addBook, addBookForSync, refreshStats, isR
   // attempting a write and inspecting the error type) is delegated to an
   // isolated/testable helper (useAddOrQueueBook); here we only refresh the
   // counter after an add that ends up queued.
-  const addOrQueueBookRaw = useAddOrQueueBook({ isOnline, addBook, enqueueBook });
+  const addOrQueueBookRaw = useAddOrQueueBook({
+    isOnline,
+    addBook,
+    enqueueBook: (fields) => enqueueBook(userId, fields),
+  });
   const addOrQueueBook = async (fields) => {
     const outcome = await addOrQueueBookRaw(fields);
     if (outcome?.queued) {
@@ -75,24 +174,38 @@ export function useOfflineBookQueue({ addBook, addBookForSync, refreshStats, isR
   // also check once as soon as `isReady` becomes true (once library data is
   // ready). flushQueuedBooks is deliberately left out of the deps - it's a
   // closure that's recreated every render, but we only want the ONE call
-  // guarded by hasFlushedOnLoadRef (the latest closure at the moment the
-  // data first becomes ready).
-  const hasFlushedOnLoadRef = useRef(false);
+  // guarded by flushedForUserRef (the latest closure at the moment the
+  // data first becomes ready). Keyed by user, so signing back in on the same
+  // tab syncs that user's records again; it waits for a first library, so
+  // books queued without one go out as soon as the user creates it.
+  const flushedForUserRef = useRef(null);
+  const hasLibraries = libraries.length > 0;
   useEffect(() => {
-    if (!isReady) return;
-    if (hasFlushedOnLoadRef.current) return;
-    hasFlushedOnLoadRef.current = true;
+    if (!isReady || !userId || !hasLibraries) return;
+    if (flushedForUserRef.current === userId) return;
+    flushedForUserRef.current = userId;
     if (navigator.onLine) {
       flushQueuedBooks();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReady]);
+  }, [isReady, userId, hasLibraries]);
 
-  // Read once on startup, so the banner can show the right count from the
-  // first render if records were left queued from a previous session.
+  // Read on startup and whenever the signed-in user changes, so the banner
+  // shows that user's count from the first render.
   useEffect(() => {
     refreshQueuedCount();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
-  return { isOnline, queuedCount, addOrQueueBook };
+  // For the sign-out button only: how many records signing out would
+  // discard, and discarding them. A forced sign-out (expired session) keeps
+  // the queue for the same user's next sign-in.
+  const countUnsentForSignOut = () => (userId ? countUnsentBooks(userId) : Promise.resolve(0));
+  const discardQueue = async () => {
+    await clearQueue();
+    setQueuedCount(0);
+    setFailedCount(0);
+  };
+
+  return { isOnline, queuedCount, failedCount, addOrQueueBook, countUnsentForSignOut, discardQueue };
 }

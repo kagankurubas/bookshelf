@@ -5,7 +5,9 @@
     "loadError": "Kitaplığın yüklenemedi. Bağlantını kontrol edip tekrar dene.",
     "retry": "Tekrar Dene",
     "offlineBanner": "İnternet bağlantın yok. Bazı özellikler çalışmayabilir.",
-    "offlineBannerQueued": "{{count}} kitap bağlantı gelince eklenecek."
+    "offlineBannerQueued": "{{count}} kitap bağlantı gelince eklenecek.",
+    "failedQueued_one": "Bu cihazda {{count}} kitap gönderilemedi. Çıkış yaparak silebilirsin.",
+    "failedQueued_other": "Bu cihazda {{count}} kitap gönderilemedi. Çıkış yaparak silebilirsin."
   },
   "nav": {
     "cards": "Kitaplar",
@@ -211,8 +213,18 @@
     "saveNew": "Kitabı Kaydet",
     "saveExisting": "Değişiklikleri Kaydet",
     "saving": "Kaydediliyor...",
-    "saveError": "Kaydedilemedi. Bağlantını kontrol edip tekrar dene, girdiklerin kaybolmadı.",
-    "validationError": "Lütfen Kitap Adı ve Yazar alanlarını doldurun."
+    "saveError": "Kaydedilemedi. Bağlantını kontrol edip tekrar dene; girdiğin bilgiler duruyor.",
+    "saveRejectedError": "Bu kitap kaydedilemedi: sunucu kaydı kabul etmedi. Girdiğin bilgiler duruyor.",
+    "noLibraryError": "Kitabı kaydetmek için önce bir kitaplık oluştur. Girdiğin bilgiler duruyor.",
+    "librariesNotReadyError": "Kitaplıkların henüz yüklenmedi; birazdan yeniden kaydet. Girdiğin bilgiler duruyor.",
+    "transientError": "Geçici bir sorun oluştu. Birkaç saniye sonra tekrar dene; girdiğin bilgiler duruyor.",
+    "storageFullError": "Cihaz depolaması dolu; kitap bu cihazda bekletilemedi. Biraz yer açıp tekrar dene; girdiğin bilgiler duruyor.",
+    "validationError": "Lütfen Kitap Adı ve Yazar alanlarını doldurun.",
+    "librariesLoading": "Kitaplıkların yükleniyor, birazdan kaydedebilirsin.",
+    "noLibrariesHint": "Henüz bir kitaplığın yok. Kitabı kaydetmek için önce bir kitaplık oluştur.",
+    "newLibraryNameLabel": "Yeni kitaplığın adı",
+    "defaultLibraryName": "Kitaplığım",
+    "createLibrary": "Oluştur"
   },
   "barcodeScanner": {
     "headerTitle": "Barkod ile Ekle",
@@ -276,6 +288,8 @@
     "signIn": "Giriş Yap",
     "signUp": "Kayıt Ol",
     "signOut": "Çıkış Yap",
+    "signOutDiscardQueued_one": "Bu cihazda henüz gönderilmemiş {{count}} kitap var; çıkış yaparsan silinecek. Yine de çıkış yapılsın mı?",
+    "signOutDiscardQueued_other": "Bu cihazda henüz gönderilmemiş {{count}} kitap var; çıkış yaparsan silinecekler. Yine de çıkış yapılsın mı?",
     "emailPlaceholder": "E-posta",
     "passwordPlaceholder": "Şifre",
     "submitting": "Gönderiliyor...",
@@ -341,6 +355,7 @@
     "summaryDeselectedSkipped": "{{count}} satır, seçimi kaldırıldığı için atlandı.",
     "summaryRoundedRatings": "{{count}} kitabın puanı en yakın tam sayıya yuvarlandı.",
     "summaryAddFailed": "{{count}} satır bir hata nedeniyle eklenemedi.",
+    "noLibrary": "İçe aktarmak için önce bir kitaplık oluştur.",
     "error": {
       "malformed": "Bu dosya okunamadı. Geçerli bir CSV dosyası olduğundan emin olup tekrar dene.",
       "wrong-format": "Bu dosya seçtiğin formatla eşleşmiyor. Lütfen platformu ve dosyayı kontrol edip tekrar dene.",

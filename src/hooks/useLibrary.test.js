@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useLibrary } from './useLibrary';
+import { classifySaveError, LibrariesNotReadyError, SAVE_ERROR } from '../lib/saveErrors';
 
 function deps(overrides = {}) {
   return {
@@ -126,6 +127,33 @@ describe('useLibrary', () => {
     });
 
     expect(refreshStats).toHaveBeenCalledTimes(1);
+  });
+
+  it('refuses to add a book while libraries are still loading, without reporting a missing library', async () => {
+    const addBook = vi.fn();
+    const refreshStats = vi.fn();
+    const { result } = renderHook(() => useLibrary(deps({ libraries: [], librariesLoading: true, addBook, refreshStats })));
+
+    let caught;
+    await act(async () => {
+      caught = await result.current.addBook({ title: 'Dune', libraryIds: [] }).catch((err) => err);
+    });
+
+    expect(caught).toBeInstanceOf(LibrariesNotReadyError);
+    expect(classifySaveError(caught, true)).toBe(SAVE_ERROR.NOT_READY);
+    expect(addBook).not.toHaveBeenCalled();
+    expect(refreshStats).not.toHaveBeenCalled();
+  });
+
+  it('passes an add through once libraries have loaded empty, leaving the missing-library check to the write', async () => {
+    const addBook = vi.fn().mockResolvedValue({ id: 'book-1' });
+    const { result } = renderHook(() => useLibrary(deps({ libraries: [], librariesLoading: false, addBook })));
+
+    await act(async () => {
+      await result.current.addBookWithoutStatsRefresh({ title: 'Dune', libraryIds: [] });
+    });
+
+    expect(addBook).toHaveBeenCalledWith({ title: 'Dune', libraryIds: [] });
   });
 
   it('has no active library while the library list is still empty', () => {

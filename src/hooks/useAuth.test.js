@@ -3,6 +3,12 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { useAuth } from './useAuth';
 import { supabase } from '../lib/supabaseClient';
 import { CACHE_OWNER_KEY } from '../lib/userDataCache';
+import { clearQueue, removeBooksOwnedByOthers } from '../lib/offlineBookQueue';
+
+vi.mock('../lib/offlineBookQueue', () => ({
+  clearQueue: vi.fn(),
+  removeBooksOwnedByOthers: vi.fn(() => Promise.resolve()),
+}));
 
 vi.mock('../lib/supabaseClient', () => ({
   supabase: {
@@ -148,5 +154,52 @@ describe('useAuth clears cached user data', () => {
     await act(async () => {});
 
     expect(cacheDelete).not.toHaveBeenCalled();
+  });
+});
+
+describe('useAuth and the offline book queue', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    removeBooksOwnedByOthers.mockImplementation(() => Promise.resolve());
+  });
+
+  const session = (id) => ({ user: { id, email: `${id}@test.com` } });
+
+  it('keeps the queue on a SIGNED_OUT event, which an expired session also fires', async () => {
+    const { trigger } = await renderSignedOut();
+    act(() => trigger('SIGNED_IN', session('u1')));
+    removeBooksOwnedByOthers.mockClear();
+
+    act(() => trigger('SIGNED_OUT', null));
+    await act(async () => {});
+
+    expect(clearQueue).not.toHaveBeenCalled();
+    expect(removeBooksOwnedByOthers).not.toHaveBeenCalled();
+  });
+
+  it('does not clear the queue from signOut itself; only the sign-out button path does', async () => {
+    const { result } = await renderSignedOut();
+    supabase.auth.signOut.mockResolvedValue({ error: null });
+
+    await result.current.signOut();
+
+    expect(clearQueue).not.toHaveBeenCalled();
+  });
+
+  it("drops other users' queued books when someone signs in", async () => {
+    const { trigger } = await renderSignedOut();
+
+    act(() => trigger('SIGNED_IN', session('u2')));
+
+    await waitFor(() => expect(removeBooksOwnedByOthers).toHaveBeenCalledWith('u2'));
+    expect(clearQueue).not.toHaveBeenCalled();
+  });
+
+  it("drops other users' queued books when the page opens with a session", async () => {
+    const { trigger } = await renderSignedOut();
+
+    act(() => trigger('INITIAL_SESSION', session('u1')));
+
+    await waitFor(() => expect(removeBooksOwnedByOthers).toHaveBeenCalledWith('u1'));
   });
 });

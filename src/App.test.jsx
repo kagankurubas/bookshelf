@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import App from './App';
 import { useAuth } from './hooks/useAuth';
@@ -53,12 +53,16 @@ function mockAuth({ user = null, loading = false } = {}) {
   });
 }
 
-function mockOnlineStatus({ isOnline = true, queuedCount = 0 } = {}) {
-  useOfflineBookQueue.mockReturnValue({
+function mockOnlineStatus({ isOnline = true, queuedCount = 0, unsentCount = 0 } = {}) {
+  const queue = {
     isOnline,
     queuedCount,
     addOrQueueBook: vi.fn(),
-  });
+    countUnsentForSignOut: vi.fn(() => Promise.resolve(unsentCount)),
+    discardQueue: vi.fn(() => Promise.resolve()),
+  };
+  useOfflineBookQueue.mockReturnValue(queue);
+  return queue;
 }
 
 const LOADING_TEXT = 'Yükleniyor...';
@@ -160,5 +164,76 @@ describe('App', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Kitap Asistanı' }));
     expect(await screen.findByRole('textbox', { name: 'Bir kitap hakkında soru sor...' })).toBeInTheDocument();
+  });
+});
+
+describe('App sign-out button and the offline queue', () => {
+  const user = { id: 'u1', email: 'test@example.com' };
+
+  beforeEach(() => {
+    supabase.from.mockReturnValue(emptyQueryResult());
+    supabase.rpc.mockImplementation(emptyRpcResult);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  async function renderSignedIn(unsentCount) {
+    mockAuth({ loading: false, user });
+    const queue = mockOnlineStatus({ isOnline: true, unsentCount });
+    render(<App />);
+    const { signOut } = useAuth.mock.results.at(-1).value;
+    await waitFor(() => expect(screen.getByText('test@example.com')).toBeInTheDocument());
+    return { queue, signOut };
+  }
+
+  it('signs out straight away when nothing is waiting to be sent', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    const { queue, signOut } = await renderSignedIn(0);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Çıkış Yap' }));
+
+    await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1));
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(queue.discardQueue).not.toHaveBeenCalled();
+  });
+
+  it('asks before discarding unsent books and stays signed in when the user cancels', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const { queue, signOut } = await renderSignedIn(2);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Çıkış Yap' }));
+
+    await waitFor(() => expect(confirmSpy).toHaveBeenCalledTimes(1));
+    expect(confirmSpy.mock.calls[0][0]).toContain('henüz gönderilmemiş 2 kitap');
+    expect(queue.discardQueue).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it('discards the queue, then signs out, once the user confirms', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { queue, signOut } = await renderSignedIn(1);
+    const order = [];
+    queue.discardQueue.mockImplementation(async () => { order.push('discard'); });
+    signOut.mockImplementation(async () => { order.push('signOut'); });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Çıkış Yap' }));
+
+    await waitFor(() => expect(order).toEqual(['discard', 'signOut']));
+  });
+
+  it('still signs out when clearing the queue fails, leaving the records with their owner', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { queue, signOut } = await renderSignedIn(2);
+    const failure = new Error('idb unavailable');
+    queue.discardQueue.mockRejectedValue(failure);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Çıkış Yap' }));
+
+    await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1));
+    expect(queue.discardQueue).toHaveBeenCalledTimes(1);
+    expect(consoleError).toHaveBeenCalledWith(failure);
   });
 });

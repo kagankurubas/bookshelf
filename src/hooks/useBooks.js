@@ -1,5 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import {
+  deleteBookRow,
+  formatNoteDate,
+  insertBookWithLinks,
+  syncBookLibraries,
+  syncNotes,
+  toBookColumns,
+} from '../lib/bookWrites';
 
 const BOOKS_SELECT = `
   id, title, author, publisher, rating, category, status,
@@ -8,32 +16,6 @@ const BOOKS_SELECT = `
   book_libraries ( library_id ),
   notes ( id, text, created_at )
 `;
-
-const BOOK_COLUMN_MAP = {
-  title: 'title',
-  author: 'author',
-  publisher: 'publisher',
-  rating: 'rating',
-  category: 'category',
-  status: 'status',
-  tags: 'tags',
-  dateStarted: 'date_started',
-  dateFinished: 'date_finished',
-  coverImage: 'cover_image',
-  coverPosition: 'cover_position',
-  shelfId: 'shelf_id',
-  isFavorite: 'is_favorite',
-  shelfRow: 'shelf_row',
-  slotIndex: 'slot_index',
-  isbn: 'isbn',
-  pageCount: 'page_count',
-};
-
-const DATE_FIELDS = new Set(['dateStarted', 'dateFinished']);
-
-function formatNoteDate(createdAt) {
-  return new Date(createdAt).toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' });
-}
 
 function mapBookRow(row) {
   return {
@@ -62,80 +44,6 @@ function mapBookRow(row) {
       .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
       .map((n) => ({ id: n.id, text: n.text, date: formatNoteDate(n.created_at) })),
   };
-}
-
-function toBookColumns(fields) {
-  const columns = {};
-  Object.entries(BOOK_COLUMN_MAP).forEach(([key, column]) => {
-    if (fields[key] === undefined) return;
-    columns[column] = DATE_FIELDS.has(key) && fields[key] === '' ? null : fields[key];
-  });
-  return columns;
-}
-
-async function syncBookLibraries(bookId, newLibraryIds, oldLibraryIds) {
-  const toAdd = newLibraryIds.filter((id) => !oldLibraryIds.includes(id));
-  const toRemove = oldLibraryIds.filter((id) => !newLibraryIds.includes(id));
-
-  if (toRemove.length > 0) {
-    const { error } = await supabase
-      .from('book_libraries')
-      .delete()
-      .eq('book_id', bookId)
-      .in('library_id', toRemove);
-    if (error) throw error;
-  }
-
-  if (toAdd.length > 0) {
-    const { error } = await supabase
-      .from('book_libraries')
-      .insert(toAdd.map((library_id) => ({ book_id: bookId, library_id })));
-    if (error) throw error;
-  }
-}
-
-// Diffs the notes list against the previous DB state to add/update/delete,
-// then returns the current notesList with fresh id/date info.
-async function syncNotes(bookId, newNotes, oldNotes) {
-  const oldIds = oldNotes.map((n) => n.id);
-  const removedIds = oldIds.filter((id) => !newNotes.some((n) => n.id === id));
-  const editedNotes = newNotes.filter((n) => {
-    const old = oldNotes.find((o) => o.id === n.id);
-    return old && old.text !== n.text;
-  });
-  const addedNotes = newNotes.filter((n) => !oldIds.includes(n.id));
-
-  if (removedIds.length > 0) {
-    const { error } = await supabase.from('notes').delete().in('id', removedIds);
-    if (error) throw error;
-  }
-
-  for (const note of editedNotes) {
-    const { error } = await supabase.from('notes').update({ text: note.text }).eq('id', note.id);
-    if (error) throw error;
-  }
-
-  let insertedRows = [];
-  if (addedNotes.length > 0) {
-    const { data, error } = await supabase
-      .from('notes')
-      .insert(addedNotes.map((n) => ({ book_id: bookId, text: n.text })))
-      .select();
-    if (error) throw error;
-    insertedRows = data;
-  }
-
-  const keptNotes = newNotes
-    .filter((n) => oldIds.includes(n.id))
-    .map((n) => ({ ...oldNotes.find((o) => o.id === n.id), text: n.text }));
-
-  const newlyInsertedNotes = insertedRows.map((row) => ({
-    id: row.id,
-    text: row.text,
-    date: formatNoteDate(row.created_at),
-  }));
-
-  return [...keptNotes, ...newlyInsertedNotes];
 }
 
 export function useBooks(userId) {
@@ -171,19 +79,8 @@ export function useBooks(userId) {
   }, [fetchBooks]);
 
   const addBook = useCallback(async (bookFields) => {
-    const columns = { ...toBookColumns(bookFields), user_id: userId };
-    const { data, error: insertError } = await supabase.from('books').insert(columns).select().single();
-    if (insertError) throw insertError;
-
-    const libraryIds = bookFields.libraryIds || [];
-    if (libraryIds.length > 0) {
-      await syncBookLibraries(data.id, libraryIds, []);
-    }
-
-    const notesList = bookFields.notesList || [];
-    const savedNotes = notesList.length > 0 ? await syncNotes(data.id, notesList, []) : [];
-
-    const newBook = { ...mapBookRow(data), libraryIds, notesList: savedNotes };
+    const { row, libraryIds, notesList } = await insertBookWithLinks(supabase, userId, bookFields);
+    const newBook = { ...mapBookRow(row), libraryIds, notesList };
     setBooks((prev) => [...prev, newBook]);
     return newBook;
   }, [userId]);
@@ -199,10 +96,10 @@ export function useBooks(userId) {
       }
 
       const newLibraryIds = bookFields.libraryIds || current?.libraryIds || [];
-      await syncBookLibraries(id, newLibraryIds, current?.libraryIds || []);
+      await syncBookLibraries(supabase, id, newLibraryIds, current?.libraryIds || []);
 
       const newNotesList = bookFields.notesList || current?.notesList || [];
-      const savedNotes = await syncNotes(id, newNotesList, current?.notesList || []);
+      const savedNotes = await syncNotes(supabase, id, newNotesList, current?.notesList || []);
 
       const updatedBook = {
         ...current,
@@ -219,8 +116,7 @@ export function useBooks(userId) {
   );
 
   const deleteBook = useCallback(async (id) => {
-    const { error: deleteError } = await supabase.from('books').delete().eq('id', id);
-    if (deleteError) throw deleteError;
+    await deleteBookRow(supabase, id);
     setBooks((prev) => prev.filter((b) => b.id !== id));
   }, []);
 

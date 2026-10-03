@@ -5,7 +5,9 @@
     "loadError": "Couldn't load your library. Check your connection and try again.",
     "retry": "Retry",
     "offlineBanner": "You're offline. Some features may not work.",
-    "offlineBannerQueued": "{{count}} book(s) will be added once you're back online."
+    "offlineBannerQueued": "{{count}} book(s) will be added once you're back online.",
+    "failedQueued_one": "{{count}} book on this device couldn't be sent. You can delete it by signing out.",
+    "failedQueued_other": "{{count}} books on this device couldn't be sent. You can delete them by signing out."
   },
   "nav": {
     "cards": "Books",
@@ -212,7 +214,17 @@
     "saveExisting": "Save Changes",
     "saving": "Saving...",
     "saveError": "Couldn't save. Check your connection and try again - what you entered is still here.",
-    "validationError": "Please fill in the book title and author."
+    "saveRejectedError": "This book couldn't be saved: the server didn't accept it. What you entered is still here.",
+    "noLibraryError": "Create a library first to save this book. What you entered is still here.",
+    "librariesNotReadyError": "Your libraries haven't loaded yet - save again in a moment. What you entered is still here.",
+    "transientError": "Something went wrong for a moment. Try again in a few seconds - what you entered is still here.",
+    "storageFullError": "Your device storage is full, so the book couldn't be kept on this device. Free up some space and try again - what you entered is still here.",
+    "validationError": "Please fill in the book title and author.",
+    "librariesLoading": "Your libraries are still loading - you can save in a moment.",
+    "noLibrariesHint": "You don't have a library yet. Create one to save this book.",
+    "newLibraryNameLabel": "New library name",
+    "defaultLibraryName": "My Library",
+    "createLibrary": "Create"
   },
   "barcodeScanner": {
     "headerTitle": "Scan Barcode",
@@ -276,6 +288,8 @@
     "signIn": "Sign In",
     "signUp": "Sign Up",
     "signOut": "Sign Out",
+    "signOutDiscardQueued_one": "{{count}} book on this device hasn't been sent yet and will be deleted if you sign out. Sign out anyway?",
+    "signOutDiscardQueued_other": "{{count}} books on this device haven't been sent yet and will be deleted if you sign out. Sign out anyway?",
     "emailPlaceholder": "Email",
     "passwordPlaceholder": "Password",
     "submitting": "Submitting...",
@@ -341,6 +355,7 @@
     "summaryDeselectedSkipped": "{{count}} row(s) skipped because they were unchecked.",
     "summaryRoundedRatings": "{{count}} book(s) had their rating rounded to the nearest whole number.",
     "summaryAddFailed": "{{count}} row(s) could not be added due to an error.",
+    "noLibrary": "Create a library first to import books.",
     "error": {
       "malformed": "This file couldn't be read. Make sure it's a valid CSV file and try again.",
       "wrong-format": "This file doesn't match the format you selected. Please check the platform and file, then try again.",
