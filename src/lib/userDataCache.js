@@ -12,3 +12,25 @@ export async function clearUserDataCache() {
     // Storage blocked or unavailable - nothing more to do.
   }
 }
+
+// localStorage key remembering whose data the REST cache holds.
+export const CACHE_OWNER_KEY = 'bookshelf:rest-cache-owner';
+
+// Clears the cache when a different user (or, after this was introduced, an
+// unknown one) signs in, e.g. the previous user closed the tab without signing
+// out, then records the new owner.
+export async function syncUserDataCacheOwner(userId) {
+  let owner = null;
+  try {
+    owner = localStorage.getItem(CACHE_OWNER_KEY);
+  } catch {
+    // Unreadable storage: treat the owner as unknown.
+  }
+  if (owner === userId) return;
+  await clearUserDataCache();
+  try {
+    localStorage.setItem(CACHE_OWNER_KEY, userId);
+  } catch {
+    // Can't remember the owner; the cache is cleared again next time.
+  }
+}

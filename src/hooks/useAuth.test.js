@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useAuth } from './useAuth';
 import { supabase } from '../lib/supabaseClient';
+import { CACHE_OWNER_KEY } from '../lib/userDataCache';
 
 vi.mock('../lib/supabaseClient', () => ({
   supabase: {
@@ -79,5 +80,73 @@ describe('useAuth', () => {
     supabase.auth.signOut.mockResolvedValue({ error: new Error('network error') });
 
     await expect(result.current.signOut()).rejects.toThrow('network error');
+  });
+});
+
+describe('useAuth clears cached user data', () => {
+  let cacheDelete;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    cacheDelete = vi.fn().mockResolvedValue(true);
+    vi.stubGlobal('caches', { delete: cacheDelete });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const session = (id) => ({ user: { id, email: `${id}@test.com` } });
+
+  it('on sign-out', async () => {
+    localStorage.setItem(CACHE_OWNER_KEY, 'u1');
+    const { trigger } = await renderSignedOut();
+
+    act(() => trigger('SIGNED_OUT', null));
+
+    await waitFor(() => expect(cacheDelete).toHaveBeenCalledWith('supabase-rest-cache'));
+  });
+
+  it('when a different user signs in, then remembers the new owner', async () => {
+    localStorage.setItem(CACHE_OWNER_KEY, 'u1');
+    const { trigger } = await renderSignedOut();
+
+    act(() => trigger('SIGNED_IN', session('u2')));
+
+    await waitFor(() => expect(cacheDelete).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(localStorage.getItem(CACHE_OWNER_KEY)).toBe('u2'));
+  });
+
+  it('when the page opens with a session of a different user than the cache owner', async () => {
+    localStorage.setItem(CACHE_OWNER_KEY, 'u1');
+    const { trigger } = await renderSignedOut();
+
+    act(() => trigger('INITIAL_SESSION', session('u2')));
+
+    await waitFor(() => expect(cacheDelete).toHaveBeenCalledTimes(1));
+  });
+
+  it('once on the first run with no recorded owner, then not again for the same user', async () => {
+    const { trigger } = await renderSignedOut();
+
+    act(() => trigger('INITIAL_SESSION', session('u1')));
+    await waitFor(() => expect(localStorage.getItem(CACHE_OWNER_KEY)).toBe('u1'));
+    expect(cacheDelete).toHaveBeenCalledTimes(1);
+
+    act(() => trigger('SIGNED_IN', session('u1')));
+    await act(async () => {});
+    expect(cacheDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('not when the same user signs in again or the token refreshes', async () => {
+    localStorage.setItem(CACHE_OWNER_KEY, 'u1');
+    const { trigger } = await renderSignedOut();
+
+    act(() => trigger('SIGNED_IN', session('u1')));
+    act(() => trigger('TOKEN_REFRESHED', session('u1')));
+    await act(async () => {});
+
+    expect(cacheDelete).not.toHaveBeenCalled();
   });
 });
