@@ -5,7 +5,9 @@
     "loadError": "Couldn't load your library. Check your connection and try again.",
     "retry": "Retry",
     "offlineBanner": "You're offline. Some features may not work.",
-    "offlineBannerQueued": "{{count}} book(s) will be added once you're back online."
+    "offlineBannerQueued": "{{count}} book(s) will be added once you're back online.",
+    "failedQueued_one": "{{count}} book on this device couldn't be sent. You can delete it by signing out.",
+    "failedQueued_other": "{{count}} books on this device couldn't be sent. You can delete them by signing out."
   },
   "nav": {
     "cards": "Books",

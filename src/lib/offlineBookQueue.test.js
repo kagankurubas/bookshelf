@@ -5,7 +5,10 @@ import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   clearQueue,
+  countUnownedBooks,
   countUnsentBooks,
+  MAX_REJECTED_ATTEMPTS,
+  recordRejectedAttempt,
   enqueueBook,
   getQueuedBooks,
   OPEN_TIMEOUT_MS,
@@ -236,5 +239,51 @@ describe('offlineBookQueue', () => {
       expect(await getQueuedBooks('user-a')).toEqual([]);
       expect((await readAllRecords()).map((r) => r.ownerId)).toEqual([null]);
     });
+  });
+
+  describe('rejected send attempts', () => {
+    it('counts each refusal with its code and time, and marks the record failed on the last one', async () => {
+      const id = await enqueueBook('user-a', { title: 'Reddedilen' });
+
+      await recordRejectedAttempt(id, '42501');
+      let [record] = await getQueuedBooks('user-a');
+      expect(record).toMatchObject({ attempts: 1, lastErrorCode: '42501', failed: false });
+      expect(Number.isNaN(Date.parse(record.lastAttemptAt))).toBe(false);
+
+      await recordRejectedAttempt(id, '23514');
+      await recordRejectedAttempt(id, '23514');
+      [record] = await getQueuedBooks('user-a');
+      expect(MAX_REJECTED_ATTEMPTS).toBe(3);
+      expect(record).toMatchObject({ title: 'Reddedilen', attempts: 3, lastErrorCode: '23514', failed: true });
+    });
+
+    it('keeps the count and the failed mark across a reload', async () => {
+      const id = await enqueueBook('user-a', { title: 'Kalıcı' });
+      await recordRejectedAttempt(id, '42501');
+      await recordRejectedAttempt(id, '42501');
+
+      vi.resetModules();
+      const reloaded = await import('./offlineBookQueue');
+      let [record] = await reloaded.getQueuedBooks('user-a');
+      expect(record).toMatchObject({ attempts: 2, failed: false });
+
+      await reloaded.recordRejectedAttempt(id, '42501');
+      vi.resetModules();
+      const reloadedAgain = await import('./offlineBookQueue');
+      [record] = await reloadedAgain.getQueuedBooks('user-a');
+      expect(record).toMatchObject({ attempts: 3, failed: true, title: 'Kalıcı' });
+    });
+
+    it('ignores a record that is already gone', async () => {
+      await expect(recordRejectedAttempt(12345, '42501')).resolves.toBeUndefined();
+      expect(await readAllRecords()).toEqual([]);
+    });
+  });
+
+  it('counts the unowned records left from before owners were stored', async () => {
+    await createVersionOneQueue([{ title: 'Eski 1' }, { title: 'Eski 2' }]);
+    await enqueueBook('user-a', { title: 'A1' });
+
+    expect(await countUnownedBooks()).toBe(2);
   });
 });

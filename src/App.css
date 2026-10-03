@@ -110,6 +110,13 @@ html, body, #root {
   background: var(--danger);
 }
 
+/* Online notice for books that couldn't be sent: it can stay for a long
+   time, so it sits in the page flow instead of covering the header. */
+.offline-banner--failed {
+  position: static;
+  background: var(--warn);
+}
+
 /* Barkod tarama / kitap arama / toplu tarama modallarının overlay içindeki
    ortak sarmalayıcısı - genişlik/padding/box-sizing hepsinde aynıydı, sadece
    max-width farklıydı (bkz. --wide modifier'ı). */

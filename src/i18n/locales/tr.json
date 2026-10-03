@@ -5,7 +5,9 @@
     "loadError": "Kitaplığın yüklenemedi. Bağlantını kontrol edip tekrar dene.",
     "retry": "Tekrar Dene",
     "offlineBanner": "İnternet bağlantın yok. Bazı özellikler çalışmayabilir.",
-    "offlineBannerQueued": "{{count}} kitap bağlantı gelince eklenecek."
+    "offlineBannerQueued": "{{count}} kitap bağlantı gelince eklenecek.",
+    "failedQueued_one": "Bu cihazda {{count}} kitap gönderilemedi. Çıkış yaparak silebilirsin.",
+    "failedQueued_other": "Bu cihazda {{count}} kitap gönderilemedi. Çıkış yaparak silebilirsin."
   },
   "nav": {
     "cards": "Kitaplar",

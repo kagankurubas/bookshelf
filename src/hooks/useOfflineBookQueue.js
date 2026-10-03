@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { useOnlineStatus } from './useOnlineStatus';
 import { useAddOrQueueBook } from './useAddOrQueueBook';
-import { clearQueue, countUnsentBooks, enqueueBook, getQueuedBooks, removeQueuedBook } from '../lib/offlineBookQueue';
+import {
+  clearQueue,
+  countUnownedBooks,
+  countUnsentBooks,
+  enqueueBook,
+  getQueuedBooks,
+  recordRejectedAttempt,
+  removeQueuedBook,
+} from '../lib/offlineBookQueue';
 import { QueueUnavailableError } from '../lib/saveErrors';
 import { repairLibraryIds } from '../lib/queuedBookRepair';
+import { QUEUE_FAILURE, queueFailureCode, queueFailureOutcome } from '../lib/queueFailures';
 
 // How long to wait before retrying a sync the queue itself refused.
 export const QUEUE_RETRY_DELAY_MS = 5000;
@@ -24,6 +33,7 @@ export const QUEUE_RETRY_DELAY_MS = 5000;
 // records are counted and synced, and nothing syncs while signed out.
 export function useOfflineBookQueue({ userId, libraries = [], addBook, addBookForSync, refreshStats, isReady, retryDelayMs = QUEUE_RETRY_DELAY_MS }) {
   const [queuedCount, setQueuedCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
   const flushRef = useRef(null);
   const retryTimerRef = useRef(null);
 
@@ -40,16 +50,23 @@ export function useOfflineBookQueue({ userId, libraries = [], addBook, addBookFo
 
   useEffect(() => () => clearTimeout(retryTimerRef.current), []);
 
+  // queuedCount: the user's records still waiting to be sent. failedCount:
+  // the ones marked failed, plus unowned records nobody can send.
   const refreshQueuedCount = () => {
-    getQueuedBooks(userId)
-      .then((queued) => setQueuedCount(queued.length))
+    Promise.all([getQueuedBooks(userId), userId ? countUnownedBooks() : 0])
+      .then(([queued, unowned]) => {
+        setQueuedCount(queued.filter((record) => !record.failed).length);
+        setFailedCount(queued.filter((record) => record.failed).length + unowned);
+      })
       .catch((err) => console.error(err));
   };
 
   // Tries records sequentially (not in parallel); each one is deleted from
   // IndexedDB IMMEDIATELY on success (not in bulk) - so remaining records
-  // stay safe if the sync is interrupted. If one item fails, the loop
-  // stops, and the rest stay queued for retry on the next online transition.
+  // stay safe if the sync is interrupted. A failure that isn't about the
+  // record itself (connection, session, queue) stops the loop with every
+  // record left waiting; a refusal of the record itself counts against it
+  // and the loop moves on (see lib/queueFailures.js).
   const flushQueuedBooks = async () => {
     if (!userId) return;
     // Without a library there is nothing to file the books into: every
@@ -65,15 +82,25 @@ export function useOfflineBookQueue({ userId, libraries = [], addBook, addBookFo
     }
     let addedAny = false;
     for (const queuedBook of queued) {
+      if (queuedBook.failed) continue;
       // eslint-disable-next-line no-unused-vars
-      const { id, ownerId, ...fields } = queuedBook;
+      const { id, ownerId, attempts, lastErrorCode, lastAttemptAt, failed, ...fields } = queuedBook;
       try {
         await addBookForSync({ ...fields, libraryIds: repairLibraryIds(fields.libraryIds, libraries) });
         await removeQueuedBook(id);
         addedAny = true;
       } catch (err) {
         console.error(err);
-        break;
+        const outcome = queueFailureOutcome(err, navigator.onLine);
+        if (outcome === QUEUE_FAILURE.WAIT) break;
+        if (outcome === QUEUE_FAILURE.COUNT) {
+          try {
+            await recordRejectedAttempt(id, queueFailureCode(err));
+          } catch (recordError) {
+            console.error(recordError);
+            break;
+          }
+        }
       }
     }
     if (addedAny) {
@@ -147,7 +174,8 @@ export function useOfflineBookQueue({ userId, libraries = [], addBook, addBookFo
   const discardQueue = async () => {
     await clearQueue();
     setQueuedCount(0);
+    setFailedCount(0);
   };
 
-  return { isOnline, queuedCount, addOrQueueBook, countUnsentForSignOut, discardQueue };
+  return { isOnline, queuedCount, failedCount, addOrQueueBook, countUnsentForSignOut, discardQueue };
 }

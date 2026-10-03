@@ -88,7 +88,7 @@ function App() {
   // useOfflineBookQueue - App.jsx only injects which addBook variant
   // (single/without stats) to use and when to consider things "ready" (so a
   // flush isn't attempted before library data has loaded).
-  const { isOnline, queuedCount, addOrQueueBook, countUnsentForSignOut, discardQueue } = useOfflineBookQueue({
+  const { isOnline, queuedCount, failedCount, addOrQueueBook, countUnsentForSignOut, discardQueue } = useOfflineBookQueue({
     userId: user?.id,
     libraries,
     addBook: library.addBook,
@@ -202,7 +202,7 @@ function App() {
 
   return (
     <>
-      <OfflineBanner isOnline={isOnline} queuedCount={queuedCount} />
+      <OfflineBanner isOnline={isOnline} queuedCount={queuedCount} failedCount={failedCount} />
       <AuthGate
         authLoading={authLoading}
         user={user}

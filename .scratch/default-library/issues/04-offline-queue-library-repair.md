@@ -72,6 +72,21 @@
   - Kitaplık listesi `created_at`'e göre artan sırada geliyor.
   - Test: "files a library-less record into the first library when none is marked default".
 - **Toplu tarama + kitaplık yok:** kayıt `NoLibraryError` ile reddedilir. Toplu tarayıcı kendi `batchScanner.saveError` metnini gösterir: TR "Kitaplar kaydedilirken bir hata oluştu. Bir kısmı zaten kaydedilmiş olabilir.", EN "Something went wrong saving the books. Some may already be saved.". Metin bağlantıdan söz etmiyor; test ile sabitlendi. "Bir kısmı kaydedilmiş olabilir" ifadesi bu durumda gereksiz ama yanlış yönlendirmiyor; ayrı bir "önce kitaplık oluştur" metni takip konusu.
+- **Deneme sayacı (3):**
+  - Kuyruk, kitap penceresinden ayrı ve daha dar bir karar kullanır (`lib/queueFailures.js`). Genel sınıflandırıcı değişmedi.
+  - **Sayılır** (`attempts` +1, `lastErrorCode`, `lastAttemptAt` kayda yazılır), sonraki kayda geçilir: kaydın kendisinin reddedildiği durumlar. RLS `42501`, kısıtlar (`23502`, `23503`, `23514`, `books_pkey` dışındaki `23505`), geçersiz değer (`22P02`) ve diğer `rejected` hatalar.
+  - **Sayılmaz, kayıt bekler ve senkron durur:** ağ, zaman aşımı/iptal, `PGRST303` ve tüm `PGRST3xx` JWT/oturum hataları (`PGRST301` süresi dolmuş, `PGRST302` anonim), HTTP 401, kuyruk kullanılamıyor, kitaplık yok ya da kitaplıklar yüklenmedi.
+  - **Neden `PGRST301` kuyrukta bekler ama pencerede `rejected` kalır:**
+    - Süresi dolmuş JWT kayda özgü bir sorun değil; supabase-js oturumu yeniler ve aynı kayıt sonra geçer. Kuyruk bunu sayarsa üç yenileme gecikmesinde sağlam bir kitap "gönderilemedi" olurdu.
+    - Pencerede ise kullanıcı o an oradadır; mesaj yalnızca anlık bir bilgidir ve kalıcı bir iz bırakmaz.
+  - **`books_pkey` üzerinde `23505`:** sayılmaz, kayıt dokunulmadan atlanır, sonraki kayda geçilir. (4)'te kimlik tabanlı tamamlamaya dönüşecek.
+  - 3. sayılan reddedilişte kayıt `failed: true` olur ve otomatik gönderimden çıkar; veri silinmez.
+  - Sayaç IndexedDB'de tutulduğu için sayfa yenilemede sıfırlanmaz.
+- **Şerit (3):**
+  - Çevrimiçiyken yalnızca gönderilemeyen kayıt varsa görünür; sayfa akışında durur ve başlığı kapatmaz.
+  - Metin: TR "Bu cihazda N kitap gönderilemedi. Çıkış yaparak silebilirsin.", EN "N book(s) on this device couldn't be sent. You can delete it/them by signing out.". "Çıkış yaparsan silinirler" denmez, çünkü zorunlu çıkışta silinmezler.
+  - Sayıya sahibi bilinmeyen eski kayıtlar da dahildir (D3).
+  - Çevrimdışıyken mevcut metne eklenir.
 - **Hesap silme:** kuyruk her zaman, oturum kapanmadan önce silinir. Silme hata verirse çıkış yine yapılır.
 - **Çok sekme, eski sürüm açık:**
   - Kuyruk veritabanı v2'ye yükseltilirken başka bir sekme v1'i açık tutuyorsa açılış 3 sn bekler, sonra `QueueUnavailableError` ile vazgeçer. Açılış asılı kalmaz ve eski sekme bırakınca kendiliğinden tamamlanır.

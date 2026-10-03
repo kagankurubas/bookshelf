@@ -142,3 +142,35 @@ export function removeBooksOwnedByOthers(ownerId) {
     return request;
   });
 }
+
+// A record the server refused this many times is marked failed and left out
+// of automatic syncing; it stays on the device until cleared.
+export const MAX_REJECTED_ATTEMPTS = 3;
+
+// Counts one refusal of a record by the server, remembering why, and marks
+// it failed on the last allowed attempt. Stored in IndexedDB, so the count
+// survives reloads.
+export function recordRejectedAttempt(id, errorCode) {
+  return withStore('readwrite', (store) => {
+    const request = store.get(id);
+    request.onsuccess = () => {
+      const record = request.result;
+      if (!record) return;
+      const attempts = (record.attempts || 0) + 1;
+      store.put({
+        ...record,
+        attempts,
+        lastErrorCode: errorCode,
+        lastAttemptAt: new Date().toISOString(),
+        failed: attempts >= MAX_REJECTED_ATTEMPTS,
+      });
+    };
+    return request;
+  });
+}
+
+// Records left from before owners were stored; they count as unsendable.
+export async function countUnownedBooks() {
+  const records = await withStore('readonly', (store) => store.getAll());
+  return records.filter((record) => record.ownerId == null).length;
+}

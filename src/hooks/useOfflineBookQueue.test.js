@@ -2,11 +2,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useOfflineBookQueue } from './useOfflineBookQueue';
 import { QueueUnavailableError } from '../lib/saveErrors';
-import { clearQueue, countUnsentBooks, enqueueBook, getQueuedBooks, removeQueuedBook } from '../lib/offlineBookQueue';
+import {
+  clearQueue,
+  countUnownedBooks,
+  countUnsentBooks,
+  enqueueBook,
+  getQueuedBooks,
+  recordRejectedAttempt,
+  removeQueuedBook,
+} from '../lib/offlineBookQueue';
 
 vi.mock('../lib/offlineBookQueue', () => ({
   clearQueue: vi.fn(),
+  countUnownedBooks: vi.fn(),
   countUnsentBooks: vi.fn(),
+  recordRejectedAttempt: vi.fn(),
   enqueueBook: vi.fn(),
   getQueuedBooks: vi.fn(),
   removeQueuedBook: vi.fn(),
@@ -37,6 +47,8 @@ describe('useOfflineBookQueue', () => {
   // effects) can bleed into the next test's assertions.
   beforeEach(() => {
     vi.resetAllMocks();
+    countUnownedBooks.mockResolvedValue(0);
+    recordRejectedAttempt.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -102,14 +114,14 @@ describe('useOfflineBookQueue', () => {
     expect(refreshStats).toHaveBeenCalledTimes(1);
   });
 
-  it('stops the flush at the first failure, leaving remaining items queued (not calling addBookForSync for them)', async () => {
+  it('stops the flush at the first network failure, leaving remaining items queued (not calling addBookForSync for them)', async () => {
     getQueuedBooks
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ id: 1, title: 'Kitap 1' }, { id: 2, title: 'Kitap 2' }])
       .mockResolvedValueOnce([{ id: 2, title: 'Kitap 2' }]);
 
     const addBook = vi.fn();
-    const addBookForSync = vi.fn().mockRejectedValueOnce(new Error('network fail'));
+    const addBookForSync = vi.fn().mockRejectedValueOnce({ code: '', message: 'TypeError: Failed to fetch' });
     const refreshStats = vi.fn();
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -287,5 +299,18 @@ describe('useOfflineBookQueue', () => {
 
     await waitFor(() => expect(addBookForSync).toHaveBeenCalledWith({ title: 'Varsayılansız', libraryIds: ['lib-oldest'] }));
     expect(removeQueuedBook).toHaveBeenCalledWith(5);
+  });
+
+  it('counts failed records and unowned leftovers apart from the ones still waiting', async () => {
+    getQueuedBooks.mockResolvedValue([
+      { id: 1, ownerId: 'user-a', title: 'Bekleyen' },
+      { id: 2, ownerId: 'user-a', title: 'Gönderilemeyen', attempts: 3, failed: true },
+    ]);
+    countUnownedBooks.mockResolvedValue(2);
+    setNavigatorOnline(false);
+    const { result } = renderQueue({ isReady: false });
+
+    await waitFor(() => expect(result.current.failedCount).toBe(3));
+    expect(result.current.queuedCount).toBe(1);
   });
 });
