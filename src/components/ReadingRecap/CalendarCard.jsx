@@ -27,12 +27,23 @@ function CalendarCover({ book, dataUrl }) {
   );
 }
 
-function CalendarDay({ cell, coverFor }) {
-  if (cell.type === 'outside') return <div className="calendar-cell calendar-cell--outside" />;
+function cellLabel(cell, t, formatDay) {
+  const date = formatDay(cell.date);
+  if (cell.type === 'empty') return t('readingRecap.calendarCellEmpty', { date });
+  if (cell.type === 'future') return t('readingRecap.calendarCellFuture', { date });
+  const titles = cell.books.map(({ book, rating }) => (
+    rating ? t('readingRecap.calendarCellRated', { title: book.title, count: rating }) : book.title
+  ));
+  return t('readingRecap.calendarCellRead', { date, titles: titles.join(', ') });
+}
+
+function CalendarDay({ cell, coverFor, t, formatDay }) {
+  if (cell.type === 'outside') return <div className="calendar-cell calendar-cell--outside" aria-hidden="true" />;
+  const label = cellLabel(cell, t, formatDay);
   if (cell.type !== 'read') {
     return (
-      <div className={`calendar-cell calendar-cell--${cell.type}`}>
-        <span className="calendar-day-number">{cell.day}</span>
+      <div className={`calendar-cell calendar-cell--${cell.type}`} role="img" aria-label={label}>
+        <span className="calendar-day-number" aria-hidden="true">{cell.day}</span>
       </div>
     );
   }
@@ -41,12 +52,12 @@ function CalendarDay({ cell, coverFor }) {
   // Finished books sort first, so the first rated entry is the one shown.
   const rating = cell.books.find((entry) => entry.rating)?.rating;
   return (
-    <div className={`calendar-cell calendar-cell--read calendar-cell--covers-${shown.length}`}>
+    <div className={`calendar-cell calendar-cell--read calendar-cell--covers-${shown.length}`} role="img" aria-label={label}>
       {shown.map((entry) => (
         <CalendarCover key={entry.book.id} book={entry.book} dataUrl={coverFor(entry.book)} />
       ))}
       <span className="calendar-day-number">{cell.day}</span>
-      {hidden > 0 && <span className="calendar-more">+{hidden}</span>}
+      {hidden > 0 && <span className="calendar-more">{t('readingRecap.calendarMoreBadge', { count: hidden })}</span>}
       {rating && <Stars rating={rating} />}
     </div>
   );
@@ -55,8 +66,13 @@ function CalendarDay({ cell, coverFor }) {
 // The exported calendar card: renders only data URLs or colored tiles, never a
 // remote image, so a broken cover can't make the export fail.
 function CalendarCard({ cardRef, calendar, periodLabel, isEmpty, coverFor }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const weekdays = t('readingRecap.weekdaysShort', { returnObjects: true });
+  const dayFormat = new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'long' });
+  const formatDay = (date) => {
+    const [year, month, day] = date.split('-').map(Number);
+    return dayFormat.format(new Date(year, month - 1, day));
+  };
 
   return (
     <div className="recap-card recap-card--calendar" ref={cardRef}>
@@ -67,10 +83,10 @@ function CalendarCard({ cardRef, calendar, periodLabel, isEmpty, coverFor }) {
       ) : (
         <div className="calendar-grid" style={{ gridTemplateRows: `auto repeat(${calendar.weeks.length}, 1fr)` }}>
           {weekdays.map((label) => (
-            <span key={label} className="calendar-weekday">{label}</span>
+            <span key={label} className="calendar-weekday" aria-hidden="true">{label}</span>
           ))}
           {calendar.weeks.flat().map((cell, i) => (
-            <CalendarDay key={cell.date ?? `outside-${i}`} cell={cell} coverFor={coverFor} />
+            <CalendarDay key={cell.date ?? `outside-${i}`} cell={cell} coverFor={coverFor} t={t} formatDay={formatDay} />
           ))}
         </div>
       )}

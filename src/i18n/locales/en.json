@@ -93,7 +93,13 @@
     "calendarSkipped_one": "{{count}} book with missing or invalid dates isn't shown on the calendar.",
     "calendarSkipped_other": "{{count}} books with missing or invalid dates aren't shown on the calendar.",
     "calendarShareText_one": "{{period}}: I read on {{count}} day!",
-    "calendarShareText_other": "{{period}}: I read on {{count}} days!"
+    "calendarShareText_other": "{{period}}: I read on {{count}} days!",
+    "calendarMoreBadge": "+{{count}}",
+    "calendarCellRead": "{{date}}: {{titles}}",
+    "calendarCellRated_one": "{{title}} ({{count}} star)",
+    "calendarCellRated_other": "{{title}} ({{count}} stars)",
+    "calendarCellEmpty": "{{date}}: no reading",
+    "calendarCellFuture": "{{date}}: not yet"
   },
   "cards": {
     "empty": "No books in this library yet.",
