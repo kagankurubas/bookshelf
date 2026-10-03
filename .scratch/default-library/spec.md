@@ -96,7 +96,7 @@ Canlıda bugün kitaplığı olmayan 2 hesap var (ikisinin de kitabı yok). Bird
   Önceki "API hata durumları" spec'indeki ilke korunur: ağ ayrımı mesaj metninin yorumlanmasına değil, çevrimiçi bayrağı ve fetch hata şekline dayanır.
 - **Kitap ekleme penceresinin mesajları.** Pencere, kaydetme hatasını bu modülle sınıflandırır:
   - `network`: mevcut `bookModal.saveError` metni ("Kaydedilemedi. Bağlantını kontrol et…"), artık yalnızca bu durumda.
-  - `rejected`: yeni `bookModal.saveRejectedError`. TR: "Kaydedilemedi. Sorun bağlantında değil; girdiklerin kaybolmadı, sayfayı yenileyip tekrar dene." EN karşılığıyla.
+  - `rejected`: yeni `bookModal.saveRejectedError`. TR: "Bu kitap kaydedilemedi: sunucu kaydı kabul etmedi. Girdiğin bilgiler duruyor." EN: "This book couldn't be saved: the server didn't accept it. What you entered is still here." (02'de kullanıcı kararıyla güncellendi: ham hata, kod ya da RLS adı gösterilmez; bağlantıdan söz edilmez; reddedilen kayıt tekrarla düzelmediği için "tekrar dene" denmez.)
   - `no_library`: yeni `bookModal.noLibraryError`. TR: "Kitabı kaydetmek için önce bir kitaplık oluştur." EN karşılığıyla.
 
   Kesin metinler PR'da TR/EN olarak gözden geçirilir.

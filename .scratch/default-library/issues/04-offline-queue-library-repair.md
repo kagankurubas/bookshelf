@@ -33,8 +33,8 @@
   - Her kayda kuyruğa alındığı anda `ownerId` (o anki kullanıcının id'si) yazılır. Oturum yoksa kayıt kuyruğa alınmaz.
   - Senkron yalnızca `ownerId` o anki kullanıcıya eşit olan kayıtları gönderir. Başka kullanıcının kayıtlarına dokunmaz: göndermez, sayaçlarını değiştirmez.
   - Senkron oturum yokken hiç çalışmaz.
-- **Çıkışta temizlik:** `SIGNED_OUT` olayında ve hesap silmede (oturum kapanmadan önce) kuyruk tamamen silinir. Bu davranışın bedeli: kullanıcı çevrimdışıyken eklediği ve henüz gönderilmemiş kitaplarla çıkış yaparsa o kitaplar kaybolur (Karar D2).
-- **İdempotency:**
+- **Çıkışta temizlik (D2-a ile güncellendi):** kuyruk yalnızca çıkış *düğmesiyle* (onaydan sonra) ve hesap silmede (oturum kapanmadan önce) tamamen silinir. `SIGNED_OUT` olayı tek başına kuyruğa dokunmaz, çünkü zorunlu çıkışta da gelir. Farklı bir kullanıcı girerse önceki sahibin kayıtları silinir. Ayrıntı: "Bilinçli davranışlar".
+- **İdempotency (ertelendi → ticket 10, v1.1.1; aşağıdaki maddeler bu PR'da yok):**
   - Kuyruğa alınırken kayda `clientBookId = crypto.randomUUID()` yazılır; notlara da istemci kimlikleri verilir.
   - Senkron kitabı bu kimlikle ekler. `books_pkey` üzerinde `23505` dönerse kitap kimliğe göre okunur:
     - okunabiliyorsa (kullanıcının kendi kitabı) önceki deneme kitabı yazmış demektir. Kitaplık bağlantıları ve notlar `ignoreDuplicates` ile tamamlanır ve kayıt başarılı sayılır.
@@ -134,44 +134,43 @@
 ## Test planı
 
 **Kuyruk modülü** (`fake-indexeddb`, mevcut desen):
-- [ ] kayıt `ownerId` ve `clientBookId` ile saklanır; kullanıcıya göre okuma yalnızca o kullanıcının kayıtlarını döndürür
-- [ ] kayıt güncelleme (`attempts`, `failed`) veritabanı kapatılıp yeniden açılınca korunur (sayfa yenileme benzetimi)
-- [ ] kuyruğu temizleme tüm kayıtları siler
+- [x] kayıt `ownerId` ile saklanır; kullanıcıya göre okuma yalnızca o kullanıcının kayıtlarını döndürür (`clientBookId` → ticket 10)
+- [x] kayıt güncelleme (`attempts`, `failed`) veritabanı kapatılıp yeniden açılınca korunur (sayfa yenileme benzetimi)
+- [x] kuyruğu temizleme tüm kayıtları siler
+- [x] v1 → v2 yükseltmesi: eski kayıtlar sahibi bilinmiyor olarak işaretlenir; eski sürüm açıkken açılış zaman aşımına düşer ve sonra tamamlanır
+- [x] IndexedDB hataları tipli: dolu depolama `StorageFullError`, iptal ve sürüm hataları `QueueUnavailableError`
 
 **`useAddOrQueueBook`:**
-- [ ] geçersiz kitaplıkla, çevrimiçi de çevrimdışı da, `no_library` fırlar ve kuyruğa hiçbir şey yazılmaz
-- [ ] çevrimdışı geçerli kayıt `ownerId` + `clientBookId` ile kuyruğa girer
-- [ ] oturum yoksa kuyruğa alınmaz
+- [x] geçersiz kitaplıkla, çevrimiçi de çevrimdışı da, `no_library` fırlar ve kuyruğa hiçbir şey yazılmaz
+- [x] çevrimdışı geçerli kayıt `ownerId` ile kuyruğa girer (`clientBookId` → ticket 10)
+- [x] oturum yoksa kuyruğa alınmaz
 
 **`useOfflineBookQueue`:**
-- [ ] **hesaplar arası:** B oturumdayken A'nın kayıtları (`[null]` olan dahil) gönderilmez ve değişmez; B'nin kayıtları gönderilir
-- [ ] kendi `[null]` kaydı Ana Kitaplık id'siyle gönderilir; mevcut kitaplıklar arasında olmayan id'ler atılır
-- [ ] kitaplık yokken hem "hazır" yolundan hem çevrimiçi olayından tetiklenen senkron hiçbir şey göndermez; kayıtlar ve sayaçlar değişmez
-- [ ] oturum yokken çevrimiçi olayı senkron başlatmaz
-- [ ] `rejected` → sayaç artar, sonraki kayıt gönderilir; 3. reddedilişte `failed`, sonraki senkronda gönderilmez, sayı dışarı verilir
-- [ ] `network` ve `transient` → senkron durur, sayaç artmaz
-- [ ] eski `ownerId`'siz kayıt D3'e göre davranır
+- [x] **hesaplar arası:** B oturumdayken A'nın kayıtları (`[null]` olan dahil) gönderilmez ve değişmez; B'nin kayıtları gönderilir
+- [x] aynı sekmede A → B geçişinde B'nin kayıtları asla A'nın kitaplıklarıyla onarılmaz
+- [x] kendi `[null]` kaydı Ana Kitaplık id'siyle gönderilir; mevcut kitaplıklar arasında olmayan id'ler atılır
+- [x] kitaplık yokken hem "hazır" yolundan hem çevrimiçi olayından tetiklenen senkron hiçbir şey göndermez; kayıtlar ve sayaçlar değişmez
+- [x] oturum yokken ve veriler hazır değilken çevrimiçi olayı senkron başlatmaz
+- [x] aynı sekmede üç tetikleyici çakışınca tek senkron çalışır, kayıt iki kez gönderilmez
+- [x] yalnızca listedeki kayda özgü kodlar sayılır; 3. reddedilişte `failed`, sonraki senkronda gönderilmez, sayı dışarı verilir
+- [x] ağ, JWT/oturum, bilinmeyen kodlar ve 5xx, dolu depolama ve kullanılamayan kuyruk → senkron durur, sayaç artmaz
+- [x] eski `ownerId`'siz kayıt D3'e göre davranır
 
-**`bookWrites` (mock):**
-- [ ] `clientBookId` eklemede kimlik olarak gönderilir
-- [ ] `books_pkey` `23505` + kitap okunabiliyor → bağlantılar ve notlar `ignoreDuplicates` ile tamamlanır, sonuç başarılı
-- [ ] `23505` + kitap okunamıyor → `rejected`
+**`bookWrites` (mock):** → ticket 10 (v1.1.1); bu PR'da yok.
 
 **Oturum ve hesap silme:**
-- [ ] `useAuth`'ta `SIGNED_OUT` → kuyruk temizlenir
-- [ ] `useDeleteAccount` → kuyruk oturum kapanmadan önce temizlenir
-- [ ] D2-a seçilirse: çıkışta kayıt varken onay istenir, iptal edilince çıkış yapılmaz
+- [x] `useAuth`'ta `SIGNED_OUT` olayı kuyruğa **dokunmaz** (zorunlu çıkış); girişte başka kullanıcıların kayıtları silinir
+- [x] `useDeleteAccount` → kuyruk oturum kapanmadan önce temizlenir; temizlik hata verse de çıkış yapılır
+- [x] çıkış düğmesi: kayıt varken onay istenir, iptal edilince çıkış yapılmaz; kuyruk silinemezse çıkış yine yapılır
 
 **Çevrimdışı şeridi RTL:**
-- [ ] çevrimiçiyken `failed` > 0 ise "N kitap gönderilemedi" görünür, değilse şerit görünmez
-- [ ] çevrimdışı metni değişmez
-- [ ] TR/EN
+- [x] çevrimiçiyken `failed` > 0 ise "N kitap gönderilemedi" görünür, değilse şerit görünmez
+- [x] çevrimdışı metni değişmez
+- [x] TR/EN
 
-**Entegrasyon** (gerçek RLS, yerel Docker):
-- [ ] aynı `clientBookId` ile iki kez ekleme → tek kitap, bağlantılar ve notlar tek kopya
-- [ ] başka kullanıcının kitabıyla çakışan `clientBookId` → `rejected`, başka hesaba hiçbir şey yazılmaz
+**Entegrasyon** (gerçek RLS, yerel Docker): `clientBookId` maddeleri → ticket 10 (v1.1.1); bu PR'da yok.
 
 **Diğer:**
-- [ ] **Mutasyon kontrolleri:** sahiplik süzgeci, kitaplık-yok koruması ve sayacın kayda yazılması tek tek kaldırılınca ilgili testler düşer
+- [x] **Mutasyon kontrolleri:** sahiplik süzgeci, kitaplık-yok koruması ve sayacın kayda yazılması tek tek kaldırılınca ilgili testler düşer
 - [ ] **Elle (maintainer yapar):** aynı cihazda A ile çevrimdışı kitap ekle → çıkış → B ile giriş → çevrimiçi ol → A'nın kitabı B'de yok, kuyruk boş
 - [ ] Tüm paket `--sequence.shuffle` ile de yeşil
