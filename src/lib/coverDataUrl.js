@@ -13,7 +13,7 @@ export const COVER_FETCH_TIMEOUT_MS = 15000;
 
 // A calendar cell is at most ~70px wide in the 2x export, so 200px keeps
 // covers sharp while keeping the card's data URLs small.
-export const COVER_MAX_WIDTH = 200;
+const COVER_MAX_WIDTH = 200;
 
 function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => {
