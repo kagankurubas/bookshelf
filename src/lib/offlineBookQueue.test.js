@@ -3,31 +3,89 @@
 // encounter a real/unneeded global indexedDB object.
 import 'fake-indexeddb/auto';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { enqueueBook, getQueuedBooks, removeQueuedBook } from './offlineBookQueue';
+import {
+  clearQueue,
+  countUnsentBooks,
+  enqueueBook,
+  getQueuedBooks,
+  removeBooksOwnedByOthers,
+  removeQueuedBook,
+} from './offlineBookQueue';
 
-// fake-indexeddb shares the same database name across tests, so we wipe
-// the database before every test to avoid leaking data between them.
-beforeEach(async () => {
-  await new Promise((resolve, reject) => {
-    const request = indexedDB.deleteDatabase('bookshelf-offline-queue');
+const DB_NAME = 'bookshelf-offline-queue';
+
+function deleteDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(DB_NAME);
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
     request.onblocked = () => resolve();
   });
+}
+
+// Builds the queue the way version 1 of the app left it: one store, no
+// owner index, records without an owner.
+function createVersionOneQueue(records) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const store = request.result.createObjectStore('pendingBooks', { keyPath: 'id', autoIncrement: true });
+      records.forEach((record) => store.add(record));
+    };
+    request.onsuccess = () => {
+      request.result.close();
+      resolve();
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function readAllRecords() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME);
+    request.onsuccess = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('pendingBooks')) {
+        db.close();
+        resolve([]);
+        return;
+      }
+      const getAll = db.transaction('pendingBooks', 'readonly').objectStore('pendingBooks').getAll();
+      getAll.onsuccess = () => {
+        db.close();
+        resolve(getAll.result);
+      };
+      getAll.onerror = () => {
+        db.close();
+        reject(getAll.error);
+      };
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// fake-indexeddb shares the same database name across tests, so we wipe
+// the database before every test to avoid leaking data between them.
+beforeEach(async () => {
+  await deleteDatabase();
 });
 
 describe('offlineBookQueue', () => {
   it('starts empty', async () => {
-    const queued = await getQueuedBooks();
-    expect(queued).toEqual([]);
+    expect(await getQueuedBooks('user-a')).toEqual([]);
   });
 
-  it('enqueues a book and returns an auto-generated id', async () => {
-    const id = await enqueueBook({ title: 'Dune', author: 'Frank Herbert' });
+  it('enqueues a book under its owner and returns an auto-generated id', async () => {
+    const id = await enqueueBook('user-a', { title: 'Dune', author: 'Frank Herbert' });
     expect(id).toBeDefined();
 
-    const queued = await getQueuedBooks();
-    expect(queued).toEqual([{ id, title: 'Dune', author: 'Frank Herbert' }]);
+    expect(await getQueuedBooks('user-a')).toEqual([{ id, ownerId: 'user-a', title: 'Dune', author: 'Frank Herbert' }]);
+  });
+
+  it('refuses to queue a book without an owner', async () => {
+    await expect(enqueueBook(undefined, { title: 'Dune' })).rejects.toThrow();
+    await expect(enqueueBook(null, { title: 'Dune' })).rejects.toThrow();
+    expect(await readAllRecords()).toEqual([]);
   });
 
   // Regression: App.jsx's handleSaveBook spreads bookData from BookModal's
@@ -40,40 +98,99 @@ describe('offlineBookQueue', () => {
     const bookFieldsWithExplicitUndefinedId = { id: undefined, title: 'Yeni Kitap' };
     expect(Object.prototype.hasOwnProperty.call(bookFieldsWithExplicitUndefinedId, 'id')).toBe(true);
 
-    const id = await enqueueBook(bookFieldsWithExplicitUndefinedId);
+    const id = await enqueueBook('user-a', bookFieldsWithExplicitUndefinedId);
     expect(id).toBeDefined();
 
-    const queued = await getQueuedBooks();
-    expect(queued).toEqual([{ id, title: 'Yeni Kitap' }]);
+    expect(await getQueuedBooks('user-a')).toEqual([{ id, ownerId: 'user-a', title: 'Yeni Kitap' }]);
   });
 
   it('preserves FIFO order across multiple enqueues', async () => {
-    await enqueueBook({ title: 'Kitap 1' });
-    await enqueueBook({ title: 'Kitap 2' });
-    await enqueueBook({ title: 'Kitap 3' });
+    await enqueueBook('user-a', { title: 'Kitap 1' });
+    await enqueueBook('user-a', { title: 'Kitap 2' });
+    await enqueueBook('user-a', { title: 'Kitap 3' });
 
-    const queued = await getQueuedBooks();
+    const queued = await getQueuedBooks('user-a');
     expect(queued.map((b) => b.title)).toEqual(['Kitap 1', 'Kitap 2', 'Kitap 3']);
   });
 
+  it('returns only the given owner\'s records, and none without an owner', async () => {
+    await enqueueBook('user-a', { title: 'A1' });
+    await enqueueBook('user-b', { title: 'B1' });
+    await enqueueBook('user-a', { title: 'A2' });
+
+    expect((await getQueuedBooks('user-a')).map((b) => b.title)).toEqual(['A1', 'A2']);
+    expect((await getQueuedBooks('user-b')).map((b) => b.title)).toEqual(['B1']);
+    expect(await getQueuedBooks(undefined)).toEqual([]);
+  });
+
   it('removes only the targeted record, leaving the others (and their order) intact', async () => {
-    const id1 = await enqueueBook({ title: 'Kitap 1' });
-    const id2 = await enqueueBook({ title: 'Kitap 2' });
-    const id3 = await enqueueBook({ title: 'Kitap 3' });
+    const id1 = await enqueueBook('user-a', { title: 'Kitap 1' });
+    const id2 = await enqueueBook('user-a', { title: 'Kitap 2' });
+    const id3 = await enqueueBook('user-a', { title: 'Kitap 3' });
 
     await removeQueuedBook(id2);
 
-    const queued = await getQueuedBooks();
+    const queued = await getQueuedBooks('user-a');
     expect(queued.map((b) => b.id)).toEqual([id1, id3]);
     expect(queued.map((b) => b.title)).toEqual(['Kitap 1', 'Kitap 3']);
   });
 
   it('removing a non-existent id is a no-op (does not throw, does not touch existing records)', async () => {
-    const id = await enqueueBook({ title: 'Kitap 1' });
+    const id = await enqueueBook('user-a', { title: 'Kitap 1' });
 
     await expect(removeQueuedBook(id + 999)).resolves.toBeUndefined();
 
-    const queued = await getQueuedBooks();
-    expect(queued).toHaveLength(1);
+    expect(await getQueuedBooks('user-a')).toHaveLength(1);
+  });
+
+  it('clearQueue removes every record, whoever owns it', async () => {
+    await enqueueBook('user-a', { title: 'A1' });
+    await enqueueBook('user-b', { title: 'B1' });
+
+    await clearQueue();
+
+    expect(await readAllRecords()).toEqual([]);
+  });
+
+  it('removeBooksOwnedByOthers drops other users\' records but keeps the user\'s own and unowned ones', async () => {
+    await createVersionOneQueue([{ title: 'Eski' }]);
+    await enqueueBook('user-a', { title: 'A1' });
+    await enqueueBook('user-b', { title: 'B1' });
+
+    await removeBooksOwnedByOthers('user-b');
+
+    const remaining = await readAllRecords();
+    expect(remaining.map((r) => [r.title, r.ownerId])).toEqual([['Eski', null], ['B1', 'user-b']]);
+  });
+
+  it('counts the records a sign-out would discard: the user\'s own plus unowned ones', async () => {
+    await createVersionOneQueue([{ title: 'Eski' }]);
+    await enqueueBook('user-a', { title: 'A1' });
+    await enqueueBook('user-a', { title: 'A2' });
+    await enqueueBook('user-b', { title: 'B1' });
+
+    expect(await countUnsentBooks('user-a')).toBe(3);
+    expect(await countUnsentBooks('user-b')).toBe(2);
+  });
+
+  describe('upgrading a version 1 queue', () => {
+    it('marks the old records as unowned and never hands them to any user', async () => {
+      await createVersionOneQueue([{ title: 'Eski 1', libraryIds: [null] }, { title: 'Eski 2', libraryIds: ['lib-x'] }]);
+
+      expect(await getQueuedBooks('user-a')).toEqual([]);
+      const records = await readAllRecords();
+      expect(records.map((r) => [r.title, r.ownerId])).toEqual([['Eski 1', null], ['Eski 2', null]]);
+    });
+
+    it('keeps the queue usable after the upgrade', async () => {
+      await createVersionOneQueue([{ title: 'Eski' }]);
+
+      const id = await enqueueBook('user-a', { title: 'Yeni' });
+      expect((await getQueuedBooks('user-a')).map((b) => b.id)).toEqual([id]);
+
+      await removeQueuedBook(id);
+      expect(await getQueuedBooks('user-a')).toEqual([]);
+      expect((await readAllRecords()).map((r) => r.title)).toEqual(['Eski']);
+    });
   });
 });

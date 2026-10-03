@@ -285,6 +285,8 @@
     "signIn": "Giriş Yap",
     "signUp": "Kayıt Ol",
     "signOut": "Çıkış Yap",
+    "signOutDiscardQueued_one": "Bu cihazda henüz gönderilmemiş {{count}} kitap var; çıkış yaparsan silinecek. Yine de çıkış yapılsın mı?",
+    "signOutDiscardQueued_other": "Bu cihazda henüz gönderilmemiş {{count}} kitap var; çıkış yaparsan silinecekler. Yine de çıkış yapılsın mı?",
     "emailPlaceholder": "E-posta",
     "passwordPlaceholder": "Şifre",
     "submitting": "Gönderiliyor...",

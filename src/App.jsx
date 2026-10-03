@@ -88,7 +88,8 @@ function App() {
   // useOfflineBookQueue - App.jsx only injects which addBook variant
   // (single/without stats) to use and when to consider things "ready" (so a
   // flush isn't attempted before library data has loaded).
-  const { isOnline, queuedCount, addOrQueueBook } = useOfflineBookQueue({
+  const { isOnline, queuedCount, addOrQueueBook, countUnsentForSignOut, discardQueue } = useOfflineBookQueue({
+    userId: user?.id,
     addBook: library.addBook,
     addBookForSync: library.addBookWithoutStatsRefresh,
     refreshStats: library.refreshStats,
@@ -176,6 +177,17 @@ function App() {
     return newLib;
   };
 
+  // The sign-out button is the only path that discards the offline queue,
+  // after confirming; an expired session keeps it for the same user.
+  const handleSignOut = async () => {
+    const unsentCount = await countUnsentForSignOut().catch(() => 0);
+    if (unsentCount > 0) {
+      if (!window.confirm(t('auth.signOutDiscardQueued', { count: unsentCount }))) return;
+      await discardQueue();
+    }
+    await signOut();
+  };
+
   const handleDeleteLibrary = async (libId) => {
     try {
       await library.deleteLibrary(libId);
@@ -220,7 +232,7 @@ function App() {
                   activeView={activeView}
                   onChangeView={setActiveView}
                   userEmail={user.email}
-                  onSignOut={signOut}
+                  onSignOut={handleSignOut}
                   onOpenSettings={() => setIsSettingsOpen(true)}
                 />
 

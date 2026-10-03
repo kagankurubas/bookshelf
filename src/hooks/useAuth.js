@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { clearUserDataCache, syncUserDataCacheOwner } from '../lib/userDataCache';
+import { removeBooksOwnedByOthers } from '../lib/offlineBookQueue';
 
 export function useAuth() {
   const [session, setSession] = useState(null);
@@ -15,10 +16,14 @@ export function useAuth() {
     const { data: subscription } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession);
       // Cached REST reads must not outlive the session on a shared device.
+      // The offline queue is different: SIGNED_OUT also fires for an expired
+      // session, so the queue is only cleared by the sign-out button; here a
+      // different user signing in drops the previous owner's records.
       if (event === 'SIGNED_OUT') {
         clearUserDataCache();
       } else if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && newSession?.user) {
         syncUserDataCacheOwner(newSession.user.id);
+        removeBooksOwnedByOthers(newSession.user.id).catch((err) => console.error(err));
       }
     });
 

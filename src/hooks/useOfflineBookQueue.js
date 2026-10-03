@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useOnlineStatus } from './useOnlineStatus';
 import { useAddOrQueueBook } from './useAddOrQueueBook';
-import { enqueueBook, getQueuedBooks, removeQueuedBook } from '../lib/offlineBookQueue';
+import { clearQueue, countUnsentBooks, enqueueBook, getQueuedBooks, removeQueuedBook } from '../lib/offlineBookQueue';
 
 // Centralizes the whole offline book-add queue orchestration (staying
 // embedded in App.jsx would both be a second, unrelated reason for it to
@@ -14,11 +14,14 @@ import { enqueueBook, getQueuedBooks, removeQueuedBook } from '../lib/offlineBoo
 // stats aren't refreshed N times - `refreshStats` is called once after the
 // loop finishes. `isReady` is controlled from outside so a flush isn't
 // attempted before library data (activeLibraryId) has loaded.
-export function useOfflineBookQueue({ addBook, addBookForSync, refreshStats, isReady }) {
+//
+// Records belong to the user who queued them (`userId`): only that user's
+// records are counted and synced, and nothing syncs while signed out.
+export function useOfflineBookQueue({ userId, addBook, addBookForSync, refreshStats, isReady }) {
   const [queuedCount, setQueuedCount] = useState(0);
 
   const refreshQueuedCount = () => {
-    getQueuedBooks()
+    getQueuedBooks(userId)
       .then((queued) => setQueuedCount(queued.length))
       .catch((err) => console.error(err));
   };
@@ -28,10 +31,12 @@ export function useOfflineBookQueue({ addBook, addBookForSync, refreshStats, isR
   // stay safe if the sync is interrupted. If one item fails, the loop
   // stops, and the rest stay queued for retry on the next online transition.
   const flushQueuedBooks = async () => {
-    const queued = await getQueuedBooks();
+    if (!userId) return;
+    const queued = await getQueuedBooks(userId);
     let addedAny = false;
     for (const queuedBook of queued) {
-      const { id, ...fields } = queuedBook;
+      // eslint-disable-next-line no-unused-vars
+      const { id, ownerId, ...fields } = queuedBook;
       try {
         await addBookForSync(fields);
         await removeQueuedBook(id);
@@ -61,7 +66,11 @@ export function useOfflineBookQueue({ addBook, addBookForSync, refreshStats, isR
   // attempting a write and inspecting the error type) is delegated to an
   // isolated/testable helper (useAddOrQueueBook); here we only refresh the
   // counter after an add that ends up queued.
-  const addOrQueueBookRaw = useAddOrQueueBook({ isOnline, addBook, enqueueBook });
+  const addOrQueueBookRaw = useAddOrQueueBook({
+    isOnline,
+    addBook,
+    enqueueBook: (fields) => enqueueBook(userId, fields),
+  });
   const addOrQueueBook = async (fields) => {
     const outcome = await addOrQueueBookRaw(fields);
     if (outcome?.queued) {
@@ -75,24 +84,35 @@ export function useOfflineBookQueue({ addBook, addBookForSync, refreshStats, isR
   // also check once as soon as `isReady` becomes true (once library data is
   // ready). flushQueuedBooks is deliberately left out of the deps - it's a
   // closure that's recreated every render, but we only want the ONE call
-  // guarded by hasFlushedOnLoadRef (the latest closure at the moment the
-  // data first becomes ready).
-  const hasFlushedOnLoadRef = useRef(false);
+  // guarded by flushedForUserRef (the latest closure at the moment the
+  // data first becomes ready). Keyed by user, so signing back in on the same
+  // tab syncs that user's records again.
+  const flushedForUserRef = useRef(null);
   useEffect(() => {
-    if (!isReady) return;
-    if (hasFlushedOnLoadRef.current) return;
-    hasFlushedOnLoadRef.current = true;
+    if (!isReady || !userId) return;
+    if (flushedForUserRef.current === userId) return;
+    flushedForUserRef.current = userId;
     if (navigator.onLine) {
       flushQueuedBooks();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isReady]);
+  }, [isReady, userId]);
 
-  // Read once on startup, so the banner can show the right count from the
-  // first render if records were left queued from a previous session.
+  // Read on startup and whenever the signed-in user changes, so the banner
+  // shows that user's count from the first render.
   useEffect(() => {
     refreshQueuedCount();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
-  return { isOnline, queuedCount, addOrQueueBook };
+  // For the sign-out button only: how many records signing out would
+  // discard, and discarding them. A forced sign-out (expired session) keeps
+  // the queue for the same user's next sign-in.
+  const countUnsentForSignOut = () => (userId ? countUnsentBooks(userId) : Promise.resolve(0));
+  const discardQueue = async () => {
+    await clearQueue();
+    setQueuedCount(0);
+  };
+
+  return { isOnline, queuedCount, addOrQueueBook, countUnsentForSignOut, discardQueue };
 }

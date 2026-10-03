@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { clearUserDataCache } from '../lib/userDataCache';
+import { clearQueue } from '../lib/offlineBookQueue';
 
 // Thrown when signInWithPassword fails during password confirmation, so the
 // caller (DeleteAccountModal) can distinguish a "wrong password" message
@@ -32,8 +33,10 @@ export function useDeleteAccount() {
       // The Edge Function deletes the auth.users row; libraries/books/notes/
       // ai_conversations/ai_messages are all tied to it via ON DELETE
       // CASCADE (see supabase/schema.sql) - no extra deletion needed here.
-      // The deleted account's cached reads go too, before signing out.
+      // The deleted account's cached reads and unsent offline books go too,
+      // before signing out.
       await clearUserDataCache();
+      await clearQueue().catch((err) => console.error(err));
       await supabase.auth.signOut();
       return data;
     } catch (err) {

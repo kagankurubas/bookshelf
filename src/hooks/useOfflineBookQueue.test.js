@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useOfflineBookQueue } from './useOfflineBookQueue';
-import { enqueueBook, getQueuedBooks, removeQueuedBook } from '../lib/offlineBookQueue';
+import { clearQueue, countUnsentBooks, enqueueBook, getQueuedBooks, removeQueuedBook } from '../lib/offlineBookQueue';
 
 vi.mock('../lib/offlineBookQueue', () => ({
+  clearQueue: vi.fn(),
+  countUnsentBooks: vi.fn(),
   enqueueBook: vi.fn(),
   getQueuedBooks: vi.fn(),
   removeQueuedBook: vi.fn(),
@@ -13,13 +15,13 @@ function setNavigatorOnline(value) {
   Object.defineProperty(window.navigator, 'onLine', { value, configurable: true });
 }
 
-function renderQueue({ isReady = true } = {}) {
+function renderQueue({ isReady = true, userId = 'user-a' } = {}) {
   const addBook = vi.fn().mockResolvedValue({ id: 'book-1' });
   const addBookForSync = vi.fn().mockResolvedValue({ id: 'book-1' });
   const refreshStats = vi.fn();
   const hook = renderHook(
-    ({ isReady }) => useOfflineBookQueue({ addBook, addBookForSync, refreshStats, isReady }),
-    { initialProps: { isReady } }
+    ({ isReady, userId }) => useOfflineBookQueue({ userId, addBook, addBookForSync, refreshStats, isReady }),
+    { initialProps: { isReady, userId } }
   );
   return { ...hook, addBook, addBookForSync, refreshStats };
 }
@@ -70,7 +72,7 @@ describe('useOfflineBookQueue', () => {
       await result.current.addOrQueueBook({ title: 'Dune' });
     });
 
-    expect(enqueueBook).toHaveBeenCalledWith({ title: 'Dune' });
+    expect(enqueueBook).toHaveBeenCalledWith('user-a', { title: 'Dune' });
     expect(addBook).not.toHaveBeenCalled();
     await waitFor(() => expect(result.current.queuedCount).toBe(1));
   });
@@ -78,11 +80,11 @@ describe('useOfflineBookQueue', () => {
   it('flushes the queue once isReady becomes true while already online, removing each synced item and refreshing stats once', async () => {
     getQueuedBooks
       .mockResolvedValueOnce([]) // initial mount read
-      .mockResolvedValueOnce([{ id: 1, title: 'Kitap 1' }, { id: 2, title: 'Kitap 2' }]) // flush read
+      .mockResolvedValueOnce([{ id: 1, ownerId: 'user-a', title: 'Kitap 1' }, { id: 2, ownerId: 'user-a', title: 'Kitap 2' }]) // flush read
       .mockResolvedValueOnce([]); // post-flush refreshQueuedCount
 
     const { result, rerender, addBookForSync, refreshStats } = renderQueue({ isReady: false });
-    rerender({ isReady: true });
+    rerender({ isReady: true, userId: 'user-a' });
 
     // queuedCount'un 0'a donmesi, flush'un (sondaki refreshQueuedCount()
     // dahil) tamamen bittiginin kesin isareti.
@@ -90,6 +92,8 @@ describe('useOfflineBookQueue', () => {
     expect(addBookForSync).toHaveBeenCalledTimes(2);
     expect(addBookForSync).toHaveBeenNthCalledWith(1, { title: 'Kitap 1' });
     expect(addBookForSync).toHaveBeenNthCalledWith(2, { title: 'Kitap 2' });
+    expect(getQueuedBooks).toHaveBeenCalledWith('user-a');
+    expect(getQueuedBooks.mock.calls.every(([ownerId]) => ownerId === 'user-a')).toBe(true);
     expect(removeQueuedBook).toHaveBeenCalledWith(1);
     expect(removeQueuedBook).toHaveBeenCalledWith(2);
     expect(refreshStats).toHaveBeenCalledTimes(1);
@@ -107,7 +111,7 @@ describe('useOfflineBookQueue', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const { result, rerender } = renderHook(
-      ({ isReady }) => useOfflineBookQueue({ addBook, addBookForSync, refreshStats, isReady }),
+      ({ isReady }) => useOfflineBookQueue({ userId: 'user-a', addBook, addBookForSync, refreshStats, isReady }),
       { initialProps: { isReady: false } }
     );
     rerender({ isReady: true });
@@ -127,9 +131,63 @@ describe('useOfflineBookQueue', () => {
     setNavigatorOnline(false);
     getQueuedBooks.mockResolvedValue([{ id: 1, title: 'Kitap 1' }]);
     const { rerender, addBookForSync } = renderQueue({ isReady: false });
-    rerender({ isReady: true });
+    rerender({ isReady: true, userId: 'user-a' });
 
     await new Promise((r) => setTimeout(r, 0));
     expect(addBookForSync).not.toHaveBeenCalled();
+  });
+
+  it('syncs nothing while signed out, even when the browser comes back online', async () => {
+    getQueuedBooks.mockResolvedValue([{ id: 1, ownerId: 'user-a', title: 'Kitap 1' }]);
+    const { addBookForSync } = renderQueue({ isReady: false, userId: null });
+
+    await act(async () => {
+      window.dispatchEvent(new Event('online'));
+    });
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(addBookForSync).not.toHaveBeenCalled();
+    expect(getQueuedBooks.mock.calls.every(([ownerId]) => ownerId === null)).toBe(true);
+  });
+
+  it("syncs the next user's own records when another user signs in on the same tab", async () => {
+    getQueuedBooks.mockImplementation(async (ownerId) => (
+      ownerId === 'user-b' ? [{ id: 7, ownerId: 'user-b', title: 'B Kitabi' }] : []
+    ));
+    const { rerender, addBookForSync } = renderQueue({ isReady: true, userId: 'user-a' });
+    await waitFor(() => expect(getQueuedBooks).toHaveBeenCalledWith('user-a'));
+    expect(addBookForSync).not.toHaveBeenCalled();
+
+    rerender({ isReady: true, userId: 'user-b' });
+
+    await waitFor(() => expect(addBookForSync).toHaveBeenCalledWith({ title: 'B Kitabi' }));
+    expect(addBookForSync).toHaveBeenCalledTimes(1);
+    expect(removeQueuedBook).toHaveBeenCalledWith(7);
+  });
+
+  it('reports how many books a sign-out would discard, and discards them on request', async () => {
+    getQueuedBooks.mockResolvedValue([{ id: 1, ownerId: 'user-a', title: 'Kitap 1' }]);
+    countUnsentBooks.mockResolvedValue(3);
+    clearQueue.mockResolvedValue(undefined);
+    setNavigatorOnline(false);
+    const { result } = renderQueue({ isReady: false });
+    await waitFor(() => expect(result.current.queuedCount).toBe(1));
+
+    await expect(result.current.countUnsentForSignOut()).resolves.toBe(3);
+    expect(countUnsentBooks).toHaveBeenCalledWith('user-a');
+
+    await act(async () => {
+      await result.current.discardQueue();
+    });
+    expect(clearQueue).toHaveBeenCalledTimes(1);
+    expect(result.current.queuedCount).toBe(0);
+  });
+
+  it('reports nothing to discard while signed out', async () => {
+    getQueuedBooks.mockResolvedValue([]);
+    const { result } = renderQueue({ isReady: false, userId: null });
+
+    await expect(result.current.countUnsentForSignOut()).resolves.toBe(0);
+    expect(countUnsentBooks).not.toHaveBeenCalled();
   });
 });

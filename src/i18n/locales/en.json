@@ -285,6 +285,8 @@
     "signIn": "Sign In",
     "signUp": "Sign Up",
     "signOut": "Sign Out",
+    "signOutDiscardQueued_one": "{{count}} book on this device hasn't been sent yet and will be deleted if you sign out. Sign out anyway?",
+    "signOutDiscardQueued_other": "{{count}} books on this device haven't been sent yet and will be deleted if you sign out. Sign out anyway?",
     "emailPlaceholder": "Email",
     "passwordPlaceholder": "Password",
     "submitting": "Submitting...",
