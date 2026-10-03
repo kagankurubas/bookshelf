@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import { toBlob } from 'html-to-image';
 import ReadingRecap from './ReadingRecap';
-import { clearCoverDataUrlCache } from '../../lib/coverDataUrl';
+import { clearCoverDataUrlCache, COVER_FETCH_TIMEOUT_MS } from '../../lib/coverDataUrl';
 import { resizeImageBlob } from '../../lib/imageResize';
 import i18n from '../../i18n/i18n';
 
@@ -148,5 +148,25 @@ describe('ReadingRecap calendar style', () => {
     expect(screen.getByText('Sun')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'October 1: Book c (4 stars)' })).toBeInTheDocument();
     expect(screen.getByText("2 books with missing or invalid dates aren't shown on the calendar.")).toBeInTheDocument();
+  });
+
+  it('gives up on a stalled cover after the timeout, shows a tile and enables sharing', async () => {
+    const timeout = new AbortController();
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(timeout.signal);
+    globalThis.fetch = vi.fn((url, { signal }) => new Promise((_, reject) => {
+      signal.addEventListener('abort', () => reject(signal.reason));
+    }));
+    const { container } = renderRecap([
+      completed('a', '2026-10-01', '2026-10-01', { title: 'Stalled', coverImage: 'https://covers.openlibrary.org/b/id/1-L.jpg' }),
+    ]);
+    switchToCalendar();
+
+    expect(shareButton()).toBeDisabled();
+    expect(timeoutSpy).toHaveBeenCalledWith(COVER_FETCH_TIMEOUT_MS);
+    expect(COVER_FETCH_TIMEOUT_MS).toBe(15000);
+
+    await act(async () => timeout.abort(new DOMException('timed out', 'TimeoutError')));
+    await waitFor(() => expect(shareButton()).toBeEnabled());
+    expect(within(container.querySelector('.recap-card')).getByText('Stalled')).toBeInTheDocument();
   });
 });
