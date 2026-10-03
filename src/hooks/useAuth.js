@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { clearUserDataCache, syncUserDataCacheOwner } from '../lib/userDataCache';
 
 export function useAuth() {
   const [session, setSession] = useState(null);
@@ -11,8 +12,14 @@ export function useAuth() {
       setLoading(false);
     });
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession);
+      // Cached REST reads must not outlive the session on a shared device.
+      if (event === 'SIGNED_OUT') {
+        clearUserDataCache();
+      } else if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && newSession?.user) {
+        syncUserDataCacheOwner(newSession.user.id);
+      }
     });
 
     return () => subscription.subscription.unsubscribe();
