@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
 import { resolveTagCasing } from '../../lib/tagCasing';
 import { openLibraryCoverUrl } from '../../lib/openLibrary';
+import { toLocalIsoDate } from '../../lib/localDate';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import './BookModal.css';
 
@@ -98,12 +99,10 @@ function BookModal({ onClose, onSave, selectedBook, prefillData = null, existing
   const handleStatusChange = (newStatus) => {
     setStatus(newStatus);
     if (newStatus === 'Okunuyor' && !dateStarted) {
-      const today = new Date().toISOString().split('T')[0];
-      setDateStarted(today);
+      setDateStarted(toLocalIsoDate());
     }
     if (newStatus === 'Tamamlandı' && !dateFinished) {
-      const today = new Date().toISOString().split('T')[0];
-      setDateFinished(today);
+      setDateFinished(toLocalIsoDate());
     }
   };
 
