@@ -16,7 +16,13 @@
     "dashboard": "Statistics",
     "explore": "Explore",
     "comingSoon": "SOON",
-    "exploreTooltip": "Coming very soon: your reading friends and a community"
+    "exploreTooltip": "Coming very soon: your reading friends and a community",
+    "cardsShort": "Books",
+    "tableShort": "Table",
+    "shelfShort": "Shelf",
+    "dashboardShort": "Stats",
+    "exploreShort": "Explore",
+    "exploreSoonLabel": "Explore (coming soon)"
   },
   "aiChat": {
     "fabTitle": "Book Assistant",

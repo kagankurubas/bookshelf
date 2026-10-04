@@ -277,7 +277,7 @@ describe('App page title', () => {
     expect(current()).toEqual(['Kitaplar']);
     fireEvent.click(screen.getByRole('button', { name: 'Tablo' }));
     expect(current()).toEqual(['Tablo']);
-    expect(screen.getByRole('button', { name: 'Keşfet' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('button', { name: 'Keşfet (yakında)' })).not.toHaveAttribute('aria-current');
   });
 
   it('names the statistics view "Statistics" in English, heading and tab alike', async () => {

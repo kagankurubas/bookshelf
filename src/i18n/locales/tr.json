@@ -16,7 +16,13 @@
     "dashboard": "İstatistikler",
     "explore": "Keşfet",
     "comingSoon": "YAKINDA",
-    "exploreTooltip": "Çok yakında: kitap arkadaşların ve topluluk"
+    "exploreTooltip": "Çok yakında: kitap arkadaşların ve topluluk",
+    "cardsShort": "Kitaplar",
+    "tableShort": "Tablo",
+    "shelfShort": "Raf",
+    "dashboardShort": "İstatistik",
+    "exploreShort": "Keşfet",
+    "exploreSoonLabel": "Keşfet (yakında)"
   },
   "aiChat": {
     "fabTitle": "Kitap Asistanı",

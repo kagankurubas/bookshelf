@@ -193,6 +193,11 @@ html, body, #root {
   box-shadow: var(--shadow-sm);
 }
 
+/* Short tab names are only for phones (see the 480px rules). */
+.tab-label-short {
+  display: none;
+}
+
 .tab-badge {
   font-family: var(--font-body);
   font-size: 9px;
@@ -1093,13 +1098,28 @@ html, body, #root {
     font-size: 17px;
   }
 
+  /* Icon on top, short name below, on every tab. */
   .modern-tab-btn {
-    gap: 0;
-    padding: 9px 2px;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 7px 2px 6px;
+  }
+
+  .modern-tab-btn svg {
+    width: 20px;
+    height: 20px;
   }
 
   .modern-tab-btn .tab-label {
     display: none;
+  }
+
+  .modern-tab-btn .tab-label-short {
+    display: block;
+    font-size: 11px;
+    line-height: 1.1;
+    white-space: nowrap;
   }
 
   .account-chip-email {
