@@ -62,11 +62,14 @@ html, body, #root {
   box-sizing: border-box;
 }
 
+/* The bottom padding leaves room for the fixed buttons in the bottom
+   corners (their offset and height plus a margin) and the safe area, so the
+   last item on a page can always be scrolled clear of them. */
 .main-container {
   width: 100% !important;
   max-width: none !important;
   margin: 0 !important;
-  padding: 0 0 60px !important;
+  padding: 0 0 calc(108px + env(safe-area-inset-bottom, 0px)) !important;
   font-family: var(--font-body);
   color: var(--text);
   background-color: var(--bg);
@@ -441,7 +444,7 @@ html, body, #root {
 .ai-chat-fab {
   position: fixed;
   right: 40px;
-  bottom: 36px;
+  bottom: calc(36px + env(safe-area-inset-bottom, 0px));
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -1165,9 +1168,13 @@ html, body, #root {
     gap: 32px;
   }
 
+  .main-container {
+    padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
   .ai-chat-fab {
     right: 16px;
-    bottom: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     width: 50px;
     height: 50px;
   }
@@ -1179,7 +1186,7 @@ html, body, #root {
   .fab-add {
     position: fixed;
     left: 16px;
-    bottom: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     z-index: 40;
   }
 }

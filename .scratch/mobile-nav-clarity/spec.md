@@ -144,7 +144,7 @@ Sonuç:
 - Ana kapsayıcının alt boşluğu 60 px (`!important`).
 - Mobilde düğmeler 16 px alttan, en yükseği 50 px: kaplama 66 px.
 - Masaüstünde AI düğmesi 36 px alttan, 56 px: kaplama 92 px. `+` masaüstünde sabit değil.
-- `viewport-fit=cover` yok. Bu yüzden `env(safe-area-inset-bottom)` tarayıcıda 0, PWA (standalone) kurulumunda ise cihaza göre dolu olabilir.
+- `viewport-fit=cover` yok. Bu yüzden `env(safe-area-inset-bottom)` 0 döner: iOS güvenli alan değerlerini yalnızca `viewport-fit=cover` ile verir, tarayıcıda da kurulu uygulamada (standalone) da. (İlk taslakta "PWA'da dolu olabilir" yazıyordu; 04 sırasında düzeltildi.)
 
 **Tablo:** Tablo yatay kaydırılabilir bir kapsayıcıda ve `width: 100%`. Bu yüzden dar ekranda sütunlar sıkışıyor ve yazar hücresi kırılıyor. Yazar tek bir metin:
 - Goodreads içe aktarma `Author` ile `Additional Authors`'ı `", "` ile birleştiriyor.
@@ -238,7 +238,7 @@ Seçilen seçenekte sayılı metin i18next çoğul anahtarlarıyla yazılır (`_
     - mobil: 66 + 16 = 82 px + güvenli alan
     - masaüstü: 92 + 16 = 108 px
   - Düğmelerin alt konumu da güvenli alanı ekler: `calc(16px + env(safe-area-inset-bottom, 0px))`.
-  - `viewport-fit=cover` **eklenmez**. Eklemek iOS'ta içeriği çentiğin altına taşır ve üst kısmı da yeniden düzenlemeyi gerektirir; kapsam dışı. `env()`, PWA (standalone) kurulumunda ve ileride `viewport-fit=cover` eklendiğinde doğru çalışır.
+  - `viewport-fit=cover` **eklenmez**. Eklemek iOS'ta içeriği çentiğin altına taşır ve üst kısmı da yeniden düzenlemeyi gerektirir; kapsam dışı. `env()` bugün 0 döner ve etkisizdir; ileride `viewport-fit=cover` eklendiğinde kendiliğinden devreye girer.
   - Ana kapsayıcıdaki `!important` korunur; hesap aynı kurala yazılır.
 - **Yazar hücresi.** Tablodaki yazar hücresi en fazla 2 satır gösterir (`-webkit-line-clamp: 2`) ve makul bir en büyük genişlik alır. Tam metin `title` niteliğinde kalır. Veri, filtre ve arama değişmez.
   - "İlk yazar +N" bu PR'da yapılmaz. Yazar alanı tek metin ve `", "` hem yazar ayırıcı hem "Soyad, Ad" biçimi olabiliyor; "Dostoyevski, Fyodor" yanlışlıkla "Dostoyevski +1" olur. Doğru çözüm, ayırıcı kuralına ya da yazarları dizi olarak saklamaya karar vermeyi gerektiriyor. Takip ticket'ı yazılır.
