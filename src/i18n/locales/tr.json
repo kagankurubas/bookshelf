@@ -53,7 +53,6 @@
     "noRating": "—"
   },
   "dashboard": {
-    "title": "İstatistikler",
     "yearSelectLabel": "Yıl seç",
     "allTime": "Tüm Zamanlar",
     "yearlyTitle": "Yıllara Göre",
@@ -112,7 +111,6 @@
     "delete": "Kitabı Sil"
   },
   "table": {
-    "heading": "Kitap Listesi & Filtreleme",
     "searchPlaceholder": "Başlık, yazar, not veya etiket ara...",
     "allCategories": "Tüm Kategoriler",
     "allAuthors": "Tüm Yazarlar",

@@ -4,6 +4,7 @@ import BookModal from './components/BookModal/BookModal';
 import BookSearch from './components/BookSearch/BookSearch';
 import AppHeader from './components/AppHeader/AppHeader';
 import LibraryToolbar from './components/LibraryToolbar/LibraryToolbar';
+import PageTitle from './components/PageTitle/PageTitle';
 import CardsView from './components/CardsView/CardsView';
 import TableView from './components/TableView/TableView';
 import ShelfView from './components/ShelfView/ShelfView';
@@ -262,6 +263,8 @@ function App() {
                   </Suspense>
                 )}
 
+                <PageTitle view={activeView} />
+
                 <LibraryToolbar
                   libraries={libraries}
                   activeLibraryId={activeLibraryId}
@@ -336,7 +339,7 @@ function App() {
 
                 {activeView === 'dashboard' && (
                   <Suspense fallback={<p className="app-loading-text">{t('app.loading')}</p>}>
-                    <DashboardPage libraryId={activeLibraryId} libraryName={activeLibrary?.name} books={currentLibraryBooks} />
+                    <DashboardPage libraryId={activeLibraryId} books={currentLibraryBooks} />
                   </Suspense>
                 )}
 

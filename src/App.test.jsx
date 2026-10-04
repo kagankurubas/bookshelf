@@ -4,6 +4,7 @@ import App from './App';
 import { useAuth } from './hooks/useAuth';
 import { useOfflineBookQueue } from './hooks/useOfflineBookQueue';
 import { supabase } from './lib/supabaseClient';
+import i18n from './i18n/i18n';
 
 // useAuth/useOfflineBookQueue are mocked directly so each test controls
 // auth/loading/online state without going through real Supabase auth
@@ -235,5 +236,66 @@ describe('App sign-out button and the offline queue', () => {
     await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1));
     expect(queue.discardQueue).toHaveBeenCalledTimes(1);
     expect(consoleError).toHaveBeenCalledWith(failure);
+  });
+});
+
+describe('App page title', () => {
+  const user = { id: 'u1', email: 'test@example.com' };
+  const views = [
+    ['Kitaplar', 'Kitaplar'],
+    ['Tablo', 'Tablo'],
+    ['Kitaplık Rafı', 'Kitaplık Rafı'],
+    ['İstatistikler', 'İstatistikler'],
+  ];
+
+  beforeEach(() => {
+    supabase.from.mockReturnValue(emptyQueryResult());
+    supabase.rpc.mockImplementation(emptyRpcResult);
+    mockAuth({ loading: false, user });
+    mockOnlineStatus({ isOnline: true });
+  });
+
+  async function renderSignedIn() {
+    render(<App />);
+    await waitFor(() => expect(screen.getByText('test@example.com')).toBeInTheDocument());
+  }
+
+  it.each(views)('shows exactly one page heading, "%s", on that view', async (tabName, heading) => {
+    await renderSignedIn();
+
+    fireEvent.click(screen.getByRole('button', { name: tabName }));
+
+    expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1));
+  });
+
+  it('marks only the active tab as the current page', async () => {
+    await renderSignedIn();
+    const tabNames = views.map(([tabName]) => tabName);
+    const current = () => tabNames.filter((name) => screen.getByRole('button', { name }).getAttribute('aria-current') === 'page');
+
+    expect(current()).toEqual(['Kitaplar']);
+    fireEvent.click(screen.getByRole('button', { name: 'Tablo' }));
+    expect(current()).toEqual(['Tablo']);
+    expect(screen.getByRole('button', { name: 'Keşfet' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('names the statistics view "Statistics" in English, heading and tab alike', async () => {
+    await i18n.changeLanguage('en');
+    try {
+      await renderSignedIn();
+      fireEvent.click(screen.getByRole('button', { name: 'Statistics' }));
+      expect(await screen.findByRole('heading', { level: 1, name: 'Statistics' })).toBeInTheDocument();
+    } finally {
+      await i18n.changeLanguage('tr');
+    }
+  });
+
+  it('puts the active view in the browser tab title', async () => {
+    await renderSignedIn();
+    expect(document.title).toBe('Kitaplar · BookShelf');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tablo' }));
+    await waitFor(() => expect(document.title).toBe('Tablo · BookShelf'));
   });
 });

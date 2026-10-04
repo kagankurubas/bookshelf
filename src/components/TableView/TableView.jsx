@@ -25,8 +25,6 @@ function TableView({
   return (
     <main className="book-list-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-        <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '18px', margin: 0, color: 'var(--text)' }}>{t('table.heading')}</h2>
-
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <input
             type="text" placeholder={t('table.searchPlaceholder')} aria-label={t('table.searchPlaceholder')} value={searchQuery}

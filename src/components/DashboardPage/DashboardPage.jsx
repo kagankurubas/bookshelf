@@ -33,7 +33,7 @@ function MetricToggle({ value, onChange, t }) {
   );
 }
 
-function DashboardPage({ libraryId, libraryName, books }) {
+function DashboardPage({ libraryId, books }) {
   const { t } = useTranslation();
   const [selectedYear, setSelectedYear] = useState(null); // null = all time
   const [trendMetric, setTrendMetric] = useState('books'); // 'books' | 'pages' - for the monthly + yearly charts
@@ -100,11 +100,6 @@ function DashboardPage({ libraryId, libraryName, books }) {
   return (
     <main className="dashboard-page">
       <div className="dashboard-header-row">
-        <div>
-          <h1 className="dashboard-title">{t('dashboard.title')}</h1>
-          <p className="dashboard-subtitle">{libraryName}</p>
-        </div>
-
         <div className="dashboard-header-actions">
           <div className="dashboard-year-select-wrap">
             <CalendarIcon />

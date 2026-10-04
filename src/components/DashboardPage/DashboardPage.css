@@ -10,19 +10,6 @@
   flex-wrap: wrap;
 }
 
-.dashboard-title {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 19px;
-  margin: 0;
-}
-
-.dashboard-subtitle {
-  color: var(--text-secondary);
-  font-size: 12px;
-  margin: 2px 0 0;
-}
-
 .dashboard-header-actions {
   display: flex;
   align-items: center;

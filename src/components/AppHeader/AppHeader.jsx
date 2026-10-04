@@ -14,16 +14,16 @@ function AppHeader({ activeView, onChangeView, userEmail, onSignOut, onOpenSetti
       </div>
 
       <nav className="modern-tabs">
-        <button className={`modern-tab-btn ${activeView === 'cards' ? 'active' : ''}`} onClick={() => onChangeView('cards')} aria-label={t('nav.cards')}>
+        <button className={`modern-tab-btn ${activeView === 'cards' ? 'active' : ''}`} onClick={() => onChangeView('cards')} aria-label={t('nav.cards')} aria-current={activeView === 'cards' ? 'page' : undefined}>
           <GridTabIcon /> <span className="tab-label">{t('nav.cards')}</span>
         </button>
-        <button className={`modern-tab-btn ${activeView === 'table' ? 'active' : ''}`} onClick={() => onChangeView('table')} aria-label={t('nav.table')}>
+        <button className={`modern-tab-btn ${activeView === 'table' ? 'active' : ''}`} onClick={() => onChangeView('table')} aria-label={t('nav.table')} aria-current={activeView === 'table' ? 'page' : undefined}>
           <TableTabIcon /> <span className="tab-label">{t('nav.table')}</span>
         </button>
-        <button className={`modern-tab-btn ${activeView === 'shelf' ? 'active' : ''}`} onClick={() => onChangeView('shelf')} aria-label={t('nav.shelf')}>
+        <button className={`modern-tab-btn ${activeView === 'shelf' ? 'active' : ''}`} onClick={() => onChangeView('shelf')} aria-label={t('nav.shelf')} aria-current={activeView === 'shelf' ? 'page' : undefined}>
           <ShelfTabIcon /> <span className="tab-label">{t('nav.shelf')}</span>
         </button>
-        <button className={`modern-tab-btn ${activeView === 'dashboard' ? 'active' : ''}`} onClick={() => onChangeView('dashboard')} aria-label={t('nav.dashboard')}>
+        <button className={`modern-tab-btn ${activeView === 'dashboard' ? 'active' : ''}`} onClick={() => onChangeView('dashboard')} aria-label={t('nav.dashboard')} aria-current={activeView === 'dashboard' ? 'page' : undefined}>
           <DashboardTabIcon /> <span className="tab-label">{t('nav.dashboard')}</span>
         </button>
         <button className="modern-tab-btn" disabled style={{ cursor: 'not-allowed', opacity: 0.55 }} title={t('nav.exploreTooltip')} aria-label={t('nav.explore')}>
