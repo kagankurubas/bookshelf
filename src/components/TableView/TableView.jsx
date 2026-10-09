@@ -78,7 +78,7 @@ function TableView({
               {books.map((book) => (
                 <tr key={book.id} onClick={() => onOpenBook(book)} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.15s' }}>
                   <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text)', fontFamily: 'var(--font-heading)' }}>{book.title}</td>
-                  <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{book.author}</td>
+                  <td className="table-author-cell" title={book.author} style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}><span className="table-author">{book.author}</span></td>
                   <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{book.publisher || '-'}</td>
                   <td style={{ padding: '12px 16px' }}>{book.category ? <span className="property-tag category">{t(`categories.${book.category}`, book.category)}</span> : '-'}</td>
                   <td style={{ padding: '12px 16px' }}>

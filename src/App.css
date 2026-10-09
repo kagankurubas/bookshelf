@@ -733,6 +733,20 @@ html, body, #root {
   background: var(--danger-soft);
 }
 
+/* Long author lists stop at two lines; the full text is in the cell title. */
+.table-author-cell {
+  min-width: 120px;
+}
+
+.table-author {
+  display: -webkit-box;
+  max-width: 240px;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
 .table-delete-btn {
   background: transparent;
   border: none;
