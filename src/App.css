@@ -1,5 +1,14 @@
 /* ===== Tasarım Tokenleri ===== */
 :root {
+  /* Fixed corner buttons: the tallest one's size, its distance from the
+     bottom, and the margin kept above it. The page's bottom padding is
+     derived from these, so it follows any change to the buttons. */
+  --fab-size: 56px;
+  --fab-offset: 36px;
+  --fab-margin: 16px;
+  --fab-bottom: calc(var(--fab-offset) + env(safe-area-inset-bottom, 0px));
+  --fab-clearance: calc(var(--fab-bottom) + var(--fab-size) + var(--fab-margin));
+
   --bg: oklch(97% 0.006 90);
   --surface: oklch(100% 0 0);
   --surface-alt: oklch(95% 0.006 90);
@@ -62,14 +71,13 @@ html, body, #root {
   box-sizing: border-box;
 }
 
-/* The bottom padding leaves room for the fixed buttons in the bottom
-   corners (their offset and height plus a margin) and the safe area, so the
-   last item on a page can always be scrolled clear of them. */
+/* The bottom padding keeps the last item on a page clear of the fixed
+   corner buttons (see --fab-clearance). */
 .main-container {
   width: 100% !important;
   max-width: none !important;
   margin: 0 !important;
-  padding: 0 0 calc(108px + env(safe-area-inset-bottom, 0px)) !important;
+  padding: 0 0 var(--fab-clearance) !important;
   font-family: var(--font-body);
   color: var(--text);
   background-color: var(--bg);
@@ -444,9 +452,9 @@ html, body, #root {
 .ai-chat-fab {
   position: fixed;
   right: 40px;
-  bottom: calc(36px + env(safe-area-inset-bottom, 0px));
-  width: 56px;
-  height: 56px;
+  bottom: var(--fab-bottom);
+  width: var(--fab-size);
+  height: var(--fab-size);
   border-radius: 50%;
   border: none;
   cursor: pointer;
@@ -1168,15 +1176,13 @@ html, body, #root {
     gap: 32px;
   }
 
-  .main-container {
-    padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px)) !important;
+  :root {
+    --fab-size: 50px;
+    --fab-offset: 16px;
   }
 
   .ai-chat-fab {
     right: 16px;
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-    width: 50px;
-    height: 50px;
   }
 
   /* .fab-add gercek bir position:fixed FAB degildi - LibraryToolbar'daki
@@ -1186,7 +1192,7 @@ html, body, #root {
   .fab-add {
     position: fixed;
     left: 16px;
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    bottom: var(--fab-bottom);
     z-index: 40;
   }
 }
