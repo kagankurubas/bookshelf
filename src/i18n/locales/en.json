@@ -303,7 +303,7 @@
     "verifyLinkExpired": "That verification link has expired. Try signing in, or sign up again to get a new verification email.",
     "verifyLinkError": "That verification link is invalid. Sign up again to get a new verification email.",
     "promoTitle": "Your bookshelf, wherever you go.",
-    "promoSubtitle": "Track your books and organize your shelves — a community for sharing books with friends is coming soon, too."
+    "promoSubtitle": "Track your books and organize your libraries — a community for sharing books with friends is coming soon, too."
   },
   "settings": {
     "title": "Settings",

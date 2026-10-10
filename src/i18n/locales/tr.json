@@ -303,7 +303,7 @@
     "verifyLinkExpired": "Doğrulama linkinin süresi dolmuş. Giriş yapmayı dene ya da tekrar kayıt olup yeni bir doğrulama e-postası iste.",
     "verifyLinkError": "Doğrulama linki geçersiz. Tekrar kayıt olup yeni bir doğrulama e-postası iste.",
     "promoTitle": "Kitaplığın, her yerde yanında.",
-    "promoSubtitle": "Kitaplarını takip et, raflarını düzenle — yakında arkadaşlarınla kitap paylaşabileceğin bir topluluk da burada olacak."
+    "promoSubtitle": "Kitaplarını takip et, kitaplıklarını düzenle — yakında arkadaşlarınla kitap paylaşabileceğin bir topluluk da burada olacak."
   },
   "settings": {
     "title": "Ayarlar",
