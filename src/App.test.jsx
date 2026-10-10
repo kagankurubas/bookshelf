@@ -159,6 +159,8 @@ describe('App', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'İstatistikler' }));
     expect(await screen.findByRole('heading', { name: 'İstatistikler' })).toBeInTheDocument();
+    // The heading comes from PageTitle; the year select only exists once the lazy page has loaded.
+    expect(await screen.findByRole('combobox', { name: 'Yıl seç' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Ayarlar' }));
     expect(await screen.findByRole('heading', { name: 'Ayarlar' })).toBeInTheDocument();
@@ -264,6 +266,8 @@ describe('App page title', () => {
     await renderSignedIn();
 
     fireEvent.click(screen.getByRole('button', { name: tabName }));
+    // Each view renders its own <main>, the lazy Statistics page only once loaded.
+    await screen.findByRole('main');
 
     expect(await screen.findByRole('heading', { level: 1, name: heading })).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1));
