@@ -26,7 +26,7 @@
   <a href="https://github.com/kagankurubas/bookshelf/actions/workflows/ci.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=for-the-badge&label=CI" alt="CI status">
   </a>
-  <img src="https://img.shields.io/badge/tests-385_passing-3ECF8E?style=for-the-badge" alt="385 tests passing">
+  <img src="https://img.shields.io/badge/tests-610_passing-3ECF8E?style=for-the-badge" alt="610 tests passing">
 </p>
 
 <p align="center">
@@ -224,7 +224,7 @@ Use **Sign Up** on the screen that opens to create your first account.
 
 ### Tests
 
-![385 tests passing](https://img.shields.io/badge/tests-385_passing-3ECF8E?style=flat-square)
+![610 tests passing](https://img.shields.io/badge/tests-610_passing-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
 A real Vitest + React Testing Library suite covering the app's core
@@ -511,7 +511,7 @@ Açılan sayfadan **Kayıt Ol** ile ilk hesabını oluştur.
 
 ### Testler
 
-![385 test geçiyor](https://img.shields.io/badge/testler-385_ge%C3%A7iyor-3ECF8E?style=flat-square)
+![610 test geçiyor](https://img.shields.io/badge/testler-610_ge%C3%A7iyor-3ECF8E?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/kagankurubas/bookshelf/ci.yml?branch=main&style=flat-square&label=CI)
 
 Uygulamanın temel mantığını kapsayan gerçek bir Vitest + React Testing
