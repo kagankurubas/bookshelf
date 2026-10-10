@@ -56,6 +56,8 @@ function ShelfView({ books, shelfCount, shelfDnd, onOpenBook }) {
             − {t('shelf.removeRow')}
           </button>
         )}
+
+        <span className="shelf-row-count">{t('shelf.rowCount', { count: shelfCount })}</span>
       </div>
 
       {isPicking && (

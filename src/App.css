@@ -1,5 +1,14 @@
 /* ===== Tasarım Tokenleri ===== */
 :root {
+  /* The AI button's size and distance from the bottom, and the margin kept
+     above it; the page's bottom padding (--fab-clearance) follows them. The
+     add button is a fixed 44px, smaller than the AI button, so it is covered. */
+  --fab-size: 56px;
+  --fab-offset: 36px;
+  --fab-margin: 16px;
+  --fab-bottom: calc(var(--fab-offset) + env(safe-area-inset-bottom, 0px));
+  --fab-clearance: calc(var(--fab-bottom) + var(--fab-size) + var(--fab-margin));
+
   --bg: oklch(97% 0.006 90);
   --surface: oklch(100% 0 0);
   --surface-alt: oklch(95% 0.006 90);
@@ -66,7 +75,7 @@ html, body, #root {
   width: 100% !important;
   max-width: none !important;
   margin: 0 !important;
-  padding: 0 0 60px !important;
+  padding: 0 0 var(--fab-clearance) !important;
   font-family: var(--font-body);
   color: var(--text);
   background-color: var(--bg);
@@ -193,6 +202,11 @@ html, body, #root {
   box-shadow: var(--shadow-sm);
 }
 
+/* Short tab names are only for phones (see the 480px rules). */
+.tab-label-short {
+  display: none;
+}
+
 .tab-badge {
   font-family: var(--font-body);
   font-size: 9px;
@@ -297,6 +311,18 @@ html, body, #root {
   background: var(--danger-soft);
   border-color: var(--danger);
   color: var(--danger);
+}
+
+/* Page heading naming the active view, above the toolbar. */
+.page-title {
+  margin: 0;
+  padding: 22px 44px 0;
+  text-align: center;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+  color: var(--text);
 }
 
 /* ===== Araç Çubuğu (kitaplık seçici + kitap ekle) ===== */
@@ -424,9 +450,9 @@ html, body, #root {
 .ai-chat-fab {
   position: fixed;
   right: 40px;
-  bottom: 36px;
-  width: 56px;
-  height: 56px;
+  bottom: var(--fab-bottom);
+  width: var(--fab-size);
+  height: var(--fab-size);
   border-radius: 50%;
   border: none;
   cursor: pointer;
@@ -703,6 +729,28 @@ html, body, #root {
 
 .delete-card-btn:hover {
   background: var(--danger-soft);
+}
+
+.shelf-row-count {
+  margin-left: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Long author lists stop at two lines; the full text is in the cell title. */
+.table-author-cell {
+  min-width: 120px;
+}
+
+.table-author {
+  display: -webkit-box;
+  max-width: 240px;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 .table-delete-btn {
@@ -1019,6 +1067,10 @@ html, body, #root {
     padding: 16px 20px;
   }
 
+  .page-title {
+    padding: 18px 20px 0;
+  }
+
   .toolbar {
     padding: 16px 20px 0;
   }
@@ -1068,17 +1120,37 @@ html, body, #root {
     padding: 14px 16px;
   }
 
+  .page-title {
+    padding: 16px 16px 0;
+    font-size: 19px;
+  }
+
   .brand-word {
     font-size: 17px;
   }
 
+  /* Icon on top, short name below, on every tab. */
   .modern-tab-btn {
-    gap: 0;
-    padding: 9px 2px;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    padding: 7px 2px 6px;
+  }
+
+  .modern-tab-btn svg {
+    width: 20px;
+    height: 20px;
   }
 
   .modern-tab-btn .tab-label {
     display: none;
+  }
+
+  .modern-tab-btn .tab-label-short {
+    display: block;
+    font-size: 11px;
+    line-height: 1.1;
+    white-space: nowrap;
   }
 
   .account-chip-email {
@@ -1124,11 +1196,13 @@ html, body, #root {
     gap: 32px;
   }
 
+  :root {
+    --fab-size: 50px;
+    --fab-offset: 16px;
+  }
+
   .ai-chat-fab {
     right: 16px;
-    bottom: 16px;
-    width: 50px;
-    height: 50px;
   }
 
   /* .fab-add gercek bir position:fixed FAB degildi - LibraryToolbar'daki
@@ -1138,7 +1212,7 @@ html, body, #root {
   .fab-add {
     position: fixed;
     left: 16px;
-    bottom: 16px;
+    bottom: var(--fab-bottom);
     z-index: 40;
   }
 }

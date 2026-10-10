@@ -24,15 +24,19 @@ export const TableTabIcon = () => (
   </svg>
 );
 
+// Book spines and a leaning book on a shelf line. A lighter stroke keeps the
+// tightly packed spines from looking heavier than the other tab icons.
 export const ShelfTabIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M4 4v16M20 4v16M4 12h16" />
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+    <path d="M3 20.5h18" /><rect x="5" y="6" width="3.6" height="14.5" rx="0.8" />
+    <rect x="10.6" y="9" width="3.6" height="11.5" rx="0.8" /><path d="M16.4 20.5l2-10.8 3.3.7-1.8 10.1" />
   </svg>
 );
 
+// A bar chart on axes, matching the charts on the Statistics view.
 export const DashboardTabIcon = () => (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M4 19V5a2 2 0 0 1 2-2h11l3 3v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" /><path d="M8 12h8M8 16h5" />
+    <path d="M4 4v16h16" /><path d="M8.5 16v-4M12.5 16V8M16.5 16v-6" strokeWidth="2.4" />
   </svg>
 );
 

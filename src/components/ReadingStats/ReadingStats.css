@@ -63,23 +63,48 @@
   }
 }
 
+/* Phones: the three metrics stay on one row, each stacked as icon, value
+   and a label of at most two lines. */
 @media (max-width: 640px) {
   .reading-stats-card {
-    padding: 16px;
-    flex-wrap: wrap;
-    gap: 14px;
+    padding: 14px 12px;
+    gap: 8px;
   }
 
   .reading-stats-item {
-    flex: 1 1 40%;
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 6px;
+    text-align: center;
+  }
+
+  /* Keeps the value and label within the column so a long label wraps
+     instead of spilling out. */
+  .reading-stats-item > div {
+    max-width: 100%;
   }
 
   .reading-stats-divider {
     display: none;
   }
 
+  .reading-stats-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+
   .reading-stats-value {
-    font-size: 21px;
+    font-size: 20px;
+    white-space: nowrap;
+  }
+
+  .reading-stats-label {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    line-height: 1.25;
   }
 }
 

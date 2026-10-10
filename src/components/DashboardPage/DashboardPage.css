@@ -10,22 +10,12 @@
   flex-wrap: wrap;
 }
 
-.dashboard-title {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 19px;
-  margin: 0;
-}
-
-.dashboard-subtitle {
-  color: var(--text-secondary);
-  font-size: 12px;
-  margin: 2px 0 0;
-}
-
+/* Year select on the left, Share on the right. */
 .dashboard-header-actions {
+  flex: 1;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
 }

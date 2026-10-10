@@ -54,10 +54,7 @@ function LibraryToolbar({
             ariaLabel={t('toolbar.activeLibraryLabel')}
             value={activeLibraryId}
             onChange={onChangeActiveLibrary}
-            options={libraries.map((lib) => ({
-              value: lib.id,
-              label: `${lib.name} (${t('toolbar.shelfCountSuffix', { count: lib.shelfCount || 2 })})`,
-            }))}
+            options={libraries.map((lib) => ({ value: lib.id, label: lib.name }))}
           />
           <ChevronDownIcon />
         </div>

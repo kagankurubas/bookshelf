@@ -3,6 +3,15 @@ import { BookLogoIcon, GridTabIcon, TableTabIcon, ShelfTabIcon, DashboardTabIcon
 
 const LANGUAGES = ['tr', 'en'];
 
+// On phones each tab shows its short name under the icon; the full name
+// stays in the accessible name and the tooltip.
+const TABS = [
+  { view: 'cards', Icon: GridTabIcon, name: 'nav.cards', shortName: 'nav.cardsShort' },
+  { view: 'table', Icon: TableTabIcon, name: 'nav.table', shortName: 'nav.tableShort' },
+  { view: 'shelf', Icon: ShelfTabIcon, name: 'nav.shelf', shortName: 'nav.shelfShort' },
+  { view: 'dashboard', Icon: DashboardTabIcon, name: 'nav.dashboard', shortName: 'nav.dashboardShort' },
+];
+
 function AppHeader({ activeView, onChangeView, userEmail, onSignOut, onOpenSettings }) {
   const { t, i18n } = useTranslation();
 
@@ -14,20 +23,32 @@ function AppHeader({ activeView, onChangeView, userEmail, onSignOut, onOpenSetti
       </div>
 
       <nav className="modern-tabs">
-        <button className={`modern-tab-btn ${activeView === 'cards' ? 'active' : ''}`} onClick={() => onChangeView('cards')} aria-label={t('nav.cards')}>
-          <GridTabIcon /> <span className="tab-label">{t('nav.cards')}</span>
-        </button>
-        <button className={`modern-tab-btn ${activeView === 'table' ? 'active' : ''}`} onClick={() => onChangeView('table')} aria-label={t('nav.table')}>
-          <TableTabIcon /> <span className="tab-label">{t('nav.table')}</span>
-        </button>
-        <button className={`modern-tab-btn ${activeView === 'shelf' ? 'active' : ''}`} onClick={() => onChangeView('shelf')} aria-label={t('nav.shelf')}>
-          <ShelfTabIcon /> <span className="tab-label">{t('nav.shelf')}</span>
-        </button>
-        <button className={`modern-tab-btn ${activeView === 'dashboard' ? 'active' : ''}`} onClick={() => onChangeView('dashboard')} aria-label={t('nav.dashboard')}>
-          <DashboardTabIcon /> <span className="tab-label">{t('nav.dashboard')}</span>
-        </button>
-        <button className="modern-tab-btn" disabled style={{ cursor: 'not-allowed', opacity: 0.55 }} title={t('nav.exploreTooltip')} aria-label={t('nav.explore')}>
-          <CompassIcon /> <span className="tab-label">{t('nav.explore')}</span>
+        {TABS.map(({ view, Icon, name, shortName }) => (
+          <button
+            key={view}
+            type="button"
+            className={`modern-tab-btn ${activeView === view ? 'active' : ''}`}
+            onClick={() => onChangeView(view)}
+            aria-label={t(name)}
+            title={t(name)}
+            aria-current={activeView === view ? 'page' : undefined}
+          >
+            <Icon />
+            <span className="tab-label">{t(name)}</span>
+            <span className="tab-label-short" aria-hidden="true">{t(shortName)}</span>
+          </button>
+        ))}
+        <button
+          type="button"
+          className="modern-tab-btn"
+          disabled
+          style={{ cursor: 'not-allowed', opacity: 0.55 }}
+          title={t('nav.exploreTooltip')}
+          aria-label={t('nav.exploreSoonLabel')}
+        >
+          <CompassIcon />
+          <span className="tab-label">{t('nav.explore')}</span>
+          <span className="tab-label-short" aria-hidden="true">{t('nav.exploreShort')}</span>
           <span className="tab-badge">{t('nav.comingSoon')}</span>
         </button>
       </nav>

@@ -13,10 +13,16 @@
     "cards": "Books",
     "table": "Table",
     "shelf": "Bookshelf",
-    "dashboard": "Stats",
+    "dashboard": "Statistics",
     "explore": "Explore",
     "comingSoon": "SOON",
-    "exploreTooltip": "Coming very soon: your reading friends and a community"
+    "exploreTooltip": "Coming very soon: your reading friends and a community",
+    "cardsShort": "Books",
+    "tableShort": "Table",
+    "shelfShort": "Shelf",
+    "dashboardShort": "Stats",
+    "exploreShort": "Explore",
+    "exploreSoonLabel": "Explore (coming soon)"
   },
   "aiChat": {
     "fabTitle": "Book Assistant",
@@ -42,7 +48,6 @@
     "deleteLibrary": "Delete Library",
     "deleteLibraryTitle": "Delete This Library",
     "addBookTitle": "Add New Book",
-    "shelfCountSuffix": "{{count}} shelves",
     "nameRequired": "Library name can't be empty.",
     "activeLibraryLabel": "Active library"
   },
@@ -53,7 +58,6 @@
     "noRating": "—"
   },
   "dashboard": {
-    "title": "Statistics",
     "yearSelectLabel": "Select year",
     "allTime": "All Time",
     "yearlyTitle": "By Year",
@@ -112,7 +116,6 @@
     "delete": "Delete Book"
   },
   "table": {
-    "heading": "Book List & Filters",
     "searchPlaceholder": "Search by title, author, note, or tag...",
     "allCategories": "All Categories",
     "allAuthors": "All Authors",
@@ -134,10 +137,12 @@
     "deleteTitle": "Delete Book"
   },
   "shelf": {
-    "addRow": "Add Shelf",
-    "addRowTitle": "Add a new shelf row below",
-    "removeRow": "Remove Shelf",
-    "removeRowTitle": "Remove the bottom shelf row (its books move to the row above)",
+    "addRow": "Add row",
+    "addRowTitle": "Add a new row below",
+    "removeRow": "Remove row",
+    "removeRowTitle": "Remove the bottom row (its books move to the row above)",
+    "rowCount_one": "{{count}} row",
+    "rowCount_other": "{{count}} rows",
     "dragHint": "Drag to reorder",
     "emptyRowHint": "Drag books here",
     "emptyLibraryHint": "No books yet. Add your first one with the + button above.",
@@ -298,7 +303,7 @@
     "verifyLinkExpired": "That verification link has expired. Try signing in, or sign up again to get a new verification email.",
     "verifyLinkError": "That verification link is invalid. Sign up again to get a new verification email.",
     "promoTitle": "Your bookshelf, wherever you go.",
-    "promoSubtitle": "Track your books and organize your shelves — a community for sharing books with friends is coming soon, too."
+    "promoSubtitle": "Track your books and organize your libraries — a community for sharing books with friends is coming soon, too."
   },
   "settings": {
     "title": "Settings",

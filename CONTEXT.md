@@ -1,8 +1,21 @@
 # Bookshelf
 
-Kişisel kitap takip uygulaması: kullanıcılar kitaplarını raflara ekler, okuma durumlarını takip eder ve okuma istatistiklerini görür.
+Kişisel kitap takip uygulaması: kullanıcılar kitaplarını kitaplıklara ekler, okuma durumlarını takip eder ve okuma istatistiklerini görür.
 
 ## Language
+
+### Kitaplık
+
+**Kitaplık**: Kullanıcının adını verip kitaplarını grupladığı alan. Bir kitap birden fazla Kitaplıkta bulunabilir.
+_Avoid_: Raf (kitaplık anlamında), koleksiyon, liste
+
+**Ana Kitaplık**: Kullanıcının silinemeyen Kitaplığı. Kullanıcının ilk Kitaplığı Ana Kitaplık olur. Uygulama eklediği ve düzenlediği her kitabı Ana Kitaplığa da bağlar. İngilizce arayüzde "Main library".
+_Avoid_: varsayılan kitaplık (arayüzde)
+
+**Raf**: Kitaplığın kitaplarını sırtlarıyla Katlar üzerinde gösteren görünüm. Sekme adı "Kitaplık Rafı" (kısa adı "Raf"); İngilizce arayüzde "Bookshelf" (kısa adı "Shelf").
+
+**Kat**: Raf görünümündeki yatay kitap sırası; her Kitaplığın en az bir Katı vardır. Yalnızca Raf görünümündeki yerleşimi belirler. İngilizce arayüzde "row".
+_Avoid_: raf (sıra anlamında), shelf (EN'de sıra anlamında)
 
 ### Kitap Durumu
 
@@ -11,7 +24,7 @@ _Avoid_: Bitti, Okundu (durum adı olarak)
 
 **Okunuyor**: Kullanıcının şu anda okumakta olduğu kitap durumu.
 
-**Başlanmadı**: Kullanıcının rafa eklediği ama henüz okumaya başlamadığı kitap durumu.
+**Başlanmadı**: Kullanıcının kitaplığa eklediği ama henüz okumaya başlamadığı kitap durumu.
 
 **Yarıda Bırakıldı**: Kullanıcının okumaya başlayıp bitirmeden bıraktığı kitap durumu. Okuma istatistiklerinde ve Okuma Özeti'nde "okunmuş" sayılmaz.
 

@@ -16,7 +16,13 @@
     "dashboard": "İstatistikler",
     "explore": "Keşfet",
     "comingSoon": "YAKINDA",
-    "exploreTooltip": "Çok yakında: kitap arkadaşların ve topluluk"
+    "exploreTooltip": "Çok yakında: kitap arkadaşların ve topluluk",
+    "cardsShort": "Kitaplar",
+    "tableShort": "Tablo",
+    "shelfShort": "Raf",
+    "dashboardShort": "İstatistik",
+    "exploreShort": "Keşfet",
+    "exploreSoonLabel": "Keşfet (yakında)"
   },
   "aiChat": {
     "fabTitle": "Kitap Asistanı",
@@ -42,7 +48,6 @@
     "deleteLibrary": "Kitaplığı Sil",
     "deleteLibraryTitle": "Bu Kitaplığı Sil",
     "addBookTitle": "Yeni Kitap Ekle",
-    "shelfCountSuffix": "{{count}} Kat",
     "nameRequired": "Kitaplık adı boş olamaz.",
     "activeLibraryLabel": "Aktif kitaplık"
   },
@@ -53,7 +58,6 @@
     "noRating": "—"
   },
   "dashboard": {
-    "title": "İstatistikler",
     "yearSelectLabel": "Yıl seç",
     "allTime": "Tüm Zamanlar",
     "yearlyTitle": "Yıllara Göre",
@@ -112,7 +116,6 @@
     "delete": "Kitabı Sil"
   },
   "table": {
-    "heading": "Kitap Listesi & Filtreleme",
     "searchPlaceholder": "Başlık, yazar, not veya etiket ara...",
     "allCategories": "Tüm Kategoriler",
     "allAuthors": "Tüm Yazarlar",
@@ -134,10 +137,12 @@
     "deleteTitle": "Kitabı Sil"
   },
   "shelf": {
-    "addRow": "Raf Ekle",
-    "addRowTitle": "Altına yeni bir raf katı ekle",
-    "removeRow": "Raf Sil",
-    "removeRowTitle": "En alttaki rafı kaldır (kitapları üstteki rafa taşınır)",
+    "addRow": "Kat Ekle",
+    "addRowTitle": "Altına yeni bir kat ekle",
+    "removeRow": "Kat Sil",
+    "removeRowTitle": "En alttaki katı kaldır (kitapları üstteki kata taşınır)",
+    "rowCount_one": "{{count}} kat",
+    "rowCount_other": "{{count}} kat",
     "dragHint": "Sürükleyerek yer değiştirebilirsin",
     "emptyRowHint": "Kitapları buraya sürükle",
     "emptyLibraryHint": "Henüz kitap yok. Üstteki + butonuyla ilk kitabını ekleyebilirsin.",
@@ -298,7 +303,7 @@
     "verifyLinkExpired": "Doğrulama linkinin süresi dolmuş. Giriş yapmayı dene ya da tekrar kayıt olup yeni bir doğrulama e-postası iste.",
     "verifyLinkError": "Doğrulama linki geçersiz. Tekrar kayıt olup yeni bir doğrulama e-postası iste.",
     "promoTitle": "Kitaplığın, her yerde yanında.",
-    "promoSubtitle": "Kitaplarını takip et, raflarını düzenle — yakında arkadaşlarınla kitap paylaşabileceğin bir topluluk da burada olacak."
+    "promoSubtitle": "Kitaplarını takip et, kitaplıklarını düzenle — yakında arkadaşlarınla kitap paylaşabileceğin bir topluluk da burada olacak."
   },
   "settings": {
     "title": "Ayarlar",
