@@ -48,7 +48,6 @@
     "deleteLibrary": "Delete Library",
     "deleteLibraryTitle": "Delete This Library",
     "addBookTitle": "Add New Book",
-    "shelfCountSuffix": "{{count}} shelves",
     "nameRequired": "Library name can't be empty.",
     "activeLibraryLabel": "Active library"
   },
@@ -138,10 +137,12 @@
     "deleteTitle": "Delete Book"
   },
   "shelf": {
-    "addRow": "Add Shelf",
-    "addRowTitle": "Add a new shelf row below",
-    "removeRow": "Remove Shelf",
-    "removeRowTitle": "Remove the bottom shelf row (its books move to the row above)",
+    "addRow": "Add row",
+    "addRowTitle": "Add a new row below",
+    "removeRow": "Remove row",
+    "removeRowTitle": "Remove the bottom row (its books move to the row above)",
+    "rowCount_one": "{{count}} row",
+    "rowCount_other": "{{count}} rows",
     "dragHint": "Drag to reorder",
     "emptyRowHint": "Drag books here",
     "emptyLibraryHint": "No books yet. Add your first one with the + button above.",

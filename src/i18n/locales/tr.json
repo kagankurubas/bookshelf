@@ -48,7 +48,6 @@
     "deleteLibrary": "Kitaplığı Sil",
     "deleteLibraryTitle": "Bu Kitaplığı Sil",
     "addBookTitle": "Yeni Kitap Ekle",
-    "shelfCountSuffix": "{{count}} Kat",
     "nameRequired": "Kitaplık adı boş olamaz.",
     "activeLibraryLabel": "Aktif kitaplık"
   },
@@ -138,10 +137,12 @@
     "deleteTitle": "Kitabı Sil"
   },
   "shelf": {
-    "addRow": "Raf Ekle",
-    "addRowTitle": "Altına yeni bir raf katı ekle",
-    "removeRow": "Raf Sil",
-    "removeRowTitle": "En alttaki rafı kaldır (kitapları üstteki rafa taşınır)",
+    "addRow": "Kat Ekle",
+    "addRowTitle": "Altına yeni bir kat ekle",
+    "removeRow": "Kat Sil",
+    "removeRowTitle": "En alttaki katı kaldır (kitapları üstteki kata taşınır)",
+    "rowCount_one": "{{count}} kat",
+    "rowCount_other": "{{count}} kat",
     "dragHint": "Sürükleyerek yer değiştirebilirsin",
     "emptyRowHint": "Kitapları buraya sürükle",
     "emptyLibraryHint": "Henüz kitap yok. Üstteki + butonuyla ilk kitabını ekleyebilirsin.",

@@ -733,6 +733,14 @@ html, body, #root {
   background: var(--danger-soft);
 }
 
+.shelf-row-count {
+  margin-left: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 /* Long author lists stop at two lines; the full text is in the cell title. */
 .table-author-cell {
   min-width: 120px;
