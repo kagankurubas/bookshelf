@@ -9,7 +9,7 @@ Tek branch (`mobile-nav-clarity`), tek PR. Varsayılan Kitaplık işinden bağı
 1. **Sekmeler:** A. 480 px altında simge üstte, kısa ad altta, her sekmede.
    - Kısa adlar: TR Kitaplar / Tablo / Raf / İstatistik / Keşfet, EN Books / Table / Shelf / Stats / Explore.
    - Keşfet mobilde gizlenmez.
-   - Tam adlar sekme düğmesinin `aria-label`'ında ve `title`'ında kalır.
+   - Tam adlar sekme düğmesinin `aria-label`'ında ve `title`'ında kalır. İstisna: Keşfet'in `title`'ı mevcut ipucu metni ("Çok yakında: kitap arkadaşların ve topluluk") olarak kalır; tam adı ve "yakında" bilgisi `aria-label`'da (kullanıcı kararı, 2026-10-10).
    - "İstatistik" 360 px'te taşarsa önce yazı 10 px'e iner ve dolgu azaltılır. Ölçüm: Manrope 600, 11 px'te "İstatistik" 46–47 px; 360 px'te sekme başına 56 px var. Sığıyor, düşürmek gerekmiyor; 10 px yedek olarak kalır.
    - Simgeler, 20 ve 24 px'te render edilip incelendi:
      - Raf: **S1** (raf çizgisi üzerinde iki kitap sırtı ve yaslanan bir kitap).
@@ -27,7 +27,7 @@ Tek branch (`mobile-nav-clarity`), tek PR. Varsayılan Kitaplık işinden bağı
 
 Aşağıdaki "Open decisions" bölümü karşılaştırma kaydı olarak duruyor; seçilen seçenekler yukarıda.
 
-**Seçilen simgeler** (prototipten, viewBox 24, stroke 2, `fill="none"`):
+**Seçilen simgeler** (prototipten, viewBox 24, stroke 2, `fill="none"`; Raf simgesi S1 uygulamada stroke 1.6, bkz. ticket 02):
 
 ```html
 <!-- ShelfTabIcon (S1) -->
@@ -223,7 +223,7 @@ Seçilen seçenekte sayılı metin i18next çoğul anahtarlarıyla yazılır (`_
   - Sekme kısa adları ayrı bir anahtar grubundan gelir (karar 1-A ya da C).
   - Keşfet'in görünümü olmadığı için başlığı yok.
 - **Eski başlıkların kaldırılması.**
-  - İstatistikler: kendi `h1`'i ve kitaplık adı alt başlığı kaldırılır; kitaplık adı zaten araç çubuğundaki seçicide görünüyor. Yıl seçici ve "Paylaş" düğmesi yerinde kalır.
+  - İstatistikler: kendi `h1`'i ve kitaplık adı alt başlığı kaldırılır; kitaplık adı zaten araç çubuğundaki seçicide görünüyor. Yıl seçici ve "Paylaş" düğmesi yerinde kalır. (Uygulamada başlık bloğu kalkınca kullanıcı kararıyla yıl seçici sola, Paylaş sağa alındı; bkz. ticket 01.)
   - Tablo: kendi `h2`'si kaldırılır, filtreler yerinde kalır.
   - `dashboard.title` ve `table.heading` anahtarları başka yerde kullanılmıyorsa iki dilden birlikte silinir.
   - Sayfada tek `h1` olur.
