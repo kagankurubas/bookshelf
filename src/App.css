@@ -1,8 +1,8 @@
 /* ===== Tasarım Tokenleri ===== */
 :root {
-  /* Fixed corner buttons: the tallest one's size, its distance from the
-     bottom, and the margin kept above it. The page's bottom padding is
-     derived from these, so it follows any change to the buttons. */
+  /* The AI button's size and distance from the bottom, and the margin kept
+     above it; the page's bottom padding (--fab-clearance) follows them. The
+     add button is a fixed 44px, smaller than the AI button, so it is covered. */
   --fab-size: 56px;
   --fab-offset: 36px;
   --fab-margin: 16px;
@@ -71,8 +71,6 @@ html, body, #root {
   box-sizing: border-box;
 }
 
-/* The bottom padding keeps the last item on a page clear of the fixed
-   corner buttons (see --fab-clearance). */
 .main-container {
   width: 100% !important;
   max-width: none !important;
