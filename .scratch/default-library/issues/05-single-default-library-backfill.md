@@ -29,3 +29,14 @@
 - [ ] Entegrasyon (doğrudan Postgres): kitaplıksız kullanıcı için backfill ilk çalıştırmada tam olarak bir Ana Kitaplık açar, ikinci çalıştırmada hiçbir satır değiştirmez
 - [ ] Mevcut `tests/integration/rls` paketinin tamamı yerelde ve CI'da yeşil
 - [ ] `supabase start` temiz bir DB'de 001–016'yı hatasız uygular
+
+## Sözlük notları (CONTEXT.md, mobile-nav-clarity ticket 06'dan taşındı, 2026-10-10)
+
+CONTEXT.md'deki Kitaplık / Ana Kitaplık / Kat tanımları yazılırken kodda doğrulanan, ama bugün yalnızca uygulamada zorlanan kurallar. PR B ya da sonrası için girdi:
+
+- **"Her kitap Ana Kitaplıkta da bulunur" kanıtlanamadı, tanıma girmedi.** Uygulamanın kitap yazdığı her yol 028f73e'den (2026-08-25) beri kitabı Ana Kitaplığa da bağlıyor: `useLibrary.withDefaultLibrary` (ekleme, düzenleme, toplu tarama), `ImportPreviewModal` (yalnızca Ana Kitaplık), `queuedBookRepair` (çevrimdışı kuyruk). Veritabanında bunu zorlayan kısıt ya da tetikleyici yok. Migration 007 yalnızca hiç kitaplığı olmayan kitapları Ana Kitaplığa bağladı; yalnızca başka bir Kitaplıkta olan eski kitaplara dokunmadı. Canlı veriye sorgu atılmadı. Arayüzdeki `bookModal.defaultLibraryHint` ("her kitap burada bulunur" / "every book lives here") bu iddiayı hâlâ taşıyor.
+- **"Tam olarak bir Ana Kitaplık":** bugün yalnızca istemci sağlıyor (ilk Kitaplık Ana olur; `useLibraries` ikinci Ana Kitaplığı reddeden indeks hatasını yakalar). Bu ticket'taki `libraries_one_default_per_user_idx` gelince CONTEXT.md'ye "her kullanıcının tam olarak bir Ana Kitaplığı vardır" eklenebilir.
+- **Ana işaretli değilse** `findDefaultLibrary` ilk Kitaplığı Ana sayar.
+- **"Silinemeyen":** arayüz silme düğmesini göstermiyor (`LibraryToolbar`) ve `useLibraries.deleteLibrary` reddediyor; veritabanında engel yok.
+- **"En az bir Kat":** Kat Sil düğmesi yalnızca 1'den fazla Kat varken görünür, `useShelfDnd` de 1'in altına inmez; veritabanında kural yok (`shelf_count` için kontrol kısıtı yok).
+- **Kat sayısı boşsa** (`shelf_count` null) uygulama 2 sayar (`App.jsx`, `useShelfDnd`).
